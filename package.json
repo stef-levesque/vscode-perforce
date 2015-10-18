@@ -6,6 +6,11 @@
 		"vscode": "*"
 	},
 	"description": "Perforce basic commands",
+	"keywords": [
+		"vscode",
+		"perforce"
+	],
+	"icon": "icon.png",
 	"main": "./perforce",
 	"contributes": {
 		"commands": [
