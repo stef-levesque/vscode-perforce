@@ -20,6 +20,11 @@
 				"category": "Perforce"
 			},
 			{
+				"command": "perforce.add",
+				"title": "Add file",
+				"category": "Perforce"
+			},
+			{
 				"command": "perforce.edit",
 				"title": "Checkout file",
 				"category": "Perforce"
@@ -28,12 +33,21 @@
 				"command": "perforce.revert",
 				"title": "Revert file",
 				"category": "Perforce"
+			},
+			{
+				"command": "perforce.diff",
+				"title": "Diff file",
+				"category": "Perforce"
 			}
 		],
 		"keybindings": [
 			{
 				"key": "alt+p l",
-				"command": "perforce.showOutput",
+				"command": "perforce.showOutput"
+			},
+			{
+				"key": "alt+p a",
+				"command": "perforce.add",
 				"when": "editorTextFocus"
 			},
 			{
@@ -45,7 +59,12 @@
 				"key": "alt+p r",
 				"command": "perforce.revert",
 				"when": "editorTextFocus"
-			}			
+			},
+			{
+				"key": "alt+p d",
+				"command": "perforce.diff",
+				"when": "editorTextFocus"
+			}
 		],
 		"outputChannels": [
 			"Perforce Log"
