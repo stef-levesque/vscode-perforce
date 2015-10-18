@@ -15,32 +15,41 @@
 	"contributes": {
 		"commands": [
 			{
+				"command": "perforce.menuFunctions",
+				"title": "Show Perforce functions",
+				"category": "Perforce"
+			},
+			{
 				"command": "perforce.showOutput",
 				"title": "Show Output",
 				"category": "Perforce"
 			},
 			{
 				"command": "perforce.add",
-				"title": "Add file",
+				"title": "add - Open a new file to add it to the depot",
 				"category": "Perforce"
 			},
 			{
 				"command": "perforce.edit",
-				"title": "Checkout file",
+				"title": "edit - Open an existing file for edit",
 				"category": "Perforce"
 			},
 			{
 				"command": "perforce.revert",
-				"title": "Revert file",
+				"title": "revert - Discard changes from an opened file",
 				"category": "Perforce"
 			},
 			{
 				"command": "perforce.diff",
-				"title": "Diff file",
+				"title": "diff - Display diff of client file with depot file",
 				"category": "Perforce"
 			}
 		],
 		"keybindings": [
+			{
+				"key": "alt+p space",
+				"command": "perforce.menuFunctions"
+			},
 			{
 				"key": "alt+p l",
 				"command": "perforce.showOutput"

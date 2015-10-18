@@ -2,13 +2,10 @@
 
 var vscode = require('vscode');
 var CP = require('child_process');
+var window = vscode.window;
 
 var isWin = /^win/.test(process.platform);
-var _channel = vscode.window.getOutputChannel('Perforce Log');
-var exec = "p4";
-if (isWin) {
-	exec += ".exe";
-}
+var _channel = window.getOutputChannel('Perforce Log');
 
 function activate() {
 	_channel.appendLine("Perforce Log Output");
@@ -18,6 +15,7 @@ function activate() {
 	vscode.commands.registerCommand('perforce.edit', p_edit);
 	vscode.commands.registerCommand('perforce.revert', p_revert);
 	vscode.commands.registerCommand('perforce.diff', p_diff);
+	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
 }
 exports.activate = activate;
 
@@ -41,9 +39,9 @@ function p_showOutput() {
 }
 
 function p_add() {
-	var editor = vscode.window.getActiveTextEditor();
+	var editor = window.getActiveTextEditor();
 	if (!editor) {
-		vscode.window.showInformationMessage("Perforce: no file selected");
+		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
 	var uri = editor.getTextDocument().getUri();
@@ -57,16 +55,16 @@ function p_add() {
 			_channel.append(stderr.toString());
 		}
 		else {
-			vscode.window.showInformationMessage("Perforce: file opened for add");
+			window.showInformationMessage("Perforce: file opened for add");
 			_channel.append(stdout.toString());
 		}
 	});
 }
 
 function p_edit() {
-	var editor = vscode.window.getActiveTextEditor();
+	var editor = window.getActiveTextEditor();
 	if (!editor) {
-		vscode.window.showInformationMessage("Perforce: no file selected");
+		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
 	var uri = editor.getTextDocument().getUri();
@@ -80,16 +78,16 @@ function p_edit() {
 			_channel.append(stderr.toString());
 		}
 		else {
-			vscode.window.showInformationMessage("Perforce: file opened for edit");
+			window.showInformationMessage("Perforce: file opened for edit");
 			_channel.append(stdout.toString());
 		}
 	});
 }
 
 function p_revert() {
-	var editor = vscode.window.getActiveTextEditor();
+	var editor = window.getActiveTextEditor();
 	if (!editor) {
-		vscode.window.showInformationMessage("Perforce: no file selected");
+		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
 	var uri = editor.getTextDocument().getUri();
@@ -103,16 +101,16 @@ function p_revert() {
 			_channel.append(stderr.toString());
 		}
 		else {
-			vscode.window.showInformationMessage("Perforce: file reverted");
+			window.showInformationMessage("Perforce: file reverted");
 			_channel.append(stdout.toString());
 		}
 	});
 }
 
 function p_diff() {
-	var editor = vscode.window.getActiveTextEditor();
+	var editor = window.getActiveTextEditor();
 	if (!editor) {
-		vscode.window.showInformationMessage("Perforce: no file selected");
+		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
 	var uri = editor.getTextDocument().getUri();
@@ -134,3 +132,28 @@ function p_diff() {
 	});
 }
 
+function p_menuFunction() {
+	var items = [];
+	items.push({ label: "add", description: "Open a new file to add it to the depot" });
+	items.push({ label: "edit", description: "Open an existing file for edit" });
+	items.push({ label: "revert", description: "Discard changes from an opened file" });
+	items.push({ label: "diff", description: "Display diff of client file with depot file" });
+	window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
+		switch (selection.label) {
+			case "add":
+				p_add();
+				break;
+			case "edit":
+				p_edit();
+				break;
+			case "revert":
+				p_revert();
+				break;
+			case "diff":
+				p_diff();
+				break;
+			default:
+				break;
+		}
+	});
+}
