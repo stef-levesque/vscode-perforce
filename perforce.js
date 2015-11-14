@@ -1,15 +1,13 @@
-'use strict';
-
 var vscode = require('vscode');
 var CP = require('child_process');
 var window = vscode.window;
 
 var isWin = /^win/.test(process.platform);
-var _channel = window.getOutputChannel('Perforce Log');
+var _channel = window.createOutputChannel('Perforce Log');
 
 function activate() {
 	_channel.appendLine("Perforce Log Output");
-
+	
 	vscode.commands.registerCommand('perforce.showOutput', p_showOutput);
 	vscode.commands.registerCommand('perforce.add', p_add);
 	vscode.commands.registerCommand('perforce.edit', p_edit);
@@ -35,7 +33,7 @@ function buildCmdline(command, args)
 }
 
 function p_showOutput() {
-	_channel.reveal();
+	_channel.show();
 }
 
 function p_add() {
@@ -50,7 +48,7 @@ function p_add() {
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, function (err, stdout, stderr) {
 		if(err){
-			_channel.reveal();
+			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
 		}
@@ -73,7 +71,7 @@ function p_edit() {
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, function (err, stdout, stderr) {
 		if(err){
-			_channel.reveal();
+			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
 		}
@@ -96,7 +94,7 @@ function p_revert() {
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, function (err, stdout, stderr) {
 		if(err){
-			_channel.reveal();
+			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
 		}
@@ -117,16 +115,17 @@ function p_diff() {
 	var cmdline = buildCmdline("diff", '"' + uri.fsPath + '"');
 	
 	//TODO: show in a 'compare' window
+	//vscode.commands.executeCommand("workbench.files.action.compareFileWith", uri.fsPath);
 	
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, function (err, stdout, stderr) {
 		if(err){
-			_channel.reveal();
+			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
 		}
 		else {
-			_channel.reveal();
+			_channel.show();
 			_channel.append(stdout.toString());
 		}
 	});

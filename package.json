@@ -1,10 +1,10 @@
 {
 	"name": "perforce",
-	"version": "0.0.3",
+	"version": "0.1.0",
 	"publisher": "slevesque",
 	"license": "SEE LICENSE IN LICENSE.md",
 	"engines": {
-		"vscode": "*"
+		"vscode": "0.10.x"
 	},
 	"description": "Perforce basic commands",
 	"keywords": [
@@ -75,12 +75,9 @@
 				"command": "perforce.diff",
 				"when": "editorTextFocus"
 			}
-		],
-		"outputChannels": [
-			"Perforce Log"
 		]
 	},
 	"devDependencies": {
-		"vscode": "*"
+		"vscode": "0.10.x"
 	}
 }
