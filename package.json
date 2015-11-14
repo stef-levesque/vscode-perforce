@@ -1,17 +1,33 @@
 {
 	"name": "perforce",
+	"displayName": "Perforce for VS Code",
+	"description": "Perforce basic commands for Visual Studio Code",
 	"version": "0.1.0",
 	"publisher": "slevesque",
+	"categories":[
+		"Other"
+	],
 	"license": "SEE LICENSE IN LICENSE.md",
+	"icon": "icon.png",
+	"bugs": {
+		"url": "https://github.com/stef-levesque/vscode-perforce/issues"
+	},
+	"homepage": "https://github.com/stef-levesque/vscode-perforce/blob/master/README.md",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/stef-levesque/vscode-perforce.git"
+	},
+	"galleryBanner": {
+		"color": "#5c2d91",
+		"theme": "dark"
+	},
 	"engines": {
 		"vscode": "0.10.x"
 	},
-	"description": "Perforce basic commands",
 	"keywords": [
 		"vscode",
 		"perforce"
 	],
-	"icon": "icon.png",
 	"main": "./perforce",
 	"contributes": {
 		"commands": [
