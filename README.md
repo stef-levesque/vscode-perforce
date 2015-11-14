@@ -1,6 +1,10 @@
 # vscode-perforce
--------------------
+
 Perforce basic commands for Visual Studio Code
+* `add` - Open a new file to add it to the depot
+* `edit` - Open an existing file for edit
+* `revert` - Discard changes from an opened file
+* `diff` - Display diff of client file with depot file
 
 ## Installation
 
@@ -19,7 +23,7 @@ Simply copy the files to your vscode **extensions** folder
 
 ## Requirements
 
-Visual Studio Code v0.9.0 (October 2015)
+Visual Studio Code v0.10.x (November 2015)
 
 ## Credits
 
