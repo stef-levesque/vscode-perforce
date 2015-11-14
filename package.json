@@ -2,6 +2,7 @@
 	"name": "perforce",
 	"version": "0.0.3",
 	"publisher": "slevesque",
+	"license": "SEE LICENSE IN LICENSE.md",
 	"engines": {
 		"vscode": "*"
 	},
