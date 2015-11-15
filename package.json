@@ -29,6 +29,14 @@
 		"perforce"
 	],
 	"main": "./perforce",
+	"activationEvents": [
+		"onCommand:perforce.menuFunctions",
+		"onCommand:perforce.showOutput",
+		"onCommand:perforce.add",
+		"onCommand:perforce.edit",
+		"onCommand:perforce.revert",
+		"onCommand:perforce.diff"
+	],
 	"contributes": {
 		"commands": [
 			{
