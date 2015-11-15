@@ -37,12 +37,12 @@ function p_showOutput() {
 }
 
 function p_add() {
-	var editor = window.getActiveTextEditor();
+	var editor = window.activeTextEditor;
 	if (!editor) {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
-	var uri = editor.getTextDocument().getUri();
+	var uri = editor.document.uri;
 	var cmdline = buildCmdline("add", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
@@ -60,12 +60,12 @@ function p_add() {
 }
 
 function p_edit() {
-	var editor = window.getActiveTextEditor();
+	var editor = window.activeTextEditor;
 	if (!editor) {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
-	var uri = editor.getTextDocument().getUri();
+	var uri = editor.document.uri;
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
@@ -83,12 +83,12 @@ function p_edit() {
 }
 
 function p_revert() {
-	var editor = window.getActiveTextEditor();
+	var editor = window.activeTextEditor;
 	if (!editor) {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
-	var uri = editor.getTextDocument().getUri();
+	var uri = editor.document.uri;
 	var cmdline = buildCmdline("revert", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
@@ -106,12 +106,12 @@ function p_revert() {
 }
 
 function p_diff() {
-	var editor = window.getActiveTextEditor();
+	var editor = window.activeTextEditor;
 	if (!editor) {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
-	var uri = editor.getTextDocument().getUri();
+	var uri = editor.document.uri;
 	var cmdline = buildCmdline("diff", '"' + uri.fsPath + '"');
 	
 	//TODO: show in a 'compare' window
@@ -138,6 +138,8 @@ function p_menuFunction() {
 	items.push({ label: "revert", description: "Discard changes from an opened file" });
 	items.push({ label: "diff", description: "Display diff of client file with depot file" });
 	window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
+		if(selection == undefined)
+			return;
 		switch (selection.label) {
 			case "add":
 				p_add();
