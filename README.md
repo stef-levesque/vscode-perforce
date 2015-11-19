@@ -29,3 +29,7 @@ Visual Studio Code v0.10.x (November 2015)
 
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [vscode-docs on GitHub](https://github.com/Microsoft/vscode-docs)
+
+## License
+
+[MIT](LICENSE.md)

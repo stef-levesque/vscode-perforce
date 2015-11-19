@@ -13,6 +13,7 @@ function activate() {
 	vscode.commands.registerCommand('perforce.edit', p_edit);
 	vscode.commands.registerCommand('perforce.revert', p_revert);
 	vscode.commands.registerCommand('perforce.diff', p_diff);
+	vscode.commands.registerCommand('perforce.info', p_info);
 	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
 }
 exports.activate = activate;
@@ -131,12 +132,30 @@ function p_diff() {
 	});
 }
 
+function p_info() {
+	var cmdline = buildCmdline("info");
+	
+	_channel.appendLine(cmdline);
+	CP.exec(cmdline, function (err, stdout, stderr) {
+		if(err){
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(stderr.toString());
+		}
+		else {
+			_channel.show();
+			_channel.append(stdout.toString());
+		}
+	});
+}
+
 function p_menuFunction() {
 	var items = [];
 	items.push({ label: "add", description: "Open a new file to add it to the depot" });
 	items.push({ label: "edit", description: "Open an existing file for edit" });
 	items.push({ label: "revert", description: "Discard changes from an opened file" });
 	items.push({ label: "diff", description: "Display diff of client file with depot file" });
+	items.push({ label: "info", description: "Display client/server information" });
 	window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
 		if(selection == undefined)
 			return;
@@ -152,6 +171,9 @@ function p_menuFunction() {
 				break;
 			case "diff":
 				p_diff();
+				break;
+			case "info":
+				p_info();
 				break;
 			default:
 				break;

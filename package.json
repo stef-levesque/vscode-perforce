@@ -2,7 +2,7 @@
 	"name": "perforce",
 	"displayName": "Perforce for VS Code",
 	"description": "Perforce basic commands for Visual Studio Code",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"publisher": "slevesque",
 	"categories":[
 		"Other"
@@ -35,7 +35,8 @@
 		"onCommand:perforce.add",
 		"onCommand:perforce.edit",
 		"onCommand:perforce.revert",
-		"onCommand:perforce.diff"
+		"onCommand:perforce.diff",
+		"onCommand:perforce.info"
 	],
 	"contributes": {
 		"commands": [
@@ -68,6 +69,11 @@
 				"command": "perforce.diff",
 				"title": "diff - Display diff of client file with depot file",
 				"category": "Perforce"
+			},
+			{
+				"command": "perforce.info",
+				"title": "info - Display client/server information",
+				"category": "Perforce"
 			}
 		],
 		"keybindings": [
@@ -98,6 +104,10 @@
 				"key": "alt+p d",
 				"command": "perforce.diff",
 				"when": "editorTextFocus"
+			},
+			{
+				"key": "alt+p i",
+				"command": "perforce.info"
 			}
 		]
 	},
