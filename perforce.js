@@ -1,6 +1,7 @@
 var vscode = require('vscode');
 var CP = require('child_process');
 var window = vscode.window;
+var workspace = vscode.workspace;
 
 var isWin = /^win/.test(process.platform);
 var _channel = window.createOutputChannel('Perforce Log');
@@ -43,11 +44,15 @@ function p_add() {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("add", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
-	CP.exec(cmdline, function (err, stdout, stderr) {
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
@@ -66,11 +71,15 @@ function p_edit() {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
-	CP.exec(cmdline, function (err, stdout, stderr) {
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
@@ -89,11 +98,15 @@ function p_revert() {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("revert", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
-	CP.exec(cmdline, function (err, stdout, stderr) {
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
@@ -112,6 +125,10 @@ function p_diff() {
 		window.showInformationMessage("Perforce: no file selected");
 		return;
 	}
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("diff", '"' + uri.fsPath + '"');
 	
@@ -119,7 +136,7 @@ function p_diff() {
 	//vscode.commands.executeCommand("workbench.files.action.compareFileWith", uri.fsPath);
 	
 	_channel.appendLine(cmdline);
-	CP.exec(cmdline, function (err, stdout, stderr) {
+	CP.exec(cmdline, {cwd:workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
@@ -134,9 +151,17 @@ function p_diff() {
 
 function p_info() {
 	var cmdline = buildCmdline("info");
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
 	
 	_channel.appendLine(cmdline);
-	CP.exec(cmdline, function (err, stdout, stderr) {
+	CP.exec(cmdline, {cwd:workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
