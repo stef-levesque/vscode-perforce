@@ -272,10 +272,82 @@ function p_checkFileOpened(uri, onSuccess) {
 	return true;
 }
 
-function w_onFileSaved(doc) {
-	p_checkFileOpened(doc.uri, function(uri) {
-		p_editUri(uri);
+function p_getClientRoot(onSuccess, onFailure) {
+	var cmdline = buildCmdline("info");
+	
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
+	
+	_channel.appendLine(cmdline);
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+		if(err){
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(stderr.toString());
+			onFailure();
+		}
+		else {
+			var stdoutString = stdout.toString();
+			_channel.append(stdoutString);
+			
+			var clientRootIndex = stdoutString.indexOf('Client root: ');
+			if(clientRootIndex === -1) {
+				_channel.appendLine("ERROR: P4 Info didn't specify a valid Client Root path");
+				onFailure();
+				return -1;
+			}
+			
+			//Set index to after 'Client Root: '
+			clientRootIndex += 'Client root: '.length;
+			var endClientRootIndex = stdoutString.indexOf('\n', clientRootIndex);
+			if(endClientRootIndex === -1) {
+				_channel.appendLine("ERROR: P4 Info Client Root path contains unexpected format");
+				_channel.show();
+				onFailure();
+				return -1;
+			}
+			
+			//call onSuccess with path as arg
+			onSuccess(stdoutString.substring(clientRootIndex, endClientRootIndex));
+		}
 	});
+	
+	return true;
+}
+
+function fileInClientRoot(uri, onSuccess, onFailure) {
+	p_getClientRoot(function(clientRoot) {
+		//Convert to lower and Strip newlines from paths
+		clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
+		var filePath = uri.fsPath.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
+		
+		//Check if p4 Client Root is in uri's path
+		if(filePath.indexOf(clientRoot) !== -1) {
+			onSuccess();			
+		} else {
+			onFailure();
+		}
+	}, onFailure);
+}
+
+function w_onFileSaved(doc) {
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
+	
+	var fileNotInClientRoot = function() {
+		window.showInformationMessage("Perforce: File not in P4 Client Root");
+	}
+	
+	//The callbacks make me cry at night :(
+	fileInClientRoot(doc.uri, function() {	
+		p_checkFileOpened(doc.uri, function(uri) {
+			p_editUri(uri);
+		});
+	}, fileNotInClientRoot);
 }
 
 function w_onFileDeleted(uri) {
