@@ -181,10 +181,7 @@ function p_diff() {
 
 function p_info() {
 	var cmdline = buildCmdline("info");
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
-	}
+
 	if (workspace.rootPath == undefined){
 		window.showInformationMessage("Perforce: no folder opened");
 		return;
