@@ -34,20 +34,39 @@ function buildCmdline(command, args)
 	return cmdline;
 }
 
+function checkFolderOpened() {
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: No folder opened");
+		return false;
+	}
+	
+	return true;
+}
+
+function checkFileSelected() {
+	var editor = window.activeTextEditor;
+	if (!editor) {
+		window.showInformationMessage("Perforce: No file selected");
+		return false;
+	}
+	
+	return true;
+}
+
 function p_showOutput() {
 	_channel.show();
 }
 
 function p_add() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	
+	if(!checkFolderOpened()) {
+		return false;
 	}
+	
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("add", '"' + uri.fsPath + '"');
 	
@@ -67,13 +86,11 @@ function p_add() {
 
 function p_edit() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if(!checkFolderOpened()) {
+		return false;
 	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
@@ -94,13 +111,11 @@ function p_edit() {
 
 function p_revert() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if(!checkFolderOpened()) {
+		return false;
 	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("revert", '"' + uri.fsPath + '"');
@@ -121,13 +136,11 @@ function p_revert() {
 
 function p_diff() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if(!checkFolderOpened()) {
+		return false;
 	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("diff", '"' + uri.fsPath + '"');
@@ -152,9 +165,8 @@ function p_diff() {
 function p_info() {
 	var cmdline = buildCmdline("info");
 
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if(!checkFolderOpened()) {
+		return false;
 	}
 	
 	_channel.appendLine(cmdline);
