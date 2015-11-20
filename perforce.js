@@ -206,7 +206,6 @@ function p_deleteUri(uri) {
 	
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
-		console.log(stdout, stderr, err);
 		if(err){
 			_channel.show();
 			_channel.appendLine("ERROR:");
@@ -280,10 +279,20 @@ function w_onFileSaved(doc) {
 }
 
 function w_onFileDeleted(uri) {
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
+	
 	p_deleteUri(uri);
 }
 
 function w_onFileCreated(uri) {
+	if (workspace.rootPath == undefined){
+		window.showInformationMessage("Perforce: no folder opened");
+		return;
+	}
+	
 	var editor = window.activeTextEditor;
 	//Only add files open in text editor
 	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
