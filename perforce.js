@@ -9,6 +9,9 @@ var _channel = window.createOutputChannel('Perforce Log');
 var _subscriptions = [];
 var _watcher = null;
 
+//Used for editOnFileModified, to cache file until a new file modified
+var _lastCheckedFilePath = null;
+
 function activate() {
 	_channel.appendLine("Perforce Log Output");
 	
@@ -26,6 +29,11 @@ function activate() {
 		if(config.editOnFileSave) {
 			workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
 		}
+		
+		if(config.editOnFileModified) {
+			workspace.onDidChangeTextDocument(w_onFileModified, this, _subscriptions);
+		}
+		
 		if(config.deleteOnFileDelete || config.addOnFileCreate) {
 			_watcher = workspace.createFileSystemWatcher('**/*.*', false, true, false);
 			
@@ -332,7 +340,7 @@ function fileInClientRoot(uri, onSuccess, onFailure) {
 	}, onFailure);
 }
 
-function w_onFileSaved(doc) {
+function tryEditFile(uri) {
 	if (workspace.rootPath == undefined){
 		window.showInformationMessage("Perforce: no folder opened");
 		return;
@@ -343,11 +351,31 @@ function w_onFileSaved(doc) {
 	}
 	
 	//The callbacks make me cry at night :(
-	fileInClientRoot(doc.uri, function() {	
-		p_checkFileOpened(doc.uri, function(uri) {
+	fileInClientRoot(uri, function() {	
+		p_checkFileOpened(uri, function(uri) {
 			p_editUri(uri);
 		});
 	}, fileNotInClientRoot);
+}
+
+function w_onFileSaved(doc) {
+	tryEditFile(doc.uri);
+}
+
+function w_onFileModified(docChange) {
+	//If this doc has already been checked, then just return
+	if(docChange.document.uri.fsPath == _lastCheckedFilePath) {
+		return;
+	}
+	
+	//If this doc is not the active file, return
+	var editor = window.activeTextEditor;
+	if (!editor || !editor.document || editor.document.uri.fsPath != docChange.document.uri.fsPath) {
+		return;
+	}
+	
+	_lastCheckedFilePath = docChange.document.uri.fsPath;
+	tryEditFile(docChange.document.uri);
 }
 
 function w_onFileDeleted(uri) {

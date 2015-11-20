@@ -42,6 +42,11 @@
 					"default": false,
 					"description": "Automatically open a file for edit when saved"
 				},
+				"perforce.editOnFileModified": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically open a file for edit when Modified"
+				},
 				"perforce.addOnFileCreate": {
 					"type": "boolean",
 					"default": false,
