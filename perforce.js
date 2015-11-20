@@ -43,15 +43,24 @@ function checkFolderOpened() {
 	return true;
 }
 
+function checkFileSelected() {
+	var editor = window.activeTextEditor;
+	if (!editor) {
+		window.showInformationMessage("Perforce: No file selected");
+		return false;
+	}
+	
+	return true;
+}
+
 function p_showOutput() {
 	_channel.show();
 }
 
 function p_add() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
 	
 	if(!checkFolderOpened()) {
@@ -77,9 +86,8 @@ function p_add() {
 
 function p_edit() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
 	if(!checkFolderOpened()) {
 		return false;
@@ -103,9 +111,8 @@ function p_edit() {
 
 function p_revert() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
 	if(!checkFolderOpened()) {
 		return false;
@@ -129,9 +136,8 @@ function p_revert() {
 
 function p_diff() {
 	var editor = window.activeTextEditor;
-	if (!editor) {
-		window.showInformationMessage("Perforce: no file selected");
-		return;
+	if (!checkFileSelected()) {
+		return false;
 	}
 	if(!checkFolderOpened()) {
 		return false;
