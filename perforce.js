@@ -6,6 +6,9 @@ var workspace = vscode.workspace;
 var isWin = /^win/.test(process.platform);
 var _channel = window.createOutputChannel('Perforce Log');
 
+var _subscriptions = [];
+var _watcher = null;
+
 function activate() {
 	_channel.appendLine("Perforce Log Output");
 	
@@ -16,6 +19,25 @@ function activate() {
 	vscode.commands.registerCommand('perforce.diff', p_diff);
 	vscode.commands.registerCommand('perforce.info', p_info);
 	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
+	
+	var config = workspace.getConfiguration('perforce');
+	
+	if(config) { 
+		if(config.editOnFileSave) {
+			workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
+		}
+		if(config.deleteOnFileDelete || config.addOnFileCreate) {
+			_watcher = workspace.createFileSystemWatcher('**/*.*', false, true, false);
+			
+			if(config.deleteOnFileDelete) {
+				_watcher.onDidDelete(w_onFileDeleted);
+			}
+			
+			if(config.addOnFileCreate) {
+				_watcher.onDidCreate(w_onFileCreated);
+			}
+		}
+	}
 }
 exports.activate = activate;
 
@@ -49,6 +71,10 @@ function p_add() {
 		return;
 	}
 	var uri = editor.document.uri;
+	p_addUri(uri);
+}
+
+function p_addUri(uri) {
 	var cmdline = buildCmdline("add", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
@@ -75,7 +101,11 @@ function p_edit() {
 		window.showInformationMessage("Perforce: no folder opened");
 		return;
 	}
-	var uri = editor.document.uri;
+	
+	p_editUri(editor.document.uri);
+}
+
+function p_editUri(uri) {
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
 	
 	_channel.appendLine(cmdline);
@@ -174,6 +204,24 @@ function p_info() {
 	});
 }
 
+function p_deleteUri(uri) {
+	var cmdline = buildCmdline("delete", '"' + uri.fsPath + '"');
+	
+	_channel.appendLine(cmdline);
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+		console.log(stdout, stderr, err);
+		if(err){
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(stderr.toString());
+		}
+		else {
+			window.showInformationMessage("Perforce: file marked for delete");
+			_channel.append(stdout.toString());
+		}
+	});
+}
+
 function p_menuFunction() {
 	var items = [];
 	items.push({ label: "add", description: "Open a new file to add it to the depot" });
@@ -204,4 +252,44 @@ function p_menuFunction() {
 				break;
 		}
 	});
+}
+
+function p_checkFileOpened(uri, onSuccess) {
+	var cmdline = buildCmdline("opened", '"' + uri.fsPath + '"');
+	
+	_channel.appendLine(cmdline);
+	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+		if(err){
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(stderr.toString());
+		}
+		else {
+			//stderr set if not opened
+			if(stderr) {
+				onSuccess(uri);
+			}
+			_channel.append(stdout.toString());
+		}
+	});
+	
+	return true;
+}
+
+function w_onFileSaved(doc) {
+	p_checkFileOpened(doc.uri, function(uri) {
+		p_editUri(uri);
+	});
+}
+
+function w_onFileDeleted(uri) {
+	p_deleteUri(uri);
+}
+
+function w_onFileCreated(uri) {
+	var editor = window.activeTextEditor;
+	//Only add files open in text editor
+	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
+		p_addUri(uri);
+	}
 }
