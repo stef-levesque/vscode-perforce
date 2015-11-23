@@ -30,15 +30,35 @@
 	],
 	"main": "./perforce",
 	"activationEvents": [
-		"onCommand:perforce.menuFunctions",
-		"onCommand:perforce.showOutput",
-		"onCommand:perforce.add",
-		"onCommand:perforce.edit",
-		"onCommand:perforce.revert",
-		"onCommand:perforce.diff",
-		"onCommand:perforce.info"
+		"*"
 	],
 	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "VS Code Perforce Configuration",
+			"properties": {
+				"perforce.editOnFileSave": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically open a file for edit when saved"
+				},
+				"perforce.editOnFileModified": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically open a file for edit when Modified"
+				},
+				"perforce.addOnFileCreate": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically Add a file to depot when Created"
+				},
+				"perforce.deleteOnFileDelete": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically delete a file from depot when deleted"
+				}
+			}
+		},
 		"commands": [
 			{
 				"command": "perforce.menuFunctions",
