@@ -295,9 +295,8 @@ function p_checkFileOpened(uri, onSuccess) {
 function p_getClientRoot(onSuccess, onFailure) {
 	var cmdline = buildCmdline("info");
 	
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if (!checkFolderOpened()){
+		return false;
 	}
 	
 	_channel.appendLine(cmdline);
@@ -353,9 +352,8 @@ function fileInClientRoot(uri, onSuccess, onFailure) {
 }
 
 function tryEditFile(uri) {
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if (!checkFolderOpened()){
+		return false;
 	}
 	
 	var fileNotInClientRoot = function() {
@@ -391,18 +389,16 @@ function w_onFileModified(docChange) {
 }
 
 function w_onFileDeleted(uri) {
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if (!checkFolderOpened()){
+		return false;
 	}
 	
 	p_deleteUri(uri);
 }
 
 function w_onFileCreated(uri) {
-	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: no folder opened");
-		return;
+	if (!checkFolderOpened()){
+		return false;
 	}
 	
 	var editor = window.activeTextEditor;
