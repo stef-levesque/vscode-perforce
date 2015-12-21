@@ -5,6 +5,7 @@ var workspace = vscode.workspace;
 
 var isWin = /^win/.test(process.platform);
 var _channel = window.createOutputChannel('Perforce Log');
+var _statusBarItem = null;
 
 var _subscriptions = [];
 var _watcher = null;
@@ -22,6 +23,9 @@ function activate() {
 	vscode.commands.registerCommand('perforce.diff', p_diff);
 	vscode.commands.registerCommand('perforce.info', p_info);
 	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
+	
+	w_onChangeEditor();
+	window.onDidChangeActiveTextEditor(w_onChangeEditor, this, _subscriptions);
 	
 	var config = workspace.getConfiguration('perforce');
 	
@@ -112,8 +116,9 @@ function p_addUri(uri) {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file opened for add");
+			window.setStatusBarMessage("Perforce: file opened for add", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
@@ -141,8 +146,9 @@ function p_editUri(uri) {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file opened for edit");
+			window.setStatusBarMessage("Perforce: file opened for edit", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
@@ -166,8 +172,9 @@ function p_revert() {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file reverted");
+			window.setStatusBarMessage("Perforce: file reverted", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
@@ -406,4 +413,45 @@ function w_onFileCreated(uri) {
 	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
 		p_addUri(uri);
 	}
+}
+
+function w_onChangeEditor() {
+	// Create as needed
+	if (!_statusBarItem) {
+		_statusBarItem = window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+		_statusBarItem.command = 'perforce.menuFunctions';
+	}
+	
+	// Get the current text editor
+	var editor = window.activeTextEditor;
+	if (!editor) {
+		_statusBarItem.hide();
+		return;
+	}
+
+	var doc = editor.document;
+
+	// Only update status if an MD file
+	if (!doc.isUntitled) {
+		var cmdline = buildCmdline("opened", '"' + doc.uri.fsPath + '"');
+		CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+			if(err){
+				// file is not under client's root ...
+				_statusBarItem.text = 'P4: $(circle-slash)';
+				_statusBarItem.tooltip = stderr.toString();
+			}
+			else if(stderr) {
+				// file not opened on this client.
+				_statusBarItem.text = 'P4: $(file-text)';
+				_statusBarItem.tooltip = stderr.toString();
+			} else if(stdout) {
+				// file opened in add or edit
+				_statusBarItem.text = 'P4: $(check)';
+				_statusBarItem.tooltip = stdout.toString();
+			}
+		});
+		_statusBarItem.show();
+	} else {
+		_statusBarItem.hide();
+	}	
 }
