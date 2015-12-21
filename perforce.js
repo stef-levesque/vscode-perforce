@@ -116,8 +116,9 @@ function p_addUri(uri) {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file opened for add");
+			window.setStatusBarMessage("Perforce: file opened for add", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
@@ -145,8 +146,9 @@ function p_editUri(uri) {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file opened for edit");
+			window.setStatusBarMessage("Perforce: file opened for edit", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
@@ -170,8 +172,9 @@ function p_revert() {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file reverted");
+			window.setStatusBarMessage("Perforce: file reverted", 3000);
 			_channel.append(stdout.toString());
+			w_onChangeEditor();
 		}
 	});
 }
