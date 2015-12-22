@@ -1,10 +1,18 @@
 # vscode-perforce
 
-Perforce basic commands for Visual Studio Code
+Perforce integration for Visual Studio Code
+
+## Commands
 * `add` - Open a new file to add it to the depot
 * `edit` - Open an existing file for edit
 * `revert` - Discard changes from an opened file
 * `diff` - Display diff of client file with depot file
+* `info` - Display client/server information
+
+## Status bar icons
+* ![check](https://cdn.rawgit.com/github/octicons/master/svg/check.svg) opened in add or edit
+* ![file-text](https://cdn.rawgit.com/github/octicons/master/svg/file-text.svg) not opened on this client
+* ![circle-slash](https://cdn.rawgit.com/github/octicons/master/svg/circle-slash.svg) not under client's root
 
 ## Installation
 
