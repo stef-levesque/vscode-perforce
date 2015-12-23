@@ -1,5 +1,11 @@
 # vscode-perforce
 
+[![GitHub issues](https://img.shields.io/github/issues/stef-levesque/vscode-perforce.svg)](https://github.com/stef-levesque/vscode-perforce/issues)
+[![Dev Dependency Status](https://img.shields.io/david/dev/stef-levesque/vscode-perforce.svg)](https://david-dm.org/stef-levesque/vscode-perforce#info=devDependencies)<br>
+[![GitHub license button](https://img.shields.io/github/license/stef-levesque/vscode-perforce.svg)](https://github.com/stef-levesque/vscode-perforce/blob/master/LICENSE.md)
+[![VS Code marketplace button](https://img.shields.io/badge/VS%20Code-%3E150-5c2d91.svg)](https://marketplace.visualstudio.com/items/slevesque.perforce)
+[![Gitter chat button](https://img.shields.io/gitter/room/stef-levesque/vscode-perforce.svg)](https://gitter.im/stef-levesque/vscode-perforce)
+
 Perforce integration for Visual Studio Code
 
 ## Commands
