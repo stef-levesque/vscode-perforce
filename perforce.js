@@ -309,18 +309,18 @@ function p_getClientRoot(onSuccess, onFailure) {
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
-			_channel.show();
-			_channel.appendLine("ERROR:");
-			_channel.append(stderr.toString());
+			// _channel.show();
+			// _channel.appendLine("ERROR:");
+			// _channel.append(stderr.toString());
 			onFailure();
 		}
 		else {
 			var stdoutString = stdout.toString();
-			_channel.append(stdoutString);
+			// _channel.append(stdoutString);
 			
 			var clientRootIndex = stdoutString.indexOf('Client root: ');
 			if(clientRootIndex === -1) {
-				_channel.appendLine("ERROR: P4 Info didn't specify a valid Client Root path");
+				// _channel.appendLine("ERROR: P4 Info didn't specify a valid Client Root path");
 				onFailure();
 				return -1;
 			}
@@ -329,8 +329,8 @@ function p_getClientRoot(onSuccess, onFailure) {
 			clientRootIndex += 'Client root: '.length;
 			var endClientRootIndex = stdoutString.indexOf('\n', clientRootIndex);
 			if(endClientRootIndex === -1) {
-				_channel.appendLine("ERROR: P4 Info Client Root path contains unexpected format");
-				_channel.show();
+				// _channel.appendLine("ERROR: P4 Info Client Root path contains unexpected format");
+				// _channel.show();
 				onFailure();
 				return -1;
 			}
@@ -363,16 +363,18 @@ function tryEditFile(uri) {
 		return false;
 	}
 	
-	var fileNotInClientRoot = function() {
-		window.showInformationMessage("Perforce: File not in P4 Client Root");
-	}
-	
-	//The callbacks make me cry at night :(
-	fileInClientRoot(uri, function() {	
-		p_checkFileOpened(uri, function(uri) {
-			p_editUri(uri);
+	fileInClientRoot(workspace.rootPath, function() {
+		//The callbacks make me cry at night :(
+		fileInClientRoot(uri, function() {
+			// onSuccess
+			p_checkFileOpened(uri, function(uri) {
+				p_editUri(uri);
+			});
+		}, function() {
+			// onFailure
+			window.showInformationMessage("Perforce: File not in P4 Client Root");
 		});
-	}, fileNotInClientRoot);
+	});
 }
 
 function w_onFileSaved(doc) {
@@ -400,7 +402,9 @@ function w_onFileDeleted(uri) {
 		return false;
 	}
 	
-	p_deleteUri(uri);
+	fileInClientRoot(workspace.rootPath, function() {
+		p_deleteUri(uri);
+	});
 }
 
 function w_onFileCreated(uri) {
@@ -408,11 +412,13 @@ function w_onFileCreated(uri) {
 		return false;
 	}
 	
-	var editor = window.activeTextEditor;
-	//Only add files open in text editor
-	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
-		p_addUri(uri);
-	}
+	fileInClientRoot(workspace.rootPath, function() {
+		var editor = window.activeTextEditor;
+		//Only add files open in text editor
+		if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
+			p_addUri(uri);
+		}
+	});
 }
 
 function w_onChangeEditor() {
