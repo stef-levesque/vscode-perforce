@@ -30,25 +30,28 @@ function activate() {
 	var config = workspace.getConfiguration('perforce');
 	
 	if(config) { 
-		if(config.editOnFileSave) {
-			workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
-		}
+		fileInClientRoot(workspace.rootPath, function() {
 		
-		if(config.editOnFileModified) {
-			workspace.onDidChangeTextDocument(w_onFileModified, this, _subscriptions);
-		}
-		
-		if(config.deleteOnFileDelete || config.addOnFileCreate) {
-			_watcher = workspace.createFileSystemWatcher('**/*.*', false, true, false);
-			
-			if(config.deleteOnFileDelete) {
-				_watcher.onDidDelete(w_onFileDeleted);
+			if(config.editOnFileSave) {
+				workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
 			}
 			
-			if(config.addOnFileCreate) {
-				_watcher.onDidCreate(w_onFileCreated);
+			if(config.editOnFileModified) {
+				workspace.onDidChangeTextDocument(w_onFileModified, this, _subscriptions);
 			}
-		}
+			
+			if(config.deleteOnFileDelete || config.addOnFileCreate) {
+				_watcher = workspace.createFileSystemWatcher('**/*.*', false, true, false);
+				
+				if(config.deleteOnFileDelete) {
+					_watcher.onDidDelete(w_onFileDeleted);
+				}
+				
+				if(config.addOnFileCreate) {
+					_watcher.onDidCreate(w_onFileCreated);
+				}
+			}
+		});
 	}
 }
 exports.activate = activate;
@@ -290,7 +293,7 @@ function p_checkFileOpened(uri, onSuccess) {
 		else {
 			//stderr set if not opened
 			if(stderr) {
-				onSuccess(uri);
+				if (typeof onSuccess=="function") onSuccess(uri);
 			}
 			_channel.append(stdout.toString());
 		}
@@ -312,7 +315,7 @@ function p_getClientRoot(onSuccess, onFailure) {
 			// _channel.show();
 			// _channel.appendLine("ERROR:");
 			// _channel.append(stderr.toString());
-			onFailure();
+			if (typeof onFailure=="function") onFailure();
 		}
 		else {
 			var stdoutString = stdout.toString();
@@ -321,7 +324,7 @@ function p_getClientRoot(onSuccess, onFailure) {
 			var clientRootIndex = stdoutString.indexOf('Client root: ');
 			if(clientRootIndex === -1) {
 				// _channel.appendLine("ERROR: P4 Info didn't specify a valid Client Root path");
-				onFailure();
+				if (typeof onFailure=="function") onFailure();
 				return -1;
 			}
 			
@@ -331,29 +334,31 @@ function p_getClientRoot(onSuccess, onFailure) {
 			if(endClientRootIndex === -1) {
 				// _channel.appendLine("ERROR: P4 Info Client Root path contains unexpected format");
 				// _channel.show();
-				onFailure();
+				if (typeof onFailure=="function") onFailure();
 				return -1;
 			}
 			
-			//call onSuccess with path as arg
-			onSuccess(stdoutString.substring(clientRootIndex, endClientRootIndex));
+			if (typeof onSuccess=="function") {
+				//call onSuccess with path as arg
+				onSuccess(stdoutString.substring(clientRootIndex, endClientRootIndex));
+			}
 		}
 	});
 	
 	return true;
 }
 
-function fileInClientRoot(uri, onSuccess, onFailure) {
+function fileInClientRoot(path, onSuccess, onFailure) {
 	p_getClientRoot(function(clientRoot) {
 		//Convert to lower and Strip newlines from paths
 		clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
-		var filePath = uri.fsPath.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
+		var filePath = path.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
 		
 		//Check if p4 Client Root is in uri's path
 		if(filePath.indexOf(clientRoot) !== -1) {
-			onSuccess();			
+			if (typeof onSuccess=="function") onSuccess();
 		} else {
-			onFailure();
+			if (typeof onFailure=="function") onFailure();
 		}
 	}, onFailure);
 }
@@ -363,17 +368,15 @@ function tryEditFile(uri) {
 		return false;
 	}
 	
-	fileInClientRoot(workspace.rootPath, function() {
-		//The callbacks make me cry at night :(
-		fileInClientRoot(uri, function() {
-			// onSuccess
-			p_checkFileOpened(uri, function(uri) {
-				p_editUri(uri);
-			});
-		}, function() {
-			// onFailure
-			window.showInformationMessage("Perforce: File not in P4 Client Root");
+	//The callbacks make me cry at night :(
+	fileInClientRoot(uri.fsPath, function() {
+		// onSuccess
+		p_checkFileOpened(uri, function(uri) {
+			p_editUri(uri);
 		});
+	}, function() {
+		// onFailure
+		window.showInformationMessage("Perforce: File not in P4 Client Root");
 	});
 }
 
@@ -402,9 +405,7 @@ function w_onFileDeleted(uri) {
 		return false;
 	}
 	
-	fileInClientRoot(workspace.rootPath, function() {
-		p_deleteUri(uri);
-	});
+	p_deleteUri(uri);
 }
 
 function w_onFileCreated(uri) {
@@ -412,13 +413,11 @@ function w_onFileCreated(uri) {
 		return false;
 	}
 	
-	fileInClientRoot(workspace.rootPath, function() {
-		var editor = window.activeTextEditor;
-		//Only add files open in text editor
-		if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
-			p_addUri(uri);
-		}
-	});
+	var editor = window.activeTextEditor;
+	//Only add files open in text editor
+	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
+		p_addUri(uri);
+	}
 }
 
 function w_onChangeEditor() {
