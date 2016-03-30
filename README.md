@@ -54,6 +54,11 @@ Visual Studio Code v0.10.x (November 2015)
 
 ## Change log
 
+### [0.1.5] - 2016-03-30
+
+* Show diff in a compare window
+* Fix issue #10 - change warning boxes for status bar messages
+
 ### [0.1.4] - 2016-01-21
 
 * Fix issue #9 - check for a valid p4 root before running automatic commands
@@ -94,6 +99,7 @@ Visual Studio Code v0.10.x (November 2015)
 * `edit` command on opened file
 * `revert` command on opened file
 
+[0.1.5]: https://github.com/stef-levesque/vscode-perforce/compare/383da5048e342cbbe90ab4f74fecd0db9e3d85fc...faad0b0db08d87f04664dfa9bc8a3be3640c6311
 [0.1.4]: https://github.com/stef-levesque/vscode-perforce/compare/168cd653195f33774f8c6c795ab29adba4bbe499...d07a5c45df1db65cf0335b5949a55077b84fe4b4
 [0.1.3]: https://github.com/stef-levesque/vscode-perforce/compare/1e006e1c51640756b6e6cbd39a78d050e13f5f6a...168cd653195f33774f8c6c795ab29adba4bbe499
 [0.1.2]: https://github.com/stef-levesque/vscode-perforce/compare/ada0c5a47eb39fd05cbd3d45433cd351f759f072...1e006e1c51640756b6e6cbd39a78d050e13f5f6a
