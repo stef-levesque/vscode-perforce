@@ -1,5 +1,6 @@
 var vscode = require('vscode');
 var CP = require('child_process');
+var Path = require('path');
 var window = vscode.window;
 var workspace = vscode.workspace;
 
@@ -69,6 +70,30 @@ function buildCmdline(command, args)
 		cmdline += " " + args;
 		
 	return cmdline;
+}
+
+function getFile(localFilePath) {
+
+	return new Promise((resolve, reject) => {
+		var ext = Path.extname(localFilePath);
+		var tmp = require("tmp");
+		tmp.file({ postfix: ext }, (err, tmpFilePath, fd) => {
+			if (err) {
+				reject(err);
+				return;
+			}
+			var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + '"');
+			CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+				if(err){
+					reject(err);
+				} else if (stderr) {
+					reject(stderr);
+				} else /*if (stdout)*/ {
+					resolve(tmpFilePath);
+				}
+			});
+		});
+	});
 }
 
 function checkFolderOpened() {
@@ -190,24 +215,18 @@ function p_diff() {
 	if(!checkFolderOpened()) {
 		return false;
 	}
-	var uri = editor.document.uri;
-	var cmdline = buildCmdline("diff", '"' + uri.fsPath + '"');
+	var doc = editor.document;
 	
-	//TODO: show in a 'compare' window
-	//vscode.commands.executeCommand("workbench.files.action.compareFileWith", uri.fsPath);
-	
-	_channel.appendLine(cmdline);
-	CP.exec(cmdline, {cwd:workspace.rootPath}, function (err, stdout, stderr) {
-		if(err){
-			_channel.show();
-			_channel.appendLine("ERROR:");
-			_channel.append(stderr.toString());
+	if (!doc.isUntitled) {
+		getFile(doc.uri.fsPath).then( (tmpFile) => {
+			vscode.workspace.openTextDocument(tmpFile).then(d => {
+				vscode.window.showTextDocument(d);
+				vscode.commands.executeCommand("workbench.files.action.compareFileWith");
+				vscode.window.showTextDocument(doc);
+				resolve(p4uri);
+			}, (reason) => {console.log(reason);});
+		});
 		}
-		else {
-			_channel.show();
-			_channel.append(stdout.toString());
-		}
-	});
 }
 
 function p_info() {
