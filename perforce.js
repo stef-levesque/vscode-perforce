@@ -98,7 +98,7 @@ function getFile(localFilePath) {
 
 function checkFolderOpened() {
 	if (workspace.rootPath == undefined){
-		window.showInformationMessage("Perforce: No folder opened");
+		window.setStatusBarMessage("Multiclip: Nothing to paste", 3000);
 		return false;
 	}
 	
@@ -108,7 +108,7 @@ function checkFolderOpened() {
 function checkFileSelected() {
 	var editor = window.activeTextEditor;
 	if (!editor) {
-		window.showInformationMessage("Perforce: No file selected");
+		window.setStatusBarMessage("Perforce: No file selected", 3000);
 		return false;
 	}
 	
@@ -261,7 +261,7 @@ function p_deleteUri(uri) {
 			_channel.append(stderr.toString());
 		}
 		else {
-			window.showInformationMessage("Perforce: file marked for delete");
+			window.setStatusBarMessage("Perforce: file marked for delete", 3000);
 			_channel.append(stdout.toString());
 		}
 	});
@@ -395,7 +395,7 @@ function tryEditFile(uri) {
 		});
 	}, function() {
 		// onFailure
-		window.showInformationMessage("Perforce: File not in P4 Client Root");
+		window.setStatusBarMessage("Perforce: File not in P4 Client Root", 3000);
 	});
 }
 
