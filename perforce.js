@@ -77,21 +77,16 @@ function getFile(localFilePath) {
 	return new Promise((resolve, reject) => {
 		var ext = Path.extname(localFilePath);
 		var tmp = require("tmp");
-		tmp.file({ postfix: ext }, (err, tmpFilePath, fd) => {
-			if (err) {
+		var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
+		var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + '"');
+		CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
+			if(err){
 				reject(err);
-				return;
+			} else if (stderr) {
+				reject(stderr);
+			} else {
+				resolve(tmpFilePath);
 			}
-			var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + '"');
-			CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
-				if(err){
-					reject(err);
-				} else if (stderr) {
-					reject(stderr);
-				} else /*if (stdout)*/ {
-					resolve(tmpFilePath);
-				}
-			});
 		});
 	});
 }
@@ -225,8 +220,12 @@ function p_diff() {
 				vscode.window.showTextDocument(doc);
 				resolve(p4uri);
 			}, (reason) => {console.log(reason);});
+		}, (err) => {
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(err.toString());	
 		});
-		}
+	}
 }
 
 function p_info() {
