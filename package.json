@@ -135,6 +135,6 @@
 		"tmp": "0.0.28"
 	},
 	"devDependencies": {
-		"vscode": "0.10.x"
+		"vscode": "^0.10.7"
 	}
 }
