@@ -54,6 +54,10 @@ Visual Studio Code v0.10.x (November 2015)
 
 ## Change log
 
+### [0.1.6] - 2016-03-31
+
+* Fix a temporary file issue on Windows
+
 ### [0.1.5] - 2016-03-30
 
 * Show diff in a compare window
@@ -99,6 +103,7 @@ Visual Studio Code v0.10.x (November 2015)
 * `edit` command on opened file
 * `revert` command on opened file
 
+[0.1.6]: https://github.com/stef-levesque/vscode-perforce/compare/2915c7688d1c71dd1815350313f7d4344cab1607...b9bb4076beb62d47d17abfd8fc515058ab9f5adb
 [0.1.5]: https://github.com/stef-levesque/vscode-perforce/compare/383da5048e342cbbe90ab4f74fecd0db9e3d85fc...faad0b0db08d87f04664dfa9bc8a3be3640c6311
 [0.1.4]: https://github.com/stef-levesque/vscode-perforce/compare/168cd653195f33774f8c6c795ab29adba4bbe499...d07a5c45df1db65cf0335b5949a55077b84fe4b4
 [0.1.3]: https://github.com/stef-levesque/vscode-perforce/compare/1e006e1c51640756b6e6cbd39a78d050e13f5f6a...168cd653195f33774f8c6c795ab29adba4bbe499
