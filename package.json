@@ -56,6 +56,11 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Automatically delete a file from depot when deleted"
+				},
+				"perforce.command": {
+					"type": "string",
+					"default": "p4",
+					"description": "Configure a path to p4 or an alternate command if needed"
 				}
 			}
 		},
