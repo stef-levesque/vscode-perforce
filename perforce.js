@@ -14,6 +14,9 @@ var _watcher = null;
 //Used for editOnFileModified, to cache file until a new file modified
 var _lastCheckedFilePath = null;
 
+//Used to build cmdline in case custom tools are used
+var _cmdline = 'p4';
+
 function activate() {
 	_channel.appendLine("Perforce Log Output");
 	
@@ -30,7 +33,9 @@ function activate() {
 	
 	var config = workspace.getConfiguration('perforce');
 	
-	if(config) { 
+	if(config) {
+		_cmdline = config.command; 
+		
 		fileInClientRoot(workspace.rootPath, function() {
 		
 			if(config.editOnFileSave) {
@@ -51,7 +56,7 @@ function activate() {
 				if(config.addOnFileCreate) {
 					_watcher.onDidCreate(w_onFileCreated);
 				}
-			}
+			}			
 		});
 	}
 }
@@ -59,7 +64,7 @@ exports.activate = activate;
 
 function buildCmdline(command, args)
 {
-	var cmdline = "p4";
+	var cmdline = _cmdline;
 	if (isWin) {
 		cmdline += ".exe";
 	}
