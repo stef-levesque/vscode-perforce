@@ -2,7 +2,7 @@
 	"name": "perforce",
 	"displayName": "Perforce for VS Code",
 	"description": "Perforce basic commands for Visual Studio Code",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"publisher": "slevesque",
 	"categories":[
 		"Other"
