@@ -59,7 +59,7 @@
 				},
 				"perforce.command": {
 					"type": "string",
-					"default": "p4",
+					"default": "none",
 					"description": "Configure a path to p4 or an alternate command if needed"
 				}
 			}
