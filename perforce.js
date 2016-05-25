@@ -79,10 +79,15 @@ function normalizePath(path) {
 
 function buildCmdline(command, args) {
 	var p4Path = vscode.workspace.getConfiguration('perforce').get('command', 'none');
+	var p4Client = vscode.workspace.getConfiguration('perforce').get('client', 'none');
 	if (p4Path == 'none') {
 		p4Path = isWin ? 'p4.exe' : 'p4';
 	} else {
 		p4Path = normalizePath(p4Path);
+	}
+	
+	if (p4Client !== 'none') {
+		p4Path += ' -c ' + p4Client;
 	}
 	
 	var cmdline = p4Path + " " + command;
