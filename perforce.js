@@ -240,12 +240,8 @@ function p_diff() {
 	
 	if (!doc.isUntitled) {
 		getFile(doc.uri.fsPath).then( (tmpFile) => {
-			vscode.workspace.openTextDocument(tmpFile).then(d => {
-				vscode.window.showTextDocument(d);
-				vscode.commands.executeCommand("workbench.files.action.compareFileWith");
-				vscode.window.showTextDocument(doc);
-				resolve(p4uri);
-			}, (reason) => {console.log(reason);});
+			var tmpFileUri = vscode.Uri.file(tmpFile);
+			vscode.commands.executeCommand("vscode.diff", tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + " - Diff Against Have Revision");
 		}, (err) => {
 			_channel.show();
 			_channel.appendLine("ERROR:");
