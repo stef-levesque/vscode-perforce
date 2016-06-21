@@ -2,7 +2,7 @@
 	"name": "perforce",
 	"displayName": "Perforce for VS Code",
 	"description": "Perforce basic commands for Visual Studio Code",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"publisher": "slevesque",
 	"categories":[
 		"Other"
@@ -59,7 +59,7 @@
 				},
 				"perforce.command": {
 					"type": "string",
-					"default": "p4",
+					"default": "none",
 					"description": "Configure a path to p4 or an alternate command if needed"
 				}
 			}

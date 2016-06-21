@@ -14,9 +14,6 @@ var _watcher = null;
 //Used for editOnFileModified, to cache file until a new file modified
 var _lastCheckedFilePath = null;
 
-//Used to build cmdline in case custom tools are used
-var _cmdline = 'p4';
-
 function activate() {
 	_channel.appendLine("Perforce Log Output");
 	
@@ -34,8 +31,6 @@ function activate() {
 	var config = workspace.getConfiguration('perforce');
 	
 	if(config) {
-		_cmdline = config.command; 
-		
 		fileInClientRoot(workspace.rootPath, function() {
 		
 			if(config.editOnFileSave) {
@@ -56,20 +51,46 @@ function activate() {
 				if(config.addOnFileCreate) {
 					_watcher.onDidCreate(w_onFileCreated);
 				}
-			}			
+			}
 		});
 	}
 }
 exports.activate = activate;
 
-function buildCmdline(command, args)
-{
-	var cmdline = _cmdline;
-	if (isWin) {
-		cmdline += ".exe";
+function surroundByDoubleQuotes(path) {
+	return "\"" + path + "\""
+}
+
+function pathIsUNC(path) {
+	return path.indexOf('\\\\') == 0;
+}
+
+function normalizePath(path) {
+	var normalizedPath = path;
+
+	if (!pathIsUNC(normalizedPath)) {
+		var replaceable = normalizedPath.split('\\');
+		normalizedPath = replaceable.join('\\\\');
+	}
+
+	normalizedPath = surroundByDoubleQuotes(normalizedPath);
+	return normalizedPath;
+}
+
+function buildCmdline(command, args) {
+	var p4Path = vscode.workspace.getConfiguration('perforce').get('command', 'none');
+	var p4Client = vscode.workspace.getConfiguration('perforce').get('client', 'none');
+	if (p4Path == 'none') {
+		p4Path = isWin ? 'p4.exe' : 'p4';
+	} else {
+		p4Path = normalizePath(p4Path);
 	}
 	
-	cmdline += " " + command;
+	if (p4Client !== 'none') {
+		p4Path += ' -c ' + p4Client;
+	}
+	
+	var cmdline = p4Path + " " + command;
 	
 	if (args != undefined)
 		cmdline += " " + args;
@@ -219,12 +240,8 @@ function p_diff() {
 	
 	if (!doc.isUntitled) {
 		getFile(doc.uri.fsPath).then( (tmpFile) => {
-			vscode.workspace.openTextDocument(tmpFile).then(d => {
-				vscode.window.showTextDocument(d);
-				vscode.commands.executeCommand("workbench.files.action.compareFileWith");
-				vscode.window.showTextDocument(doc);
-				resolve(p4uri);
-			}, (reason) => {console.log(reason);});
+			var tmpFileUri = vscode.Uri.file(tmpFile);
+			vscode.commands.executeCommand("vscode.diff", tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + " - Diff Against Have Revision");
 		}, (err) => {
 			_channel.show();
 			_channel.appendLine("ERROR:");
