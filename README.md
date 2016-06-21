@@ -15,6 +15,7 @@ Perforce integration for Visual Studio Code
 * `edit` - Open an existing file for edit
 * `revert` - Discard changes from an opened file
 * `diff` - Display diff of client file with depot file
+* `diff revision` - Display diff of client file with depot file at a specific revision
 * `info` - Display client/server information
 
 ## Status bar icons
