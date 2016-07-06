@@ -3,6 +3,7 @@ var CP = require('child_process');
 var Path = require('path');
 var window = vscode.window;
 var workspace = vscode.workspace;
+var Uri = vscode.Uri;
 
 var isWin = /^win/.test(process.platform);
 var _channel = window.createOutputChannel('Perforce Log');
@@ -16,7 +17,7 @@ var _lastCheckedFilePath = null;
 
 function activate() {
 	_channel.appendLine("Perforce Log Output");
-	
+
 	vscode.commands.registerCommand('perforce.showOutput', p_showOutput);
 	vscode.commands.registerCommand('perforce.add', p_add);
 	vscode.commands.registerCommand('perforce.edit', p_edit);
@@ -25,30 +26,31 @@ function activate() {
 	vscode.commands.registerCommand('perforce.diffRevision', p_diffRevision);
 	vscode.commands.registerCommand('perforce.info', p_info);
 	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
-	
+	vscode.commands.registerCommand('perforce.opened', p_opened);
+
 	w_onChangeEditor();
 	window.onDidChangeActiveTextEditor(w_onChangeEditor, this, _subscriptions);
-	
+
 	var config = workspace.getConfiguration('perforce');
-	
+
 	if(config) {
 		fileInClientRoot(workspace.rootPath, function() {
-		
+
 			if(config.editOnFileSave) {
 				workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
 			}
-			
+
 			if(config.editOnFileModified) {
 				workspace.onDidChangeTextDocument(w_onFileModified, this, _subscriptions);
 			}
-			
+
 			if(config.deleteOnFileDelete || config.addOnFileCreate) {
 				_watcher = workspace.createFileSystemWatcher('**/*.*', false, true, false);
-				
+
 				if(config.deleteOnFileDelete) {
 					_watcher.onDidDelete(w_onFileDeleted);
 				}
-				
+
 				if(config.addOnFileCreate) {
 					_watcher.onDidCreate(w_onFileCreated);
 				}
@@ -86,16 +88,16 @@ function buildCmdline(command, args) {
 	} else {
 		p4Path = normalizePath(p4Path);
 	}
-	
+
 	if (p4Client !== 'none') {
 		p4Path += ' -c ' + p4Client;
 	}
-	
+
 	var cmdline = p4Path + " " + command;
-	
+
 	if (args != undefined)
 		cmdline += " " + args;
-		
+
 	return cmdline;
 }
 
@@ -124,7 +126,7 @@ function checkFolderOpened() {
 		window.setStatusBarMessage("Multiclip: Nothing to paste", 3000);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -134,7 +136,7 @@ function checkFileSelected() {
 		window.setStatusBarMessage("Perforce: No file selected", 3000);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -147,18 +149,18 @@ function p_add() {
 	if (!checkFileSelected()) {
 		return false;
 	}
-	
+
 	if(!checkFolderOpened()) {
 		return false;
 	}
-	
+
 	var uri = editor.document.uri;
 	p_addUri(uri);
 }
 
 function p_addUri(uri) {
 	var cmdline = buildCmdline("add", '"' + uri.fsPath + '"');
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -182,13 +184,13 @@ function p_edit() {
 	if(!checkFolderOpened()) {
 		return false;
 	}
-	
+
 	p_editUri(editor.document.uri);
 }
 
 function p_editUri(uri) {
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -214,7 +216,7 @@ function p_revert() {
 	}
 	var uri = editor.document.uri;
 	var cmdline = buildCmdline("revert", '"' + uri.fsPath + '"');
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -239,7 +241,7 @@ function p_diff(revision) {
 		return false;
 	}
 	var doc = editor.document;
-	
+
 	if (!doc.isUntitled) {
 		getFile(doc.uri.fsPath, revision).then( (tmpFile) => {
 			var tmpFileUri = vscode.Uri.file(tmpFile);
@@ -248,7 +250,7 @@ function p_diff(revision) {
 		}, (err) => {
 			_channel.show();
 			_channel.appendLine("ERROR:");
-			_channel.append(err.toString());	
+			_channel.append(err.toString());
 		});
 	}
 }
@@ -264,7 +266,7 @@ function p_info() {
 	if(!checkFolderOpened()) {
 		return false;
 	}
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd:workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -279,9 +281,89 @@ function p_info() {
 	});
 }
 
+function p_opened() {
+	var cmdline = buildCmdline("opened");
+
+	if(!checkFolderOpened()) {
+		return false;
+	}
+
+	_channel.appendLine(cmdline);
+	CP.exec(cmdline, {cwd:workspace.rootPath}, function (err, stdout, stderr) {
+		if(err){
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(err.toString());
+		} else if(stderr) {
+			_channel.show();
+			_channel.appendLine("ERROR:");
+			_channel.append(stderr.toString());
+			reject(stderr);
+		} else {
+			var opened = stdout.toString().trim().split('\n')
+			if (opened.length === 0) {
+				return false;
+			}
+			
+			var options = opened.map((file) => {
+				return {
+					description: file,
+					label: Path.basename(file)
+				}
+			});
+
+			window.showQuickPick(options, {matchOnDescription: true}).then(selection => {
+				if (!selection) {
+					return false;
+				}
+
+				let depotPath = selection.description;
+				var whereFile = depotPath.substring(0, depotPath.indexOf('#'));
+				p_where(whereFile).then((result) => {
+					// https://www.perforce.com/perforce/r14.2/manuals/cmdref/p4_where.html
+					var results = result.split(' ');
+					if (results.length >= 3) {
+						var fileToOpen = results[2].trim();
+						workspace.openTextDocument(Uri.file(fileToOpen)).then((document) => {
+							window.showTextDocument(document);
+						});
+					}
+				});
+			});
+		}
+	});
+}
+
+function p_where(file) {
+	return new Promise((resolve, reject) => {
+		var cmdline = buildCmdline("where", file);
+
+		if(!checkFolderOpened()) {
+			reject();
+		}
+
+		_channel.appendLine(cmdline);
+		CP.exec(cmdline, {cwd:workspace.rootPath}, (err, stdout, stderr) => {
+			if(err){
+				_channel.show();
+				_channel.appendLine("ERROR:");
+				_channel.append(err.toString());
+				reject(err);
+			} else if(stderr) {
+				_channel.show();
+				_channel.appendLine("ERROR:");
+				_channel.append(stderr.toString());
+				reject(stderr);
+			} else {
+				resolve(stdout.toString());
+			}
+		});
+	})
+}
+
 function p_deleteUri(uri) {
 	var cmdline = buildCmdline("delete", '"' + uri.fsPath + '"');
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -304,6 +386,7 @@ function p_menuFunction() {
 	items.push({ label: "diff", description: "Display diff of client file with depot file" });
 	items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
 	items.push({ label: "info", description: "Display client/server information" });
+	items.push({ label: "opened", description: "View 'open' files and open one in editor" });
 	window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
 		if(selection == undefined)
 			return;
@@ -326,6 +409,9 @@ function p_menuFunction() {
 			case "info":
 				p_info();
 				break;
+			case "opened":
+				p_opened();
+				break;
 			default:
 				break;
 		}
@@ -334,7 +420,7 @@ function p_menuFunction() {
 
 function p_checkFileOpened(uri, onSuccess) {
 	var cmdline = buildCmdline("opened", '"' + uri.fsPath + '"');
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -350,17 +436,17 @@ function p_checkFileOpened(uri, onSuccess) {
 			_channel.append(stdout.toString());
 		}
 	});
-	
+
 	return true;
 }
 
 function p_getClientRoot(onSuccess, onFailure) {
 	var cmdline = buildCmdline("info");
-	
+
 	if (!checkFolderOpened()){
 		return false;
 	}
-	
+
 	_channel.appendLine(cmdline);
 	CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 		if(err){
@@ -372,14 +458,14 @@ function p_getClientRoot(onSuccess, onFailure) {
 		else {
 			var stdoutString = stdout.toString();
 			// _channel.append(stdoutString);
-			
+
 			var clientRootIndex = stdoutString.indexOf('Client root: ');
 			if(clientRootIndex === -1) {
 				// _channel.appendLine("ERROR: P4 Info didn't specify a valid Client Root path");
 				if (typeof onFailure=="function") onFailure();
 				return -1;
 			}
-			
+
 			//Set index to after 'Client Root: '
 			clientRootIndex += 'Client root: '.length;
 			var endClientRootIndex = stdoutString.indexOf('\n', clientRootIndex);
@@ -389,14 +475,14 @@ function p_getClientRoot(onSuccess, onFailure) {
 				if (typeof onFailure=="function") onFailure();
 				return -1;
 			}
-			
+
 			if (typeof onSuccess=="function") {
 				//call onSuccess with path as arg
 				onSuccess(stdoutString.substring(clientRootIndex, endClientRootIndex));
 			}
 		}
 	});
-	
+
 	return true;
 }
 
@@ -405,7 +491,7 @@ function fileInClientRoot(path, onSuccess, onFailure) {
 		//Convert to lower and Strip newlines from paths
 		clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
 		var filePath = path.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
-		
+
 		//Check if p4 Client Root is in uri's path
 		if(filePath.indexOf(clientRoot) !== -1) {
 			if (typeof onSuccess=="function") onSuccess();
@@ -419,7 +505,7 @@ function tryEditFile(uri) {
 	if (!checkFolderOpened()){
 		return false;
 	}
-	
+
 	//The callbacks make me cry at night :(
 	fileInClientRoot(uri.fsPath, function() {
 		// onSuccess
@@ -441,13 +527,13 @@ function w_onFileModified(docChange) {
 	if(docChange.document.uri.fsPath == _lastCheckedFilePath) {
 		return;
 	}
-	
+
 	//If this doc is not the active file, return
 	var editor = window.activeTextEditor;
 	if (!editor || !editor.document || editor.document.uri.fsPath != docChange.document.uri.fsPath) {
 		return;
 	}
-	
+
 	_lastCheckedFilePath = docChange.document.uri.fsPath;
 	tryEditFile(docChange.document.uri);
 }
@@ -456,7 +542,7 @@ function w_onFileDeleted(uri) {
 	if (!checkFolderOpened()){
 		return false;
 	}
-	
+
 	p_deleteUri(uri);
 }
 
@@ -464,7 +550,7 @@ function w_onFileCreated(uri) {
 	if (!checkFolderOpened()){
 		return false;
 	}
-	
+
 	var editor = window.activeTextEditor;
 	//Only add files open in text editor
 	if(editor.document && editor.document.uri.fsPath == uri.fsPath) {
@@ -478,7 +564,7 @@ function w_onChangeEditor() {
 		_statusBarItem = window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 		_statusBarItem.command = 'perforce.menuFunctions';
 	}
-	
+
 	// Get the current text editor
 	var editor = window.activeTextEditor;
 	if (!editor) {
@@ -510,5 +596,5 @@ function w_onChangeEditor() {
 		_statusBarItem.show();
 	} else {
 		_statusBarItem.hide();
-	}	
+	}
 }

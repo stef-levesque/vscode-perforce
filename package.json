@@ -104,6 +104,11 @@
 				"command": "perforce.info",
 				"title": "info - Display client/server information",
 				"category": "Perforce"
+			},
+			{
+				"command": "perforce.opened",
+				"title": "opened - Display 'open' files and open one in the editor",
+				"category": "Perforce"
 			}
 		],
 		"keybindings": [
@@ -138,6 +143,10 @@
 			{
 				"key": "alt+p i",
 				"command": "perforce.info"
+			},
+			{
+				"key": "alt+p o",
+				"command": "perforce.opened"
 			}
 		]
 	},
