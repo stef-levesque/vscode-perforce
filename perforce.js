@@ -22,6 +22,7 @@ function activate() {
 	vscode.commands.registerCommand('perforce.edit', p_edit);
 	vscode.commands.registerCommand('perforce.revert', p_revert);
 	vscode.commands.registerCommand('perforce.diff', p_diff);
+	vscode.commands.registerCommand('perforce.diffRevision', p_diffRevision);
 	vscode.commands.registerCommand('perforce.info', p_info);
 	vscode.commands.registerCommand('perforce.menuFunctions', p_menuFunction);
 	
@@ -98,13 +99,14 @@ function buildCmdline(command, args) {
 	return cmdline;
 }
 
-function getFile(localFilePath) {
+function getFile(localFilePath, revision) {
 
 	return new Promise((resolve, reject) => {
 		var ext = Path.extname(localFilePath);
 		var tmp = require("tmp");
 		var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
-		var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + '"');
+		revision = revision ? `#${revision}` : '';
+		var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + revision + '"');
 		CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 			if(err){
 				reject(err);
@@ -228,7 +230,7 @@ function p_revert() {
 	});
 }
 
-function p_diff() {
+function p_diff(revision) {
 	var editor = window.activeTextEditor;
 	if (!checkFileSelected()) {
 		return false;
@@ -239,15 +241,21 @@ function p_diff() {
 	var doc = editor.document;
 	
 	if (!doc.isUntitled) {
-		getFile(doc.uri.fsPath).then( (tmpFile) => {
+		getFile(doc.uri.fsPath, revision).then( (tmpFile) => {
 			var tmpFileUri = vscode.Uri.file(tmpFile);
-			vscode.commands.executeCommand("vscode.diff", tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + " - Diff Against Have Revision");
+			var revisionLabel = revision ? `Revision #${revision}` : 'Most Recent Revision';
+			vscode.commands.executeCommand("vscode.diff", tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + " - Diff Against " + revisionLabel);
 		}, (err) => {
 			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(err.toString());	
 		});
 	}
+}
+
+function p_diffRevision() {
+	window.showInputBox({prompt: 'What revision would you like to diff?'})
+		.then(val => p_diff(val));
 }
 
 function p_info() {
@@ -294,6 +302,7 @@ function p_menuFunction() {
 	items.push({ label: "edit", description: "Open an existing file for edit" });
 	items.push({ label: "revert", description: "Discard changes from an opened file" });
 	items.push({ label: "diff", description: "Display diff of client file with depot file" });
+	items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
 	items.push({ label: "info", description: "Display client/server information" });
 	window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
 		if(selection == undefined)
@@ -310,6 +319,9 @@ function p_menuFunction() {
 				break;
 			case "diff":
 				p_diff();
+				break;
+			case "diffRevision":
+				p_diffRevision();
 				break;
 			case "info":
 				p_info();

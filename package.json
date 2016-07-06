@@ -96,6 +96,11 @@
 				"category": "Perforce"
 			},
 			{
+				"command": "perforce.diffRevision",
+				"title": "diff revision - Display diff of client file with depot file at a specific revision",
+				"category": "Perforce"
+			},
+			{
 				"command": "perforce.info",
 				"title": "info - Display client/server information",
 				"category": "Perforce"
