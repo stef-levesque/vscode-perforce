@@ -2,7 +2,7 @@
 	"name": "perforce",
 	"displayName": "Perforce for VS Code",
 	"description": "Perforce basic commands for Visual Studio Code",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"publisher": "slevesque",
 	"categories":[
 		"Other"
@@ -154,6 +154,6 @@
 		"tmp": "0.0.28"
 	},
 	"devDependencies": {
-		"vscode": "^0.10.7"
+		"vscode": "~0.11.14"
 	}
 }

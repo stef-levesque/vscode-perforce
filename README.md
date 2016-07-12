@@ -56,6 +56,12 @@ Visual Studio Code v0.10.x (November 2015)
 
 ## Change log
 
+### [0.1.8] - 2016-07-11
+
+* Add ability to configure the p4 client per workspace. (#19, thanks @ralberts)
+* Add ability to diff specific revisions (#20, thanks @hoovercj)
+* Add ability to see files opened in perforce and open one in the editor (#21, thanks @hoovercj)
+
 ### [0.1.7] - 2016-05-11
 
 * the perforce command path can be configured in settings (#15, thanks @hoovercj)
@@ -109,6 +115,7 @@ Visual Studio Code v0.10.x (November 2015)
 * `edit` command on opened file
 * `revert` command on opened file
 
+[0.1.8]: https://github.com/stef-levesque/vscode-perforce/compare/2af4e1713633c96ed70ee8366fd533094377ef55...2da50c202f9c711a3b5e6e40d7333bf71cac1f90
 [0.1.7]: https://github.com/stef-levesque/vscode-perforce/compare/cf189871bdc013e4342d5c3fd0ee485ddae4734e...1fbce841c7f52f65a00f1c25bc530b8c4296aafe
 [0.1.6]: https://github.com/stef-levesque/vscode-perforce/compare/2915c7688d1c71dd1815350313f7d4344cab1607...b9bb4076beb62d47d17abfd8fc515058ab9f5adb
 [0.1.5]: https://github.com/stef-levesque/vscode-perforce/compare/383da5048e342cbbe90ab4f74fecd0db9e3d85fc...faad0b0db08d87f04664dfa9bc8a3be3640c6311
