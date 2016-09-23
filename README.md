@@ -56,6 +56,10 @@ Visual Studio Code v0.10.x (November 2015)
 
 ## Change log
 
+### [0.1.9] - 2016-09-23
+
+* Fix issue #23 - error with `diff` keyboard shortcut
+
 ### [0.1.8] - 2016-07-11
 
 * Add ability to configure the p4 client per workspace. (#19, thanks @ralberts)
@@ -115,6 +119,7 @@ Visual Studio Code v0.10.x (November 2015)
 * `edit` command on opened file
 * `revert` command on opened file
 
+[0.1.9]: https://github.com/stef-levesque/vscode-perforce/compare/62008b25044c90cc382c2cc952e454591af78b47...c584470fe7a1328be3895c49242e543a3ed06d3c
 [0.1.8]: https://github.com/stef-levesque/vscode-perforce/compare/2af4e1713633c96ed70ee8366fd533094377ef55...2da50c202f9c711a3b5e6e40d7333bf71cac1f90
 [0.1.7]: https://github.com/stef-levesque/vscode-perforce/compare/cf189871bdc013e4342d5c3fd0ee485ddae4734e...1fbce841c7f52f65a00f1c25bc530b8c4296aafe
 [0.1.6]: https://github.com/stef-levesque/vscode-perforce/compare/2915c7688d1c71dd1815350313f7d4344cab1607...b9bb4076beb62d47d17abfd8fc515058ab9f5adb
