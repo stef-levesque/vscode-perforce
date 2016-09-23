@@ -107,7 +107,7 @@ function getFile(localFilePath, revision) {
 		var ext = Path.extname(localFilePath);
 		var tmp = require("tmp");
 		var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
-		revision = revision ? `#${revision}` : '';
+		revision = isNaN(revision) ? '' : `#${revision}`;
 		var cmdline = buildCmdline("print", '-q -o "' + tmpFilePath + '" "' + localFilePath + revision + '"');
 		CP.exec(cmdline, {cwd: workspace.rootPath}, function (err, stdout, stderr) {
 			if(err){
@@ -245,7 +245,7 @@ function p_diff(revision) {
 	if (!doc.isUntitled) {
 		getFile(doc.uri.fsPath, revision).then( (tmpFile) => {
 			var tmpFileUri = vscode.Uri.file(tmpFile);
-			var revisionLabel = revision ? `Revision #${revision}` : 'Most Recent Revision';
+			var revisionLabel = isNaN(revision) ?  'Most Recent Revision' : `Revision #${revision}`;
 			vscode.commands.executeCommand("vscode.diff", tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + " - Diff Against " + revisionLabel);
 		}, (err) => {
 			_channel.show();
