@@ -32,67 +32,80 @@ const perforcePluginCommands: string[] = [
  * Generate a .editorconfig file in the root of the workspace based on the
  * current vscode settings.
  */
-class PerforceCommands 
+export namespace PerforceCommands 
 {
-
-    public dispose() {
+    export function registerCommands() {
+        commands.registerCommand('perforce.add', addOpenFile);
+        commands.registerCommand('perforce.edit', editOpenFile);
+        commands.registerCommand('perforce.revert', revert);
+        commands.registerCommand('perforce.diff', diff);
+        commands.registerCommand('perforce.diffRevision', diffRevision);
+        commands.registerCommand('perforce.info', info);
+        commands.registerCommand('perforce.opened', opened);
+        commands.registerCommand('perforce.showOutput', showOutput);
+        commands.registerCommand('perforce.menuFunctions', menuFunctions);
     }
 
-    public registerCommands() {
-        commands.registerCommand('perforce.add', this.add);
-        commands.registerCommand('perforce.edit', this.edit);
-        commands.registerCommand('perforce.revert', this.revert);
-        commands.registerCommand('perforce.diff', this.diff);
-        commands.registerCommand('perforce.diffRevision', this.diffRevision);
-        commands.registerCommand('perforce.info', this.info);
-        commands.registerCommand('perforce.opened', this.opened);
-        commands.registerCommand('perforce.showOutput', this.showOutput);
-        commands.registerCommand('perforce.menuFunctions', this.menuFunctions);
-    }
-
-    public add() {
+    function addOpenFile() {
         var editor = window.activeTextEditor;
-        if(!this.checkFileSelected()) {
+        if(!checkFileSelected()) {
             return false;
         }
 
-        if(!this.checkFolderOpened()) {
+        if(!checkFolderOpened()) {
             return false;
         }
 
+        this.add(editor.document.uri.fsPath);
+    }
+
+    export function add(filePath: string) {
         PerforceService.execute("add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file opened for add", 3000);
             }
-        }, editor.document.uri.toString());
+        }, filePath);
+    }    
+
+    function editOpenFile() {
+        var editor = window.activeTextEditor;
+        if(!checkFileSelected()) {
+            return false;
+        }
+
+        if(!checkFolderOpened()) {
+            return false;
+        }
+
+        edit(editor.document.uri.fsPath);
     }
 
-    public edit() {
-        var editor = window.activeTextEditor;
-        if(!this.checkFileSelected()) {
-            return false;
-        }
-
-        if(!this.checkFolderOpened()) {
-            return false;
-        }
-
+    export function edit(filePath: string) {
         PerforceService.execute("edit", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file opened for edit", 3000);
             }
-        }, editor.document.uri.toString());
+        }, filePath);
     }
 
-    public revert() {
+    export function p4delete(filePath: string) {
+        PerforceService.execute("delete", (err, stdout, stderr) => {
+            PerforceService.handleCommonServiceResponse(err, stdout, stderr);
+            if(!err) {
+                window.setStatusBarMessage("Perforce: file marked for delete", 3000);
+            }
+        }, filePath);
+    }
+
+    export function revert() {
         var editor = window.activeTextEditor;
-        if(!this.checkFileSelected()) {
+        if(!checkFileSelected()) {
             return false;
         }
 
-        if(!this.checkFolderOpened()) {
+        if(!checkFolderOpened()) {
             return false;
         }
 
@@ -101,16 +114,16 @@ class PerforceCommands
             if(!err) {
                 window.setStatusBarMessage("Perforce: file reverted", 3000);
             }
-        }, editor.document.uri.toString());
+        }, editor.document.uri.fsPath);
     }
 
-    public diff(revision?: number) {
-                var editor = window.activeTextEditor;
-        if(!this.checkFileSelected()) {
+    export function diff(revision?: number) {
+        var editor = window.activeTextEditor;
+        if(!checkFileSelected()) {
             return false;
         }
 
-        if(!this.checkFolderOpened()) {
+        if(!checkFolderOpened()) {
             return false;
         }
 
@@ -127,21 +140,21 @@ class PerforceCommands
         }
     }
 
-    public diffRevision() {
+    export function diffRevision() {
         window.showInputBox({prompt: 'What revision would you like to diff?'})
-            .then(val => this.diff(parseInt(val)));
+            .then(val => diff(parseInt(val)));
     }
 
-    public info() {
-        if(!this.checkFolderOpened()) {
+    export function info() {
+        if(!checkFolderOpened()) {
             return false;
         }
 
         PerforceService.execute('info', PerforceService.handleCommonServiceResponse);
     }
 
-    public opened() {
-        if(!this.checkFolderOpened()) {
+    export function opened() {
+        if(!checkFolderOpened()) {
             return false;
         }
 
@@ -170,24 +183,28 @@ class PerforceCommands
 
                     let depotPath = selection.description;
                     var whereFile = depotPath.substring(0, depotPath.indexOf('#'));
-                    this.where(whereFile).then((result) => {
+                    where(whereFile).then((result) => {
                         // https://www.perforce.com/perforce/r14.2/manuals/cmdref/p4_where.html
                         var results = result.split(' ');
                         if (results.length >= 3) {
                             var fileToOpen = results[2].trim();
                             workspace.openTextDocument(Uri.file(fileToOpen)).then((document) => {
                                 window.showTextDocument(document);
+                            }, (reason) => {
+                                Display.showError(reason);
                             });
                         }
+                    }).catch((reason) => {
+                        Display.showError(reason);
                     });
                 });
             }
         });
     }
 
-    private where(file: string): Promise<string> {
+    function where(file: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            if(!this.checkFolderOpened()) {
+            if(!checkFolderOpened()) {
                 reject();
                 return;
             }
@@ -202,15 +219,15 @@ class PerforceCommands
                 } else {
                     resolve(stdout.toString());
                 }
-            });
+            }, file);
         });
     }
 
-    public showOutput() {
-
+    export function showOutput() {
+        Display.channel.show();
     }
 
-    public menuFunctions() {
+    export function menuFunctions() {
         var items = [];
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
@@ -224,25 +241,25 @@ class PerforceCommands
                 return;
             switch (selection.label) {
                 case "add":
-                    this.add();
+                    addOpenFile();
                     break;
                 case "edit":
-                    this.edit();
+                    editOpenFile();
                     break;
                 case "revert":
-                    this.revert();
+                    revert();
                     break;
                 case "diff":
-                    this.diff();
+                    diff();
                     break;
                 case "diffRevision":
-                    this.diffRevision();
+                    diffRevision();
                     break;
                 case "info":
-                    this.info();
+                    info();
                     break;
                 case "opened":
-                    this.opened();
+                    opened();
                     break;
                 default:
                     break;
@@ -250,7 +267,7 @@ class PerforceCommands
         });
     }
 
-    private checkFileSelected() {
+    function checkFileSelected() {
         if(!window.activeTextEditor) {
             window.setStatusBarMessage("Perforce: No file selected", 3000);
             return false;
@@ -259,7 +276,7 @@ class PerforceCommands
         return true;
     }
 
-    private checkFolderOpened() {
+    export function checkFolderOpened() {
         if (workspace.rootPath == undefined) {
             window.setStatusBarMessage("Perforce: No folder selected", 3000);
             return false;
@@ -268,5 +285,3 @@ class PerforceCommands
         return true;
     }
 }
-
-export default PerforceCommands;

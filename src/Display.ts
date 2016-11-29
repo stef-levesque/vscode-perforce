@@ -22,7 +22,7 @@ export namespace Display
     export function updateEditor() {
         var editor = window.activeTextEditor;
         if(!editor) {
-            this.statusBarItem.hide();
+            _statusBarItem.hide();
             return;
         }
 
@@ -44,7 +44,7 @@ export namespace Display
                     _statusBarItem.text = 'P4: $(check)';
                     _statusBarItem.tooltip = stdout.toString();
                 }
-            });
+            }, doc.uri.fsPath);
             _statusBarItem.show();
         } else {
             _statusBarItem.hide();
@@ -56,5 +56,4 @@ export namespace Display
         channel.appendLine("ERROR:");
         channel.append(error);
     }
-
 }

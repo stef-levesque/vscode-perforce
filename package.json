@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "publisher": "slevesque",
   "license": "LICENSE.md",
-	"categories":[
+	"categories": [
 		"Other"
 	],
 	"icon": "icon.png",
@@ -28,7 +28,7 @@
     "vscode",
     "perforce"
   ],
-  "main": "./out/src/perforce",
+  "main": "./out/src/extension",
   "activationEvents": [
     "*"
   ],
@@ -155,6 +155,7 @@
   },
   "devDependencies": {
     "vscode": "^1.0.0",
+    "@types/node": "^6.0.45",
     "typescript": "^2.0.3"
   },
   "scripts": {
