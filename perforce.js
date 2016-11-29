@@ -38,8 +38,8 @@ function activate() {
 
 			if(config.editOnFileSave) {
 				workspace.onWillSaveTextDocument(e => {
-                    e.waitUntil(w_onWillSaveFile(e.document));
-                }, this, _subscriptions);
+					e.waitUntil(w_onWillSaveFile(e.document));
+				}, this, _subscriptions);
 			}
 
 			if(config.editOnFileModified) {
