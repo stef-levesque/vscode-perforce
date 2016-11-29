@@ -37,7 +37,9 @@ function activate() {
 		fileInClientRoot(workspace.rootPath, function() {
 
 			if(config.editOnFileSave) {
-				workspace.onDidSaveTextDocument(w_onFileSaved, this, _subscriptions);
+				workspace.onWillSaveTextDocument(e => {
+                    e.waitUntil(w_onWillSaveFile(e.document));
+                }, this, _subscriptions);
 			}
 
 			if(config.editOnFileModified) {
@@ -188,7 +190,7 @@ function p_edit() {
 	p_editUri(editor.document.uri);
 }
 
-function p_editUri(uri) {
+function p_editUri(uri, onSuccess, onError) {
 	var cmdline = buildCmdline("edit", '"' + uri.fsPath + '"');
 
 	_channel.appendLine(cmdline);
@@ -197,11 +199,13 @@ function p_editUri(uri) {
 			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
+			if (typeof onError=="function") onError();
 		}
 		else {
 			window.setStatusBarMessage("Perforce: file opened for edit", 3000);
 			_channel.append(stdout.toString());
 			w_onChangeEditor();
+			if (typeof onSuccess=="function") onSuccess();
 		}
 	});
 }
@@ -418,7 +422,7 @@ function p_menuFunction() {
 	});
 }
 
-function p_checkFileOpened(uri, onSuccess) {
+function p_checkFileNotOpened(uri, onNotOpened, onOpened, onError) {
 	var cmdline = buildCmdline("opened", '"' + uri.fsPath + '"');
 
 	_channel.appendLine(cmdline);
@@ -427,11 +431,14 @@ function p_checkFileOpened(uri, onSuccess) {
 			_channel.show();
 			_channel.appendLine("ERROR:");
 			_channel.append(stderr.toString());
+			if (typeof onError=="function") onError();
 		}
 		else {
 			//stderr set if not opened
 			if(stderr) {
-				if (typeof onSuccess=="function") onSuccess(uri);
+				if (typeof onNotOpened=="function") onNotOpened(uri);
+			} else {
+				if (typeof onOpened=="function") onOpened();
 			}
 			_channel.append(stdout.toString());
 		}
@@ -501,25 +508,37 @@ function fileInClientRoot(path, onSuccess, onFailure) {
 	}, onFailure);
 }
 
+//Return a Thenable so that we complete `edit` command on file before saving when trying to save.
 function tryEditFile(uri) {
-	if (!checkFolderOpened()){
-		return false;
-	}
-
-	//The callbacks make me cry at night :(
-	fileInClientRoot(uri.fsPath, function() {
-		// onSuccess
-		p_checkFileOpened(uri, function(uri) {
-			p_editUri(uri);
+	return new Promise((onFulfill, onReject) => {
+		if (!checkFolderOpened()){
+			onFulfill();
+			return false;
+		}
+		//The callbacks make me cry at night :(
+		fileInClientRoot(uri.fsPath, function() {
+			// onSuccess
+			p_checkFileNotOpened(uri, function(uri) {
+				p_editUri(uri, function() {
+					onFulfill();		
+				}, function() {
+					onFulfill();		
+				});
+			}, function() {
+				onFulfill();		
+			}, function() {
+				onFulfill();		
+			});
+		}, function() {
+			// onFailure
+			window.setStatusBarMessage("Perforce: File not in P4 Client Root", 3000);
+			onFulfill();		
 		});
-	}, function() {
-		// onFailure
-		window.setStatusBarMessage("Perforce: File not in P4 Client Root", 3000);
 	});
 }
 
-function w_onFileSaved(doc) {
-	tryEditFile(doc.uri);
+function w_onWillSaveFile(doc) {
+	return tryEditFile(doc.uri);
 }
 
 function w_onFileModified(docChange) {
@@ -535,7 +554,8 @@ function w_onFileModified(docChange) {
 	}
 
 	_lastCheckedFilePath = docChange.document.uri.fsPath;
-	tryEditFile(docChange.document.uri);
+	//tryEditFile returns a thenable so we need to resolve it.
+	Promise.resolve(tryEditFile(docChange.document.uri));
 }
 
 function w_onFileDeleted(uri) {
