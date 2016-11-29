@@ -314,7 +314,6 @@ declare module NodeJS {
         clearImmediate: (immediateId: any) => void;
         clearInterval: (intervalId: NodeJS.Timer) => void;
         clearTimeout: (timeoutId: NodeJS.Timer) => void;
-        console: typeof console;
         decodeURI: typeof decodeURI;
         decodeURIComponent: typeof decodeURIComponent;
         encodeURI: typeof encodeURI;

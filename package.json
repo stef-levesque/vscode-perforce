@@ -1,13 +1,13 @@
 {
-	"name": "perforce",
-	"displayName": "Perforce for VS Code",
-	"description": "Perforce basic commands for Visual Studio Code",
-	"version": "0.1.9",
-	"publisher": "slevesque",
+  "name": "perforce",
+  "displayName": "Perforce for VS Code",
+  "description": "Perforce basic commands for Visual Studio Code",
+  "version": "0.2.0",
+  "publisher": "slevesque",
+  "license": "LICENSE.md",
 	"categories":[
 		"Other"
 	],
-	"license": "SEE LICENSE IN LICENSE.md",
 	"icon": "icon.png",
 	"bugs": {
 		"url": "https://github.com/stef-levesque/vscode-perforce/issues"
@@ -17,21 +17,21 @@
 		"type": "git",
 		"url": "https://github.com/stef-levesque/vscode-perforce.git"
 	},
-	"galleryBanner": {
+  "galleryBanner": {
 		"color": "#5c2d91",
 		"theme": "dark"
 	},
-	"engines": {
-		"vscode": "0.10.x"
-	},
-	"keywords": [
-		"vscode",
-		"perforce"
-	],
-	"main": "./perforce",
-	"activationEvents": [
-		"*"
-	],
+  "engines": {
+    "vscode": "^1.6.x"
+  },
+  "keywords": [
+    "vscode",
+    "perforce"
+  ],
+  "main": "./out/src/perforce",
+  "activationEvents": [
+    "*"
+  ],
 	"contributes": {
 		"configuration": {
 			"type": "object",
@@ -150,10 +150,16 @@
 			}
 		]
 	},
-	"dependencies": {
-		"tmp": "0.0.28"
-	},
-	"devDependencies": {
-		"vscode": "~0.11.14"
-	}
+  "dependencies": {
+    "tmp": "0.0.28"
+  },
+  "devDependencies": {
+    "vscode": "^1.0.0",
+    "typescript": "^2.0.3"
+  },
+  "scripts": {
+      "vscode:prepublish": "tsc -p ./",
+      "compile": "tsc -watch -p ./",
+      "postinstall": "node ./node_modules/vscode/bin/install"
+  }
 }
