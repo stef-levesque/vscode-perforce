@@ -13,25 +13,6 @@ import {PerforceService} from './PerforceService';
 import {Display} from './Display';
 import {Utils} from './Utils';
 
-const perforceServiceCommands: string[] = [
-	'add',
-    'edit',
-    'revert',
-    'diff',
-    'diffRevision',
-    'info',
-    'opened'
-];
-
-const perforcePluginCommands: string[] = [
-	'menuFunctions',
-	'showOutput'
-];
-
-/**
- * Generate a .editorconfig file in the root of the workspace based on the
- * current vscode settings.
- */
 export namespace PerforceCommands 
 {
     export function registerCommands() {
