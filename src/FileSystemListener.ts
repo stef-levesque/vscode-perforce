@@ -29,7 +29,9 @@ export default class FileSystemListener
 
         if(config && PerforceCommands.checkFolderOpened()) {
             if(config['editOnFileSave']) {
-                workspace.onDidSaveTextDocument(this.onFileSaved, this, subscriptions);
+                workspace.onWillSaveTextDocument(e => {
+                    e.waitUntil(this.onWillSaveFile(e.document));
+                }, this, subscriptions);
             }
             
             if(config['editOnFileModified']) {
@@ -56,8 +58,8 @@ export default class FileSystemListener
         this._disposable.dispose();
     }
 
-    private onFileSaved(doc: TextDocument) {
-        this.tryEditFile(doc.uri.fsPath);
+    private onWillSaveFile(doc: TextDocument): Promise<void> {
+        return this.tryEditFile(doc.uri.fsPath);
     }
 
     private onFileModified(docChange: TextDocumentChangeEvent) {
@@ -78,21 +80,28 @@ export default class FileSystemListener
         this.tryEditFile(docPath);
     }
 
-    private tryEditFile(docPath: string): void {
-        //Check if this file is in client root first
-        this.fileInClientRoot(docPath).then((inClientRoot) => {
-            if(inClientRoot) {
-                return this.fileIsOpened(docPath);
-            }
-        }).then((isOpened) => {
-            //If not opened, open file for edit
-            if(!isOpened) {
-                PerforceCommands.edit(docPath);
-            }
-        }).catch((err) => {
-            console.log(err);
-            Display.showError(err);
-        });
+    private tryEditFile(docPath: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            //Check if this file is in client root first
+            this.fileInClientRoot(docPath).then((inClientRoot) => {
+                if(inClientRoot) {
+                    return this.fileIsOpened(docPath);
+                }
+                resolve();
+            }).then((isOpened) => {
+                //If not opened, open file for edit
+                if(!isOpened) {
+                    return PerforceCommands.edit(docPath);
+                }
+                resolve();
+            }).then((openedForEdit) => {
+                resolve();
+            }).catch((err) => {
+                console.log(err);
+                Display.showError(err);
+                reject(err);
+            });
+        });        
     }
 
     private onFileDeleted(uri: Uri) {

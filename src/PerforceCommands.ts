@@ -62,13 +62,16 @@ export namespace PerforceCommands
         edit(editor.document.uri.fsPath);
     }
 
-    export function edit(filePath: string) {
-        PerforceService.execute("edit", (err, stdout, stderr) => {
-            PerforceService.handleCommonServiceResponse(err, stdout, stderr);
-            if(!err) {
-                window.setStatusBarMessage("Perforce: file opened for edit", 3000);
-            }
-        }, filePath);
+    export function edit(filePath: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            PerforceService.execute("edit", (err, stdout, stderr) => {
+                PerforceService.handleCommonServiceResponse(err, stdout, stderr);
+                if(!err) {
+                    window.setStatusBarMessage("Perforce: file opened for edit", 3000);
+                }
+                resolve(err);
+            }, filePath);
+        });
     }
 
     export function p4delete(filePath: string) {
