@@ -37,7 +37,7 @@ export namespace PerforceCommands
             return false;
         }
 
-        this.add(editor.document.uri.fsPath);
+        add(editor.document.uri.fsPath);
     }
 
     export function add(filePath: string) {
