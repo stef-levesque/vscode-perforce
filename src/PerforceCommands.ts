@@ -33,20 +33,21 @@ export namespace PerforceCommands
             return false;
         }
 
-        if(!checkFolderOpened()) {
-            return false;
+        var filePath = editor.document.uri.fsPath;
+        if(checkFolderOpened()) {
+            add(filePath);
+        } else {
+            add(filePath, Path.dirname(filePath));
         }
-
-        add(editor.document.uri.fsPath);
     }
 
-    export function add(filePath: string) {
+    export function add(filePath: string, directoryOverride?: string) {
         PerforceService.execute("add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file opened for add", 3000);
             }
-        }, filePath);
+        }, filePath, directoryOverride);
     }    
 
     function editOpenFile() {
@@ -55,14 +56,17 @@ export namespace PerforceCommands
             return false;
         }
 
-        if(!checkFolderOpened()) {
-            return false;
-        }
+        var filePath = editor.document.uri.fsPath; 
 
-        edit(editor.document.uri.fsPath);
+        //If folder not opened, run p4 in files folder.
+        if(checkFolderOpened()) {
+            edit(filePath);
+        } else {
+            edit(filePath, Path.dirname(filePath));
+        }
     }
 
-    export function edit(filePath: string): Promise<boolean> {
+    export function edit(filePath: string, directoryOverride?: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             PerforceService.execute("edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
@@ -70,7 +74,7 @@ export namespace PerforceCommands
                     window.setStatusBarMessage("Perforce: file opened for edit", 3000);
                 }
                 resolve(err);
-            }, filePath);
+            }, filePath, directoryOverride);
         });
     }
 
@@ -89,8 +93,11 @@ export namespace PerforceCommands
             return false;
         }
 
+        //If folder not opened, overrided p4 directory
+        var filePath = editor.document.uri.fsPath;
+        var directoryOverride = null;
         if(!checkFolderOpened()) {
-            return false;
+            directoryOverride = Path.dirname(filePath);
         }
 
         PerforceService.execute("revert", (err, stdout, stderr) => {
@@ -98,7 +105,7 @@ export namespace PerforceCommands
             if(!err) {
                 window.setStatusBarMessage("Perforce: file reverted", 3000);
             }
-        }, editor.document.uri.fsPath);
+        }, filePath, directoryOverride);
     }
 
     export function diff(revision?: number) {

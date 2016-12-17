@@ -1,8 +1,11 @@
 import {
     window, 
     StatusBarAlignment,
-    StatusBarItem
+    StatusBarItem,
+    workspace
 } from 'vscode';
+
+import * as Path from 'path';
 
 import {PerforceService} from './PerforceService';
 
@@ -28,6 +31,12 @@ export namespace Display
 
         var doc = editor.document;
 
+        //If no folder is open, override the perforce directory to the files
+        var directoryOverride = null;
+        if (workspace.rootPath == undefined) {
+            directoryOverride = Path.dirname(doc.uri.fsPath);
+        }
+
         if(!doc.isUntitled) {
             PerforceService.execute("opened", function(err, stdout, stderr) {
                 if(err) {
@@ -44,7 +53,7 @@ export namespace Display
                     _statusBarItem.text = 'P4: $(check)';
                     _statusBarItem.tooltip = stdout.toString();
                 }
-            }, doc.uri.fsPath);
+            }, doc.uri.fsPath, directoryOverride);
             _statusBarItem.show();
         } else {
             _statusBarItem.hide();

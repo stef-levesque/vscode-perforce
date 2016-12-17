@@ -29,11 +29,11 @@ export namespace PerforceService {
         return p4Path;
     }
 
-    export function execute(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string): void {
-        execCommand(command, responseCallback, args);
+    export function execute(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string): void {
+        execCommand(command, responseCallback, args, directoryOverride);
     }
 
-    export function executeAsPromise(command: string, args?: string): Promise<string> {
+    export function executeAsPromise(command: string, args?: string, directoryOverride?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             execCommand(command, (err, stdout, stderr) => {
                 if(err) {
@@ -43,15 +43,21 @@ export namespace PerforceService {
                 } else {
                     resolve(stdout.toString());
                 }
-            }, args);
+            }, args, directoryOverride);
         });
     }
 
-    function execCommand(command:string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string) {
-        var cmdLine = _perforceCmdPath + ' ' + command;
+    function execCommand(command:string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string) {
+        var cmdLine = _perforceCmdPath;
+
+        if(directoryOverride != null) {
+            cmdLine += ' -d ' + directoryOverride;
+        }   
+        cmdLine += ' ' + command;
+
         if(args != null) {
             cmdLine += ' ' + args;
-        }
+        }     
 
         Display.channel.appendLine(cmdLine);
         CP.exec(cmdLine, {cwd: workspace.rootPath}, responseCallback);
