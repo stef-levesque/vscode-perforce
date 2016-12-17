@@ -8,7 +8,7 @@ export namespace Utils
     {
         var normalizedPath = path;
 
-        if (!this.pathIsUNC(normalizedPath)) {
+        if (!pathIsUNC(normalizedPath)) {
             var replaceable = normalizedPath.split('\\');
             normalizedPath = replaceable.join('\\\\');
         }
