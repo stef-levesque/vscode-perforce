@@ -58,7 +58,7 @@ export default class FileSystemListener
         this._disposable.dispose();
     }
 
-    private onWillSaveFile(doc: TextDocument): Promise<void> {
+    private onWillSaveFile(doc: TextDocument): Promise<boolean> {
         return this.tryEditFile(doc.uri.fsPath);
     }
 
@@ -80,7 +80,7 @@ export default class FileSystemListener
         this.tryEditFile(docPath);
     }
 
-    private tryEditFile(docPath: string): Promise<void> {
+    private tryEditFile(docPath: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             //Check if this file is in client root first
             this.fileInClientRoot(docPath).then((inClientRoot) => {
