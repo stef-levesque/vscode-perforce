@@ -1,5 +1,11 @@
 # Change log
 
+## [1.0.0] - 2017-01-01
+
+* Convert plugin to use Typescript and overall refactor (#26, thanks @jel-massih)
+* Use `onWillSaveTextDocument` event (#16, #25)
+* No need for workspace folder to (#13, #29)
+
 ## [0.1.9] - 2016-09-23
 
 * Fix issue #23 - error with `diff` keyboard shortcut
