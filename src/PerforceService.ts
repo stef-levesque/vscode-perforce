@@ -29,11 +29,11 @@ export namespace PerforceService {
         return p4Path;
     }
 
-    export function execute(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string): void {
-        execCommand(command, responseCallback, args, directoryOverride);
+    export function execute(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
+        execCommand(command, responseCallback, args, directoryOverride, input);
     }
 
-    export function executeAsPromise(command: string, args?: string, directoryOverride?: string): Promise<string> {
+    export function executeAsPromise(command: string, args?: string, directoryOverride?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             execCommand(command, (err, stdout, stderr) => {
                 if(err) {
@@ -43,11 +43,11 @@ export namespace PerforceService {
                 } else {
                     resolve(stdout.toString());
                 }
-            }, args, directoryOverride);
+            }, args, directoryOverride, input);
         });
     }
 
-    function execCommand(command:string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string) {
+    function execCommand(command:string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
         var cmdLine = _perforceCmdPath;
 
         if(directoryOverride != null) {
@@ -60,7 +60,12 @@ export namespace PerforceService {
         }     
 
         Display.channel.appendLine(cmdLine);
-        CP.exec(cmdLine, {cwd: workspace.rootPath}, responseCallback);
+        var child = CP.exec(cmdLine, {cwd: workspace.rootPath}, responseCallback);
+
+        if (input != null) {
+            child.stdin.end(input, 'utf8');
+        }
+
     }
 
     export function handleCommonServiceResponse(err: Error, stdout: string, stderr: string) {

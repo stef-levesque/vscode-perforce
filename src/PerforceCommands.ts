@@ -23,6 +23,8 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.diffRevision', diffRevision);
         commands.registerCommand('perforce.info', info);
         commands.registerCommand('perforce.opened', opened);
+        commands.registerCommand('perforce.logout', logout);
+        commands.registerCommand('perforce.login', login);
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
     }
@@ -250,6 +252,49 @@ export namespace PerforceCommands
         });
     }
 
+    export function logout() {
+        PerforceService.execute('logout', (err, stdout, stderr) => {
+            if(err) {
+                Display.showError(err.message);
+                return false;
+            } else if(stderr) {
+                Display.showError(stderr.toString());
+                return false;
+            } else {
+                window.setStatusBarMessage("Perforce: Logout successful", 3000);
+                Display.updateEditor();
+                return true;
+            }
+        });
+    }
+
+    export function login() {
+        PerforceService.execute('login', (err, stdout, stderr) => {
+            if(err || stderr) {
+                window.showInputBox({'prompt': 'Enter password', 'password': true}).then(passwd => {
+                    PerforceService.execute('login', (err, stdout, stderr) => {
+                        if (err) {
+                            Display.showError(err.message);
+                            return false;
+                        } else if (stderr) {
+                            Display.showError(stderr.toString());
+                            return false;
+                        } else {
+                            window.setStatusBarMessage("Perforce: Login successful", 3000);
+                            Display.updateEditor();
+                            return true;
+                        }
+                    }, null, null, passwd);
+                });
+
+            } else {
+                window.setStatusBarMessage("Perforce: Login successful", 3000);
+                Display.updateEditor();
+                return true;
+            }
+        }, '-s');
+    }
+
     export function showOutput() {
         Display.channel.show();
     }
@@ -263,6 +308,8 @@ export namespace PerforceCommands
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
         items.push({ label: "info", description: "Display client/server information" });
         items.push({ label: "opened", description: "View 'open' files and open one in editor" });
+        items.push({ label: "login", description: "Log in to Perforce" });
+        items.push({ label: "logout", description: "Log out from Perforce" });
         window.showQuickPick(items, {matchOnDescription: true, placeHolder: "Choose a Perforce command:"}).then(function (selection) {
             if(selection == undefined)
                 return;
@@ -287,6 +334,12 @@ export namespace PerforceCommands
                     break;
                 case "opened":
                     opened();
+                    break;
+                case "login":
+                    login();
+                    break;
+                case "logout":
+                    logout();
                     break;
                 default:
                     break;

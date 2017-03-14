@@ -76,6 +76,16 @@
         "category":"Perforce"
       },
       {
+        "command": "perforce.login",
+        "title": "login - Log in to Perforce by obtaining a session ticket",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.logout",
+        "title": "logout - Log out from Perforce by removing or invalidating a ticket.",
+        "category": "Perforce"
+      },
+      {
         "command":"perforce.add",
         "title":"add - Open a new file to add it to the depot",
         "category":"Perforce"
@@ -119,6 +129,14 @@
       {
         "key":"alt+p l",
         "command":"perforce.showOutput"
+      },
+      {
+        "key": "alt+p enter",
+        "command": "perforce.login"
+      },
+      {
+        "key": "alt+p q",
+        "command": "perforce.logout"
       },
       {
         "key":"alt+p a",
