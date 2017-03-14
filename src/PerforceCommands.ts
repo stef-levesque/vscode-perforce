@@ -132,8 +132,44 @@ export namespace PerforceCommands
     }
 
     export function diffRevision() {
-        window.showInputBox({prompt: 'What revision would you like to diff?'})
-            .then(val => diff(parseInt(val)));
+        var editor = window.activeTextEditor;
+        if (!checkFileSelected()) {
+            return false;
+        }
+
+        if (!checkFolderOpened()) {
+            return false;
+        }
+
+        var doc = editor.document;
+
+        PerforceService.execute('filelog', (err, stdout, stderr) => {
+            if (err) {
+                Display.showError(err.message);
+            } else if (stderr) {
+                Display.showError(stderr.toString());
+            } else {
+                let revisions = stdout.split('\n'), revisionsData = [];
+                revisions.shift();  // remove the first line - filename
+                revisions.forEach(revisionInfo => {
+                    if (revisionInfo.indexOf('... #') === -1)
+                        return;
+
+                    let splits = revisionInfo.split(' ');
+                    let rev = splits[1].substring(1);    // splice 1st character '#'
+                    let change = splits[3];
+                    let changedesc = revisionInfo.substring(revisionInfo.indexOf(splits[9]) + splits[9].length + 1);
+                    let label = '#' + rev + '  change: ' + change + '  Desc: ' + changedesc;
+                    revisionsData.push({ rev: rev, change: change, changedesc: changedesc, label: label })
+                });
+
+                window.showQuickPick(revisionsData).then( revision => {
+                    diff(parseInt(revision.rev));
+                })
+
+            }
+        }, '-s ' + doc.uri.fsPath);
+
     }
 
     export function info() {
