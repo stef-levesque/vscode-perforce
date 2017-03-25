@@ -26,6 +26,28 @@ export namespace Utils
         return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
     }
 
+    // Get a string containing the output of the command
+    export function getOutput(command: string, localFilePath?: string, revision?: number, prefixArgs?: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            var args = prefixArgs != null ? prefixArgs : '';
+            var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
+
+            if (localFilePath) {
+                args += ' "' + expansePath(localFilePath) + revisionString + '"'
+            }
+
+            PerforceService.execute(command, (err, stdout, stderr) => {
+                if (err) {
+                    reject(err);
+                } else if (stderr) {
+                    reject(stderr);
+                } else {
+                    resolve(stdout);
+                }
+            }, args);
+        });
+    }
+
     // Get a path to a file containing the output of the command
     export function getFile(command: string, localFilePath?: string, revision?: number, prefixArgs?: string) : Promise<string> {
         return new Promise((resolve, reject) => {
