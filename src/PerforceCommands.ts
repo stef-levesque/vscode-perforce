@@ -123,7 +123,7 @@ export namespace PerforceCommands
         var doc = editor.document;
 
         if(!doc.isUntitled) {
-            Utils.getFile(doc.uri.fsPath, revision).then((tmpFile: string) => {
+            Utils.getFile('print', doc.uri.fsPath, revision).then((tmpFile: string) => {
                 var tmpFileUri = Uri.file(tmpFile)
                 var revisionLabel = isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
                 commands.executeCommand('vscode.diff', tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + ' - Diff Against ' + revisionLabel);
