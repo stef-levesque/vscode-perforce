@@ -1,4 +1,4 @@
-import { Uri, EventEmitter, Event, SCMResourceGroup, Disposable } from 'vscode';
+import { Uri, EventEmitter, Event, SCMResourceGroup, Disposable, window } from 'vscode';
 import { Utils } from '../Utils';
 import { Resource } from './Resource';
 import { ResourceGroup, DefaultGroup, PendingGroup, ShelvedGroup } from './ResourceGroups';
@@ -45,7 +45,7 @@ export class Model implements Disposable {
     public constructor() {}
 
     public async Refresh(): Promise<void> {
-        await this.update();
+        window.withScmProgress( () => this.update() );
     }
 
     private async update(): Promise<void> {
