@@ -9,9 +9,10 @@ import {
 
 import * as Path from 'path';
 
-import {PerforceService} from './PerforceService';
-import {Display} from './Display';
-import {Utils} from './Utils';
+import { PerforceService } from './PerforceService';
+import { Display } from './Display';
+import { Utils } from './Utils';
+import { PerforceSCMProvider } from './ScmProvider';
 
 export namespace PerforceCommands 
 {
@@ -27,6 +28,10 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.login', login);
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
+
+        commands.registerCommand('perforce.Refresh', () => {
+            PerforceSCMProvider.Refresh();
+        });
     }
 
     function addOpenFile() {
@@ -179,6 +184,7 @@ export namespace PerforceCommands
             return false;
         }
 
+        showOutput();
         PerforceService.execute('info', PerforceService.handleCommonServiceResponse);
     }
 

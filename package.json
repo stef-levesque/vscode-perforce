@@ -22,8 +22,9 @@
     "theme":"dark"
   },
   "engines":{
-    "vscode":"^1.6.x"
+    "vscode":"^1.11.0"
   },
+  "enableProposedApi": true,
   "keywords":[
     "vscode",
     "perforce"
@@ -113,7 +114,20 @@
       {
         "command":"perforce.info",
         "title":"info - Display client/server information",
-        "category":"Perforce"
+        "category":"Perforce",
+        "icon": {
+          "light": "resources/icons/light/p4.svg",
+          "dark": "resources/icons/dark/p4.svg"
+        }
+      },
+      {
+        "command": "perforce.Refresh",
+        "title": "Refresh SCM",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/refresh.svg",
+          "dark": "resources/icons/dark/refresh.svg"
+        }
       },
       {
         "command":"perforce.opened",
@@ -121,6 +135,20 @@
         "category":"Perforce"
       }
     ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "perforce.Refresh",
+          "group": "navigation@1",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.info",
+          "group": "navigation@2",
+          "when": "scmProvider == perforce"
+        }
+      ]
+    },
     "keybindings":[
       {
         "key":"alt+p space",
