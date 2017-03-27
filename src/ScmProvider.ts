@@ -24,6 +24,7 @@ export class PerforceSCMProvider implements SCMProvider {
     }
 
     public get resources(): SCMResourceGroup[] { return this._model.Resources; }
+    public get contextKey(): string { return 'perforce'; }
     public get id(): string { return 'perforce'; }
     public get label(): string { return 'Perforce'; }
     public get count(): number {
@@ -49,7 +50,7 @@ export class PerforceSCMProvider implements SCMProvider {
         this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
-        scm.registerSCMProvider('perforce', this);
+        scm.registerSCMProvider(this);
 
     }
 
