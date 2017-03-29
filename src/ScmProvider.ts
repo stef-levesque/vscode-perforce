@@ -1,4 +1,4 @@
-import { scm, commands, Uri, Disposable, SCMProvider, SCMResource, SCMResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
+import { scm, commands, window, Uri, Disposable, SCMProvider, SCMResource, SCMResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { ResourceGroup } from './scm/ResourceGroups';
@@ -51,6 +51,14 @@ export class PerforceSCMProvider implements SCMProvider {
         PerforceSCMProvider.instance = this;
         scm.registerSCMProvider(this);
 
+        scm.onDidAcceptInputValue((e) => {
+            if (scm.activeProvider === this) {
+                PerforceSCMProvider.Submit(e.value);
+            }
+        });
+
+        scm.inputBox.value = "";
+
     }
 
     private static GetInstance(): PerforceSCMProvider {
@@ -67,13 +75,25 @@ export class PerforceSCMProvider implements SCMProvider {
         await perforceProvider._model.Refresh();
     };
 
-    getOriginalResource(uri: Uri): ProviderResult<Uri> {
-        if (uri.scheme !== 'file') {
-            return;
+    public static async Submit(input?: string | Uri): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        if (!input) {
+            input = await window.showInputBox({'prompt': 'submit comment'});
         }
 
-        return uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
-    }
+        await perforceProvider._model.Submit(input);
+    };
+
+
+    //provideOriginalResource(uri: Uri): Uri | undefined {
+    // getOriginalResource(uri: Uri): ProviderResult<Uri> {
+    //     if (uri.scheme !== 'file') {
+    //         return;
+    //     }
+
+    //     return uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
+    // }
 
 
     /**

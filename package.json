@@ -130,6 +130,16 @@
         }
       },
       {
+        "command": "perforce.submitDefault",
+        "title": "Submit default",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.submitChange",
+        "title": "Submit changelist",
+        "category": "Perforce"
+      },
+      {
         "command":"perforce.opened",
         "title":"opened - Display 'open' files and open one in the editor",
         "category":"Perforce"
@@ -146,6 +156,18 @@
           "command": "perforce.info",
           "group": "navigation@2",
           "when": "scmProvider == perforce"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "perforce.submitDefault",
+          "when": "scmProvider == perforce && scmProviderState == idle && scmResourceGroup == default",
+          "group": "1_modification"
+        },
+        {
+          "command": "perforce.submitChange",
+          "when": "scmProvider == perforce && scmProviderState == idle && scmResourceGroup != default",
+          "group": "1_modification"
         }
       ]
     },

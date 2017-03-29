@@ -29,8 +29,15 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
 
+        // SCM commands
         commands.registerCommand('perforce.Refresh', () => {
             PerforceSCMProvider.Refresh();
+        });
+        commands.registerCommand('perforce.submitDefault', () => {
+            PerforceSCMProvider.Submit();
+        });
+        commands.registerCommand('perforce.submitChange', (e) => {
+            PerforceSCMProvider.Submit(e);
         });
     }
 

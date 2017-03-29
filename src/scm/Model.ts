@@ -1,5 +1,6 @@
 import { Uri, EventEmitter, Event, SCMResourceGroup, Disposable, window } from 'vscode';
 import { Utils } from '../Utils';
+import { Display } from '../Display';
 import { Resource } from './Resource';
 import { ResourceGroup, DefaultGroup, PendingGroup, ShelvedGroup } from './ResourceGroups';
 
@@ -46,6 +47,27 @@ export class Model implements Disposable {
 
     public async Refresh(): Promise<void> {
         window.withScmProgress( () => this.update() );
+    }
+
+    public async Submit(input: Uri|string|number): Promise<void> {
+        const command = 'submit';
+        let args = '';
+        
+        if (input instanceof Uri && input.scheme === 'p4-resource-group') {
+            args = '-c ' + input.path.substr(input.path.indexOf(':') + 1);
+    }
+        else if (typeof input === 'number') {
+            args = '-c ' + input.toString();
+        } else {
+            args = input ? '-d ' + input : '';
+        }
+
+        Utils.getOutput(command, null, null, args).then((output) => {
+            Display.channel.append(output);
+            this.Refresh();
+        }).catch( (reason) => {
+            Display.showError(reason);
+        });
     }
 
     private async update(): Promise<void> {
