@@ -1,6 +1,6 @@
 import * as CP from 'child_process';
 import * as Path from 'path';
-import {PerforceService} from './PerforceService';
+import { PerforceService } from './PerforceService';
 
 export namespace Utils
 {
@@ -24,6 +24,20 @@ export namespace Utils
     // Use ASCII expansion for special characters
     function expansePath(path: string): string {
         return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
+    }
+
+    export function isLoggedIn() : Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            PerforceService.execute('login', (err, stdout, stderr) => {
+                if (err) {
+                    resolve(false);
+                } else if (stderr) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            }, '-s');
+        });
     }
 
     // Get a string containing the output of the command

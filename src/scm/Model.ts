@@ -49,8 +49,13 @@ export class Model implements Disposable {
     }
 
     private async update(): Promise<void> {
+        const loggedin = await Utils.isLoggedIn();
+        if (!loggedin) {
+            return;
+        }
+        
         const output: string = await Utils.getOutput('opened');
-        var opened = output.trim().split('\n')
+        var opened = output.trim().split('\n');
         if (opened.length === 0) {
             return;
         }
