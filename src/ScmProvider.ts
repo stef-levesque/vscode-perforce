@@ -18,20 +18,19 @@ export class PerforceSCMProvider implements SCMProvider {
 
     /* Implement SCMProvider interface */
 
-    private _onDidChange = new EventEmitter<SCMResourceGroup[]>();
-    public get onDidChange(): Event<SCMResourceGroup[]> {
+    private _onDidChange = new EventEmitter<this>();
+    public get onDidChange(): Event<this> {
         return this._onDidChange.event;
     }
 
     public get resources(): SCMResourceGroup[] { return this._model.Resources; }
     public get contextKey(): string { return 'perforce'; }
-    public get id(): string { return 'perforce'; }
     public get label(): string { return 'Perforce'; }
     public get count(): number {
         return this._model.Resources.reduce((r, g) => r + g.resources.length, 0);
     }
 
-    get state(): string {
+    get stateContextKey(): string {
         if (workspace.rootPath == undefined) {
             return 'norepo';
         }
@@ -46,7 +45,7 @@ export class PerforceSCMProvider implements SCMProvider {
     public Initialize() {
         this._model = new Model();
         // Hook up the model change event to trigger our own event
-        this._model.onDidChange((groups: ResourceGroup[]) => this._onDidChange.fire(groups));
+        this._model.onDidChange((groups: ResourceGroup[]) => this._onDidChange.fire(this));
         this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
@@ -83,7 +82,7 @@ export class PerforceSCMProvider implements SCMProvider {
      * For DELETE just show the server file.
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
-    open(resource: Resource): ProviderResult<void> {
+    open(resource: Resource): void {
 
         const left: Uri = this.getLeftResource(resource);
         const right: Uri = this.getRightResource(resource);
@@ -95,9 +94,11 @@ export class PerforceSCMProvider implements SCMProvider {
                 console.error("Status not supported: "+ resource.status.toString() );
                 return;
             }
-            return commands.executeCommand<void>("vscode.open", right);
+            commands.executeCommand<void>("vscode.open", right);
+            return;
         }
-        return commands.executeCommand<void>("vscode.diff", left, right, title);
+        commands.executeCommand<void>("vscode.diff", left, right, title);
+        return;
 
     }
 
