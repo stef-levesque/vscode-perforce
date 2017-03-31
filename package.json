@@ -135,7 +135,7 @@
         "category": "Perforce"
       },
       {
-        "command": "perforce.submitChange",
+        "command": "perforce.submitChangelist",
         "title": "Submit changelist",
         "category": "Perforce"
       },
@@ -161,12 +161,12 @@
       "scm/resourceGroup/context": [
         {
           "command": "perforce.submitDefault",
-          "when": "scmProvider == perforce && scmProviderState == idle && scmResourceGroup == default",
+          "when": "scmProvider == perforce && scmResourceGroup == default",
           "group": "1_modification"
         },
         {
-          "command": "perforce.submitChange",
-          "when": "scmProvider == perforce && scmProviderState == idle && scmResourceGroup != default",
+          "command": "perforce.submitChangelist",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification"
         }
       ]

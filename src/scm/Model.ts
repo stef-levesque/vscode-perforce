@@ -1,4 +1,4 @@
-import { Uri, EventEmitter, Event, SCMResourceGroup, Disposable, window } from 'vscode';
+import { Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -10,8 +10,8 @@ import * as Path from 'path';
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
 
-    private _onDidChange = new EventEmitter<SCMResourceGroup[]>();
-    public get onDidChange(): Event<SCMResourceGroup[]> {
+    private _onDidChange = new EventEmitter<SourceControlResourceGroup[]>();
+    public get onDidChange(): Event<SourceControlResourceGroup[]> {
         return this._onDidChange.event;
     }
 
@@ -22,12 +22,14 @@ export class Model implements Disposable {
         }
     }
 
-    private _defaultGroup?: DefaultGroup = null;
-    private _pendingGroups: PendingGroup[] = [];
-    private _shelvedGroups: ShelvedGroup[] = [];
+    public _sourceControl: SourceControl;
 
-    public get Resources(): ResourceGroup[] {
-        const result: ResourceGroup[] = [];
+    private _defaultGroup: SourceControlResourceGroup;
+    private _pendingGroups: SourceControlResourceGroup[] = [];
+    private _shelvedGroups: SourceControlResourceGroup[] = [];
+
+    public get ResourceGroups(): SourceControlResourceGroup[] {
+        const result: SourceControlResourceGroup[] = [];
 
         if (this._defaultGroup)
             result.push(this._defaultGroup);
@@ -46,10 +48,17 @@ export class Model implements Disposable {
     public constructor() {}
 
     public async Refresh(): Promise<void> {
+        this.clean();
+
+        const loggedin = await Utils.isLoggedIn();
+        if (!loggedin) {
+            return;
+        }
+
         window.withScmProgress( () => this.update() );
     }
 
-    public async Submit(input: Uri|string|number): Promise<void> {
+    public async Submit(input: Uri | string | number): Promise<void> {
         const command = 'submit';
         let args = '';
         
@@ -65,9 +74,19 @@ export class Model implements Disposable {
         Utils.getOutput(command, null, null, args).then((output) => {
             Display.channel.append(output);
             this.Refresh();
-        }).catch( (reason) => {
+        }).catch((reason) => {
             Display.showError(reason);
         });
+    }
+
+    private clean() {
+        if (this._defaultGroup) {
+            this._defaultGroup.dispose();
+        }
+
+        this._pendingGroups.forEach((value) => value.dispose());
+        this._shelvedGroups.forEach((value) => value.dispose());
+
     }
 
     private async update(): Promise<void> {
@@ -121,14 +140,17 @@ export class Model implements Disposable {
 
         //TODO shelved
 
-        this._defaultGroup = new DefaultGroup(defaults);
-        this._pendingGroups = [];
-        pendings.forEach( (value, key) => {
-            const pending = new PendingGroup(key, value)
-            return this._pendingGroups.push(pending);
-        })
+        this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
+        this._defaultGroup.resourceStates = defaults;
 
-        this._onDidChange.fire(this.Resources);
+        pendings.forEach( (value, key) => {
+            const chnum = key.toString();
+            const pending = this._sourceControl.createResourceGroup(chnum, 'Changelist #' + chnum);
+            pending.resourceStates = value;
+            this._pendingGroups.push( pending );
+        });
+
+        this._onDidChange.fire(this.ResourceGroups);
 
     }
 }

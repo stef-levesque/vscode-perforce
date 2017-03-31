@@ -1,11 +1,11 @@
-import { SCMResourceDecorations, Uri } from 'vscode';
+import { SourceControlResourceDecorations, Uri } from 'vscode';
 import { Status } from './Status';
 import * as path from 'path';
 
 export class DecorationProvider {
     private static _iconsRootPath: string = path.join(path.dirname(__dirname), '..', '..', 'resources', 'icons');
 
-    public static getDecorations(statuses: Status[]): SCMResourceDecorations {
+    public static getDecorations(statuses: Status[]): SourceControlResourceDecorations {
         const status: Status = this.getDominantStatus(statuses);
         const light = { iconPath: DecorationProvider.getIconPath(status, 'light') };
         const dark = { iconPath: DecorationProvider.getIconPath(status, 'dark') };

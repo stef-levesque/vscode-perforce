@@ -18,7 +18,7 @@ export class PerforceContentProvider {
     public provideTextDocumentContent(uri: Uri): Promise<string> {
         return Utils.isLoggedIn().then(value => {
             if (!value) {
-                return;
+                return '';
             }
 
             let command: string = uri.authority;
@@ -30,7 +30,7 @@ export class PerforceContentProvider {
             
         }).catch(reason => {
             Display.showError(reason);
-            return;
+            return '';
         })
     }
 }

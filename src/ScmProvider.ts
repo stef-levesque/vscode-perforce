@@ -1,11 +1,11 @@
-import { scm, commands, window, Uri, Disposable, SCMProvider, SCMResource, SCMResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
+import { scm, commands, window, Uri, Disposable, SourceControl, SourceControlResourceState, SourceControlResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { ResourceGroup } from './scm/ResourceGroups';
 import { Status } from './scm/Status';
 import * as Path from 'path';
 
-export class PerforceSCMProvider implements SCMProvider {
+export class PerforceSCMProvider {
     private disposables: Disposable[] = [];
     dispose(): void {
         this.disposables.forEach(d => d.dispose());
@@ -15,19 +15,20 @@ export class PerforceSCMProvider implements SCMProvider {
     private static instance: PerforceSCMProvider = undefined;
     private _model: Model;
 
-
-    /* Implement SCMProvider interface */
-
     private _onDidChange = new EventEmitter<this>();
     public get onDidChange(): Event<this> {
         return this._onDidChange.event;
     }
 
-    public get resources(): SCMResourceGroup[] { return this._model.Resources; }
-    public get contextKey(): string { return 'perforce'; }
+    public get resources(): SourceControlResourceGroup[] { return this._model.ResourceGroups; }
+    public get id(): string { return 'perforce'; }
     public get label(): string { return 'Perforce'; }
     public get count(): number {
-        return this._model.Resources.reduce((r, g) => r + g.resources.length, 0);
+        return this._model.ResourceGroups.reduce((r, g) => r + g.resourceStates.length, 0);
+    }
+
+    get sourceControl(): SourceControl {
+        return this._model._sourceControl;
     }
 
     get stateContextKey(): string {
@@ -49,13 +50,9 @@ export class PerforceSCMProvider implements SCMProvider {
         this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
-        scm.registerSCMProvider(this);
-
-        scm.onDidAcceptInputValue((e) => {
-            if (scm.activeProvider === this) {
-                PerforceSCMProvider.Submit(e.value);
-            }
-        });
+        this._model._sourceControl = scm.createSourceControl(this.id, this.label);
+        this._model._sourceControl.quickDiffProvider = this;
+        this._model._sourceControl.acceptInputCommand = { command: 'perforce.submitChangelist', title: 'Submit Changelist'};
 
         scm.inputBox.value = "";
 
@@ -68,6 +65,12 @@ export class PerforceSCMProvider implements SCMProvider {
         }
         return perforceProvider;
     }
+
+    public static async Open(resource: Resource): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider.open(resource);
+    };
 
     public static async Refresh(): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
@@ -86,14 +89,13 @@ export class PerforceSCMProvider implements SCMProvider {
     };
 
 
-    //provideOriginalResource(uri: Uri): Uri | undefined {
-    // getOriginalResource(uri: Uri): ProviderResult<Uri> {
-    //     if (uri.scheme !== 'file') {
-    //         return;
-    //     }
+    provideOriginalResource(uri: Uri): ProviderResult<Uri> {
+        if (uri.scheme !== 'file') {
+            return;
+        }
 
-    //     return uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
-    // }
+        return uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
+    }
 
 
     /**
@@ -102,8 +104,8 @@ export class PerforceSCMProvider implements SCMProvider {
      * For DELETE just show the server file.
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
-    open(resource: Resource): void {
 
+    private open(resource: Resource): void {
         const left: Uri = this.getLeftResource(resource);
         const right: Uri = this.getRightResource(resource);
         const title: string = this.getTitle(resource);

@@ -1,12 +1,13 @@
-import { SCMResourceGroup, Uri } from 'vscode';
+import { SourceControlResourceGroup, Uri } from 'vscode';
 import { Resource } from './Resource';
 
-export class ResourceGroup implements SCMResourceGroup {
-    get uri(): Uri { return Uri.parse(`p4-resource-group:${this.contextKey}`); }
+export class ResourceGroup implements SourceControlResourceGroup {
+    get uri(): Uri { return Uri.parse(`p4-resource-group:${this.id}`); }
     get id(): string { return this._id; }
     get label(): string { return this._label; }
-    get contextKey(): string { return this._id; }
-    get resources(): Resource[] { return this._resources; }
+    get resourceStates(): Resource[] { return this._resources; }
+
+    public dispose(): void {}
 
     constructor(private _id: string, private _label: string, private _resources: Resource[]) { }
 }

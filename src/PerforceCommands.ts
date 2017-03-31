@@ -33,10 +33,13 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.Refresh', () => {
             PerforceSCMProvider.Refresh();
         });
+        commands.registerCommand('perforce.openResource', (e) => {
+            PerforceSCMProvider.Open(e);
+        });
         commands.registerCommand('perforce.submitDefault', () => {
             PerforceSCMProvider.Submit();
         });
-        commands.registerCommand('perforce.submitChange', (e) => {
+        commands.registerCommand('perforce.submitChangelist', (e) => {
             PerforceSCMProvider.Submit(e);
         });
     }
