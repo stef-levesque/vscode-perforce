@@ -45,6 +45,12 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.submitChangelist', (e) => {
             PerforceSCMProvider.Submit(e);
         });
+        commands.registerCommand('perforce.revertChangelist', (e) => {
+            PerforceSCMProvider.Revert(e);
+        });
+        commands.registerCommand('perforce.revertFile', (e) => {
+            PerforceSCMProvider.Revert(e);
+        });
     }
 
     function addOpenFile() {

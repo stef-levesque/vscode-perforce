@@ -157,6 +157,24 @@
         }
       },
       {
+        "command": "perforce.revertFile",
+        "title": "Revert file",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/revert.svg",
+          "dark": "resources/icons/dark/revert.svg"
+        }
+      },
+      {
+        "command": "perforce.revertChangelist",
+        "title": "Revert changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/revert.svg",
+          "dark": "resources/icons/dark/revert.svg"
+        }
+      },
+      {
         "command":"perforce.opened",
         "title":"opened - Display 'open' files and open one in the editor",
         "category":"Perforce"
@@ -190,6 +208,18 @@
           "command": "perforce.submitChangelist",
           "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "inline@1"
+        },
+        {
+          "command": "perforce.revertChangelist",
+          "when": "scmProvider == perforce",
+          "group": "inline@2"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "perforce.revertFile",
+          "when": "scmProvider == perforce",
+          "group": "inline"
         }
       ]
     },

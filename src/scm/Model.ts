@@ -100,6 +100,35 @@ export class Model implements Disposable {
         });
     }
 
+    public async Revert(input: Resource | SourceControlResourceGroup): Promise<void> {
+        const command = 'revert';
+        let args = '';
+
+        const group = input as SourceControlResourceGroup;
+
+        if (group) {
+            const id = group.id;
+            const chnum = id.substr(id.indexOf(':') + 1);
+            if (id.startsWith('pending')) {
+                args = '-c ' + chnum + ' //...';
+            } else {
+                return;
+            }
+        } else if (input instanceof Resource) {
+            args = input.uri.fsPath;
+        } else {
+            return;
+        }
+
+        Utils.getOutput(command, null, null, args).then((output) => {
+            Display.channel.append(output);
+            this.Refresh();
+        }).catch((reason) => {
+            window.setStatusBarMessage("Perforce: " + reason, 3000);
+            Display.showError(reason);
+        });
+    }
+
     private clean() {
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
