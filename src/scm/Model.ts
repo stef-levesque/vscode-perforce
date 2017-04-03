@@ -1,4 +1,4 @@
-import { Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window } from 'vscode';
+import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -68,6 +68,20 @@ export class Model implements Disposable {
         window.withScmProgress(() => this.updateStatus());
     }
 
+    public async CreateChangelist(): Promise<void> {
+        const command = '-ztag change';
+        const args = '-i ';
+        let input = 'Change: new\n';
+        input += 'Description: ' + scm.inputBox.value;
+
+        Utils.getOutput(command, null, null, args, null, input).then((output) => {
+            Display.channel.append(output);
+            this.Refresh();
+        }).catch((reason) => {
+            Display.showError(reason.toString());
+        });
+
+    }
     public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';

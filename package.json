@@ -139,6 +139,15 @@
         }
       },
       {
+        "command": "perforce.createChangelist",
+        "title": "Create changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/create.svg",
+          "dark": "resources/icons/dark/create.svg"
+        }
+      },
+      {
         "command": "perforce.submitDefault",
         "title": "Submit default",
         "category": "Perforce",
@@ -188,13 +197,18 @@
           "when": "scmProvider == perforce"
         },
         {
+          "command": "perforce.createChangelist",
+          "group": "navigation@2",
+          "when": "scmProvider == perforce"
+        },
+        {
           "command": "perforce.Refresh",
-          "group": "navigation@1",
+          "group": "navigation@3",
           "when": "scmProvider == perforce"
         },
         {
           "command": "perforce.info",
-          "group": "navigation@2",
+          "group": "navigation@4",
           "when": "scmProvider == perforce"
         }
       ],

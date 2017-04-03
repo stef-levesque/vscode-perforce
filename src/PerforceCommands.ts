@@ -42,6 +42,9 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.submitDefault', () => {
             PerforceSCMProvider.Submit();
         });
+        commands.registerCommand('perforce.createChangelist', () => {
+            PerforceSCMProvider.CreateChangelist();
+        });
         commands.registerCommand('perforce.submitChangelist', (e) => {
             PerforceSCMProvider.Submit(e);
         });
