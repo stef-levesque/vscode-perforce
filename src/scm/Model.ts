@@ -68,24 +68,35 @@ export class Model implements Disposable {
         window.withScmProgress(() => this.updateStatus());
     }
 
-    public async Submit(input: Uri | string | number): Promise<void> {
+    public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';
         
-        if (input instanceof Uri && input.scheme === 'p4-resource-group') {
-            args = '-c ' + input.path.substr(input.path.indexOf(':') + 1);
-    }
-        else if (typeof input === 'number') {
-            args = '-c ' + input.toString();
+        const group = input as SourceControlResourceGroup;
+
+        if (group) {
+            const id = group.id;
+            const chnum = id.substr(id.indexOf(':') + 1);
+            if (id.startsWith('pending')) {
+                args = '-c ' + chnum;
+            } else if (id.startsWith('shelved')) {
+                args = '-e ' + chnum;
+            } else {
+                return;
+            }
+        } else if (typeof input === 'string') {
+            args = '-d ' + input;
         } else {
-            args = input ? '-d ' + input : '';
+            return;
         }
+
 
         Utils.getOutput(command, null, null, args).then((output) => {
             Display.channel.append(output);
             this.Refresh();
-        }).catch((reason) => {
-            Display.showError(reason);
+        }).catch( (reason) => {
+            window.setStatusBarMessage("Perforce: " + reason, 3000);
+            Display.showError(reason.toString());
         });
     }
 

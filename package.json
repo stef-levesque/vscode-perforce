@@ -141,12 +141,20 @@
       {
         "command": "perforce.submitDefault",
         "title": "Submit default",
-        "category": "Perforce"
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/submit.svg",
+          "dark": "resources/icons/dark/submit.svg"
+        }
       },
       {
         "command": "perforce.submitChangelist",
         "title": "Submit changelist",
-        "category": "Perforce"
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/submit.svg",
+          "dark": "resources/icons/dark/submit.svg"
+        }
       },
       {
         "command":"perforce.opened",
@@ -176,12 +184,12 @@
         {
           "command": "perforce.submitDefault",
           "when": "scmProvider == perforce && scmResourceGroup == default",
-          "group": "1_modification"
+          "group": "inline@1"
         },
         {
           "command": "perforce.submitChangelist",
           "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "1_modification"
+          "group": "inline@1"
         }
       ]
     },

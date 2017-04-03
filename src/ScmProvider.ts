@@ -83,12 +83,8 @@ export class PerforceSCMProvider {
         await perforceProvider._model.Refresh();
     };
 
-    public static async Submit(input?: string | Uri): Promise<void> {
+    public static async Submit(input?: Resource | SourceControlResourceGroup): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        if (!input) {
-            input = await window.showInputBox({'prompt': 'submit comment'});
-        }
 
         await perforceProvider._model.Submit(input);
     };
