@@ -121,6 +121,15 @@
         }
       },
       {
+        "command": "perforce.Sync",
+        "title": "Sync",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/sync.svg",
+          "dark": "resources/icons/dark/sync.svg"
+        }
+      },
+      {
         "command": "perforce.Refresh",
         "title": "Refresh SCM",
         "category": "Perforce",
@@ -147,6 +156,11 @@
     ],
     "menus": {
       "scm/title": [
+        {
+          "command": "perforce.Sync",
+          "group": "navigation@1",
+          "when": "scmProvider == perforce"
+        },
         {
           "command": "perforce.Refresh",
           "group": "navigation@1",

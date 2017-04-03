@@ -30,6 +30,9 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
 
         // SCM commands
+        commands.registerCommand('perforce.Sync', () => {
+            PerforceSCMProvider.Sync();
+        });
         commands.registerCommand('perforce.Refresh', () => {
             PerforceSCMProvider.Refresh();
         });

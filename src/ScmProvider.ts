@@ -71,6 +71,12 @@ export class PerforceSCMProvider {
         await perforceProvider.open(resource);
     };
 
+    public static async Sync(): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.Sync();
+    };
+
     public static async Refresh(): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
 

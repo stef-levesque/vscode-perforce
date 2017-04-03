@@ -47,6 +47,15 @@ export class Model implements Disposable {
 
     public constructor() {}
 
+    public async Sync(): Promise<void> {
+        const loggedin = await Utils.isLoggedIn();
+        if (!loggedin) {
+            return;
+        }
+
+        window.withScmProgress(() => this.syncUpdate());
+    }
+
     public async Refresh(): Promise<void> {
         this.clean();
 
@@ -87,6 +96,16 @@ export class Model implements Disposable {
 
         this._pendingGroups.forEach((value) => value.dispose());
         this._shelvedGroups.forEach((value) => value.dispose());
+    }
+
+    private async syncUpdate(): Promise<void> {
+        await Utils.getOutput('sync').then(output => {
+            Display.channel.append(output);
+            this.Refresh();
+        }).catch(reason => {
+            window.setStatusBarMessage("Perforce: " + reason, 3000);
+            Display.showError(reason);
+        })
     }
 
     private async updateInfo(): Promise<void> {
