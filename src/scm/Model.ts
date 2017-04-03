@@ -2,7 +2,6 @@ import { Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Di
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
-import { ResourceGroup, DefaultGroup, PendingGroup, ShelvedGroup } from './ResourceGroups';
 
 import * as Path from 'path';
 
@@ -23,6 +22,7 @@ export class Model implements Disposable {
     }
 
     public _sourceControl: SourceControl;
+    private _infos = new Map<string, string>();
 
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups: SourceControlResourceGroup[] = [];
@@ -55,7 +55,8 @@ export class Model implements Disposable {
             return;
         }
 
-        window.withScmProgress( () => this.update() );
+        window.withScmProgress(() => this.updateInfo());
+        window.withScmProgress(() => this.updateStatus());
     }
 
     public async Submit(input: Uri | string | number): Promise<void> {
@@ -86,24 +87,59 @@ export class Model implements Disposable {
 
         this._pendingGroups.forEach((value) => value.dispose());
         this._shelvedGroups.forEach((value) => value.dispose());
+    }
+
+    private async updateInfo(): Promise<void> {
+        this._infos = await Utils.getZtag('info');
 
     }
 
-    private async update(): Promise<void> {
+    private async updateStatus(): Promise<void> {
+
         const loggedin = await Utils.isLoggedIn();
         if (!loggedin) {
-            return;
-        }
-        
-        const output: string = await Utils.getOutput('opened');
-        var opened = output.trim().split('\n');
-        if (opened.length === 0) {
             return;
         }
 
         let defaults: Resource[] = [];
         let pendings = new Map<number, Resource[]>();
         let shelved = new Map<number, Resource[]>();
+        
+        const pendingArgs = '-c ' + this._infos.get('clientName') + ' -s pending';
+        var output: string = await Utils.getOutput('changes', null, null, pendingArgs);
+        output.trim().split('\n').forEach( (value) => {
+            // Change num on date by user@client [status] description
+            const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.+)\'/);
+
+            if (matches) {
+                const num = matches[1];
+                const date = matches[2];
+                const user = matches[3];
+                const client = matches[4];
+                const status = matches[5];
+                const description = matches[6];
+
+                const chnum: number = parseInt(num.toString());
+
+                if (!pendings.has(chnum)) {
+                    pendings.set(chnum, []);
+                }
+                
+            }
+
+            const line = value.trim();
+            const start = value.indexOf("'");
+            const end = value.indexOf("'", start);
+            const changelistDesc = line.substring(start, end);
+        });
+    
+
+        output = await Utils.getOutput('opened');
+        var opened = output.trim().split('\n');
+        if (opened.length === 0) {
+            return;
+        }
+
 
         for (let i = 0, n = opened.length; i < n; ++i) {
             // depot-file#rev - action chnum change (type) [lock-status]
@@ -145,7 +181,7 @@ export class Model implements Disposable {
 
         pendings.forEach( (value, key) => {
             const chnum = key.toString();
-            const pending = this._sourceControl.createResourceGroup(chnum, 'Changelist #' + chnum);
+            const pending = this._sourceControl.createResourceGroup('pending:' + chnum, 'Changelist #' + chnum);
             pending.resourceStates = value;
             this._pendingGroups.push( pending );
         });

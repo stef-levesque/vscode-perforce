@@ -1,7 +1,6 @@
 import { scm, commands, window, Uri, Disposable, SourceControl, SourceControlResourceState, SourceControlResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
-import { ResourceGroup } from './scm/ResourceGroups';
 import { Status } from './scm/Status';
 import * as Path from 'path';
 
@@ -46,7 +45,7 @@ export class PerforceSCMProvider {
     public Initialize() {
         this._model = new Model();
         // Hook up the model change event to trigger our own event
-        this._model.onDidChange((groups: ResourceGroup[]) => this._onDidChange.fire(this));
+        this._model.onDidChange((groups: SourceControlResourceGroup[]) => this._onDidChange.fire(this));
         this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
