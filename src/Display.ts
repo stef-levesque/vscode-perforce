@@ -7,7 +7,8 @@ import {
 
 import * as Path from 'path';
 
-import {PerforceService} from './PerforceService';
+import { PerforceService } from './PerforceService';
+import { Utils } from './Utils';
 
 var _statusBarItem : StatusBarItem;
 
@@ -38,6 +39,7 @@ export namespace Display
         }
 
         if(!doc.isUntitled) {
+            const args = '"' + Utils.expansePath(doc.uri.fsPath) + '"';
             PerforceService.execute("opened", function(err, stdout, stderr) {
                 if(err) {
                     // file not under client root
@@ -53,7 +55,7 @@ export namespace Display
                     _statusBarItem.text = 'P4: $(check)';
                     _statusBarItem.tooltip = stdout.toString();
                 }
-            }, doc.uri.fsPath, directoryOverride);
+            }, args, directoryOverride);
             _statusBarItem.show();
         } else {
             _statusBarItem.hide();

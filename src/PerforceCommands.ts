@@ -44,12 +44,13 @@ export namespace PerforceCommands
     }
 
     export function add(filePath: string, directoryOverride?: string) {
+        const args = '"' + Utils.expansePath(filePath) + '"';
         PerforceService.execute("add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file opened for add", 3000);
             }
-        }, filePath, directoryOverride);
+        }, args, directoryOverride);
     }    
 
     function editOpenFile() {
@@ -70,23 +71,25 @@ export namespace PerforceCommands
 
     export function edit(filePath: string, directoryOverride?: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
+            const args = '"' + Utils.expansePath(filePath) + '"';
             PerforceService.execute("edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
                 if(!err) {
                     window.setStatusBarMessage("Perforce: file opened for edit", 3000);
                 }
                 resolve(err);
-            }, filePath, directoryOverride);
+            }, args, directoryOverride);
         });
     }
 
     export function p4delete(filePath: string) {
+        const args = '"' + Utils.expansePath(filePath) + '"';
         PerforceService.execute("delete", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file marked for delete", 3000);
             }
-        }, filePath);
+        }, args);
     }
 
     export function revert() {
@@ -102,12 +105,13 @@ export namespace PerforceCommands
             directoryOverride = Path.dirname(filePath);
         }
 
+        const args = '"' + Utils.expansePath(filePath) + '"';
         PerforceService.execute("revert", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 window.setStatusBarMessage("Perforce: file reverted", 3000);
             }
-        }, filePath, directoryOverride);
+        }, args, directoryOverride);
     }
 
     export function diff(revision?: number) {
@@ -145,6 +149,7 @@ export namespace PerforceCommands
 
         var doc = editor.document;
 
+        const args = '-s "' + Utils.expansePath(doc.uri.fsPath) + '"';
         PerforceService.execute('filelog', (err, stdout, stderr) => {
             if (err) {
                 Display.showError(err.message);
@@ -170,7 +175,7 @@ export namespace PerforceCommands
                 })
 
             }
-        }, '-s ' + doc.uri.fsPath);
+        }, args);
 
     }
 
@@ -237,7 +242,7 @@ export namespace PerforceCommands
                 reject();
                 return;
             }
-
+            const args = '"' + file + '"';
             PerforceService.execute('where', (err, stdout, stderr) => {
                 if(err){
                     Display.showError(err.message);
@@ -248,7 +253,7 @@ export namespace PerforceCommands
                 } else {
                     resolve(stdout.toString());
                 }
-            }, file);
+            }, args);
         });
     }
 
