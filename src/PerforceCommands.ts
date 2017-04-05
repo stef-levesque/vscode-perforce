@@ -12,6 +12,7 @@ import * as Path from 'path';
 import {PerforceService} from './PerforceService';
 import {Display} from './Display';
 import {Utils} from './Utils';
+import {realpathSync} from 'fs';
 
 export namespace PerforceCommands 
 {
@@ -47,7 +48,7 @@ export namespace PerforceCommands
             if(!err) {
                 window.setStatusBarMessage("Perforce: file opened for add", 3000);
             }
-        }, filePath, directoryOverride);
+        }, realpathSync(filePath), directoryOverride ? realpathSync(directoryOverride) : directoryOverride);
     }    
 
     function editOpenFile() {
@@ -74,7 +75,7 @@ export namespace PerforceCommands
                     window.setStatusBarMessage("Perforce: file opened for edit", 3000);
                 }
                 resolve(err);
-            }, filePath, directoryOverride);
+            }, realpathSync(filePath), directoryOverride ? realpathSync(directoryOverride) : directoryOverride);
         });
     }
 
@@ -84,7 +85,7 @@ export namespace PerforceCommands
             if(!err) {
                 window.setStatusBarMessage("Perforce: file marked for delete", 3000);
             }
-        }, filePath);
+        }, realpathSync(filePath));
     }
 
     export function revert() {
@@ -105,7 +106,7 @@ export namespace PerforceCommands
             if(!err) {
                 window.setStatusBarMessage("Perforce: file reverted", 3000);
             }
-        }, filePath, directoryOverride);
+        }, realpathSync(filePath), directoryOverride ? realpathSync(directoryOverride) : directoryOverride);
     }
 
     export function diff(revision?: number) {
@@ -121,7 +122,7 @@ export namespace PerforceCommands
         var doc = editor.document;
 
         if(!doc.isUntitled) {
-            Utils.getFile(doc.uri.fsPath, revision).then((tmpFile: string) => {
+            Utils.getFile(realpathSync(doc.uri.fsPath), revision).then((tmpFile: string) => {
                 var tmpFileUri = Uri.file(tmpFile)
                 var revisionLabel = isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
                 commands.executeCommand('vscode.diff', tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + ' - Diff Against ' + revisionLabel);
