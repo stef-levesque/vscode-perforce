@@ -17,6 +17,7 @@ Perforce integration for Visual Studio Code
 * `diff` - Display diff of client file with depot file
 * `diff revision` - Display diff of client file with depot file at a specific revision
 * `info` - Display client/server information
+* `login`, `logout` - Login operations
 
 ## Status bar icons
 
@@ -26,10 +27,12 @@ Perforce integration for Visual Studio Code
 
 ## Installation
 
-Simply copy the files to your vscode **extensions** folder
-* **Windows** `%USERPROFILE%\.vscode\extensions`
-* **Mac** `$HOME/.vscode/extensions`
-* **Linux** `$HOME/.vscode/extensions`
+1. Install *Visual Studio Code* (1.10.0 or higher)
+2. Launch *Code*
+3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
+4. Select `Install Extensions`
+5. Choose the extension `Perforce for VS Code`
+6. Reload *Visual Studio Code*
 
 ## Contributing
 
@@ -41,7 +44,7 @@ Simply copy the files to your vscode **extensions** folder
 
 ## Requirements
 
-Visual Studio Code v1.6.x
+Visual Studio Code v1.10.x
 
 ## Credits
 
