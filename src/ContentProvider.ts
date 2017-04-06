@@ -22,7 +22,7 @@ export class PerforceContentProvider {
             }
 
             let command: string = uri.authority;
-            let file: string = uri.fsPath;
+            let file: Uri = Uri.file(uri.fsPath);
             let revision: number = parseInt(uri.fragment);
             let args: string = decodeURIComponent(uri.query);
 

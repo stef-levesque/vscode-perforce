@@ -1,3 +1,4 @@
+import { Uri } from 'vscode';
 import * as CP from 'child_process';
 import * as Path from 'path';
 import { PerforceService } from './PerforceService';
@@ -47,9 +48,9 @@ export namespace Utils
     }
 
     // Get a map containing the keys and values of the command
-    export function getZtag(command: string, localFilePath?: string, revision?: number, prefixArgs?: string): Promise<Map<string, string>> {
+    export function getZtag(command: string, file?: Uri | string, revision?: number, prefixArgs?: string): Promise<Map<string, string>> {
         return new Promise((resolve, reject) => {
-            getOutput(command, localFilePath, revision, prefixArgs, '-ztag').then(output => {
+            getOutput(command, file, revision, prefixArgs, '-ztag').then(output => {
                 const map = processZtag(output);
                 resolve( map );
             });
@@ -72,7 +73,7 @@ export namespace Utils
     }
 
     // Get a string containing the output of the command
-    export function getOutput(command: string, localFilePath?: string, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function getOutput(command: string, file?: Uri | string, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
             
@@ -82,8 +83,12 @@ export namespace Utils
 
             var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
 
-            if (localFilePath) {
-                args += ' "' + expansePath(localFilePath) + revisionString + '"'
+            if (file) {
+                if (file instanceof Uri) {
+                    args += ' "' + expansePath(file.fsPath) + revisionString + '"';
+                } else {
+                    args += ' "' + file + revisionString + '"';
+                }
             }
 
             PerforceService.execute(command, (err, stdout, stderr) => {
