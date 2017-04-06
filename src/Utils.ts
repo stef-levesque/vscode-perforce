@@ -24,7 +24,7 @@ export namespace Utils
     }
 
     // Use ASCII expansion for special characters
-    function expansePath(path: string): string {
+    export function expansePath(path: string): string {
         return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
     }
 
