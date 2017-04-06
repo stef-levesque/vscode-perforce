@@ -24,7 +24,7 @@
   "engines":{
     "vscode":"^1.11.0"
   },
-  "enableProposedApi": true,
+  "enableProposedApi": false,
   "keywords":[
     "vscode",
     "perforce"
