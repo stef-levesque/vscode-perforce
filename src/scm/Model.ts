@@ -132,31 +132,59 @@ export class Model implements Disposable {
 
     public async Revert(input: Resource | SourceControlResourceGroup): Promise<void> {
         const command = 'revert';
-        let args = '';
+        let file = null;
+        let args = null;
+        let needRefresh = false;
 
-        const group = input as SourceControlResourceGroup;
-
-        if (group) {
-            const id = group.id;
-            const chnum = id.substr(id.indexOf(':') + 1);
-            if (id.startsWith('pending')) {
+        if (input instanceof Resource) {
+            file = Uri.file(input.uri.fsPath);
+        } else if (isResourceGroup(input)) {
+            const id = input.id;
+            if (id.startsWith('default')) {
+                args = '-c default //...';
+            } else if (id.startsWith('pending')) {
+                const chnum = id.substr(id.indexOf(':') + 1);
                 args = '-c ' + chnum + ' //...';
             } else {
                 return;
             }
-        } else if (input instanceof Resource) {
-            args = input.uri.fsPath;
         } else {
             return;
         }
 
-        Utils.getOutput(command, null, null, args).then((output) => {
+        await Utils.getOutput(command, file, null, args).then((output) => {
+            Display.updateEditor();
             Display.channel.append(output);
-            this.Refresh();
+            needRefresh = true;
         }).catch((reason) => {
-            window.setStatusBarMessage("Perforce: " + reason, 3000);
-            Display.showError(reason);
+            const error = reason.toString();
+            window.setStatusBarMessage("Perforce: " + error, 3000);
+            Display.showError(error);
         });
+
+        // delete changelist after
+        if (isResourceGroup(input)) {
+            const command = 'change';
+            const id = input.id;
+            const chnum = id.substr(id.indexOf(':') + 1);
+            if (id.startsWith('pending')) {
+                args = '-d ' + chnum;
+
+                await Utils.getOutput(command, null, null, args).then((output) => {
+                    Display.updateEditor();
+                    Display.channel.append(output);
+                    needRefresh = true;
+                }).catch((reason) => {
+                    const error = reason.toString();
+                    window.setStatusBarMessage("Perforce: " + error, 3000);
+                    Display.showError(error);
+                });
+            }
+        }
+
+        if (needRefresh) {
+            this.Refresh();
+        }
     }
 
     public async ReopenFile(input: Resource): Promise<void> {
