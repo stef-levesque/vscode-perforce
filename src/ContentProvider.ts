@@ -22,14 +22,15 @@ export class PerforceContentProvider {
             }
 
             let command: string = uri.authority;
-            let file: Uri = Uri.file(uri.fsPath);
+            let file: Uri = uri.fsPath ? Uri.file(uri.fsPath) : null;
             let revision: number = parseInt(uri.fragment);
             let args: string = decodeURIComponent(uri.query);
 
             return Utils.getOutput(command, file, revision, args);
             
         }).catch(reason => {
-            Display.showError(reason);
+            const error = reason.toString();
+            Display.showError(error);
             return '';
         })
     }

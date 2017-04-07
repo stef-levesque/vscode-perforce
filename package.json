@@ -184,6 +184,11 @@
         }
       },
       {
+        "command": "perforce.describe",
+        "title": "Describe changelist",
+        "category": "Perforce"
+      },
+      {
         "command": "perforce.reopenFile",
         "title": "Move to changelist",
         "category": "Perforce",
