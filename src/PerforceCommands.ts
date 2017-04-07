@@ -7,7 +7,11 @@ import {
     Uri
 } from 'vscode';
 
+import { DecorationInstanceRenderOptions, DecorationOptions, OverviewRulerLane, Disposable, ExtensionContext, Range, TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+
+
 import * as Path from 'path';
+import * as fs from 'fs';
 
 import { PerforceService } from './PerforceService';
 import { Display } from './Display';
@@ -22,6 +26,7 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.revert', revert);
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
+        commands.registerCommand('perforce.annotate', annotate2);
         commands.registerCommand('perforce.info', info);
         commands.registerCommand('perforce.opened', opened);
         commands.registerCommand('perforce.logout', logout);
@@ -213,6 +218,143 @@ export namespace PerforceCommands
             }
         }, args);
 
+    }
+
+    export function annotate() {
+        var editor = window.activeTextEditor;
+        if (!checkFileSelected()) {
+            return false;
+        }
+
+        const doc = editor.document;
+        const conf = workspace.getConfiguration('perforce')
+        const cl = conf['annotate.changelist'];
+        const args = cl ? '-cq' : '-q';
+
+        let p4Uri = doc.uri;
+        let query = encodeURIComponent(args);
+        p4Uri = p4Uri.with({
+             scheme: 'perforce', 
+             authority: 'annotate',
+             path: doc.uri.path,
+             query: query
+        });
+
+        workspace.openTextDocument(p4Uri).then(window.showTextDocument, reason => {
+            window.setStatusBarMessage("Perforce: No annotation available", 3000);
+            Display.channel.append(reason);
+        });
+
+    }
+
+    export function annotate1() {
+        var editor = window.activeTextEditor;
+        if (!checkFileSelected()) {
+            return false;
+        }
+
+
+        const decorationType = window.createTextEditorDecorationType({
+            isWholeLine: true,
+            before: {
+                margin: '0 1.75em 0 0'
+            }
+        });
+
+        const doc = editor.document;
+        let lang = doc.languageId;
+        const conf = workspace.getConfiguration('perforce')
+        const cl = conf['annotate.changelist'];
+        const args = cl ? '-cq' : '-q';
+
+        Utils.getOutput('annotate', doc.uri.fsPath, null, args).then(output => {
+            // if ('true') {
+            //     workspace.openTextDocument({language: doc.languageId, content: output}).then(window.showTextDocument);
+            //     return;
+            // }
+
+            let content: string = '';
+            let decorationOptions: DecorationOptions[] = [];
+            let lines = output.split('\n');
+
+            //for (let i = 0; i < doc.lineCount; i++) { //limit to visible lines?
+            for (var i = 0, len = lines.length; i < len; ++i) {
+                let line = lines[i];
+                let charIdx = line.indexOf(':');
+                let annotation = line.substring(0, charIdx);
+                content += line.substring(charIdx + 2) + '\n';
+
+                decorationOptions.push({
+                    range: new Range(i, 0, i, 0),
+                    hoverMessage: 'the full changelist message?',
+                    renderOptions: {
+                        before: {
+                            color: 'rgb(153, 153, 153)',
+                            contentText: (cl ? '' : '#') + annotation
+                        } as DecorationInstanceRenderOptions
+                    }
+                });
+            }
+
+            workspace.openTextDocument({language: doc.languageId, content: content}).then((d) => {
+                window.showTextDocument(d).then(e => {
+                    e.setDecorations(decorationType, decorationOptions)
+                })
+            });
+        }).catch(reason => {
+            window.setStatusBarMessage("Perforce: No annotation available", 3000);
+            Display.channel.append(reason);
+
+        });
+    }
+
+    export function annotate2() {
+        var editor = window.activeTextEditor;
+        if (!checkFileSelected()) {
+            return false;
+        }
+
+        const doc = editor.document;
+        let lang = doc.languageId;
+        const conf = workspace.getConfiguration('perforce')
+        const cl = conf['annotate.changelist'];
+        const args = cl ? '-cq' : '-q';
+
+        Utils.getOutput('annotate', doc.uri.fsPath, null, args).then(output => {
+            Display.channel.append(output);
+
+            //let annotations: string[];
+            let doc = window.activeTextEditor.document;
+            let annotations = output.split('\n');
+            let decorations: DecorationOptions[] = [];
+            //for(var i=0, len = annotations.length; i < len; ++i) {
+            for (let i = 0; i < doc.lineCount; i++) { //limit to visible lines?
+                let ann = annotations[i];
+                decorations.push({
+                    range: new Range(i, 0, i, 0),
+                    hoverMessage: 'the full changelist message?',
+                    renderOptions: {
+                        before: {
+                            color: 'rgb(153, 153, 153)',
+                            contentText: (cl ? '' : '#') + ann.substring(0, ann.indexOf(':'))
+                        } as DecorationInstanceRenderOptions
+                    }
+                });
+            }
+
+            let decorationType = window.createTextEditorDecorationType({
+                isWholeLine: true,
+                before: {
+                    margin: '0 1.75em 0 0'
+                }
+            });
+            window.activeTextEditor.setDecorations(decorationType, decorations);
+
+        }).catch(reason => {
+            window.setStatusBarMessage("Perforce: No annotation available", 3000);
+            Display.channel.append(reason);
+
+        });
     }
 
     export function info() {
