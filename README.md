@@ -25,9 +25,21 @@ Perforce integration for Visual Studio Code
 * ![file-text](https://cdn.rawgit.com/github/octicons/master/lib/svg/file-text.svg) not opened on this client
 * ![circle-slash](https://cdn.rawgit.com/github/octicons/master/lib/svg/circle-slash.svg) not under client's root
 
+## Source Control in VS Code
+
+![SCM Switch](images/scm-switch.png)  
+
+Visual Studio Code now allow to choose which [Source Control Manager](https://code.visualstudio.com/docs/extensionAPI/api-scm) to use.  
+* You can find `Switch SCM Provider` in the command palette, or in the Source Control section menu
+* Use the input box to create new changelists
+* Right-click on file and changelist for more commands
+
+![SCM Perforce](images/scm-perforce.png)  
+Keep in mind this is still in early beta! Explore and leave your comments on [GitHub](https://github.com/stef-levesque/vscode-hexdump/issues)
+
 ## Installation
 
-1. Install *Visual Studio Code* (1.10.0 or higher)
+1. Install *Visual Studio Code* (1.11.1 or higher)
 2. Launch *Code*
 3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
 4. Select `Install Extensions`
@@ -44,7 +56,7 @@ Perforce integration for Visual Studio Code
 
 ## Requirements
 
-Visual Studio Code v1.10.x
+Visual Studio Code v1.11.1
 
 ## Credits
 

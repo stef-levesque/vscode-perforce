@@ -1,5 +1,11 @@
 # Change log
 
+## [2.0.0] - 2017-04-07
+
+* VS Code SCM Provider - beta (#39, 41, thanks @seanmcbreen, @joaomoreno)
+* Better changelist support (#22, #32)
+* Add submit support (#30)
+
 ## [1.1.0] - 2017-04-04
 
 * Show revisions as QuickPick for diffRevision
@@ -76,6 +82,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[2.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/a83bf106468feec7ed8c6aaac841487654eb0737...3fe2af32f4c4b6e34443e1baf0724984c76be69d
 [1.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/e08c66e833e8508fda4d190697934b5bb1a7a3d5...b143313ec7263d82fd40f6a32c3e366c0778998f
 [1.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/dc0542519de6249438582750cc928b70ac075114...e68aee4a38589ebfbb1346e945c117fcb111ac25
 [0.1.9]: https://github.com/stef-levesque/vscode-perforce/compare/62008b25044c90cc382c2cc952e454591af78b47...c584470fe7a1328be3895c49242e543a3ed06d3c
