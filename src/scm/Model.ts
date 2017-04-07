@@ -1,4 +1,4 @@
-import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window } from 'vscode';
+import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window, commands } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -236,8 +236,9 @@ export class Model implements Disposable {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {
-            window.setStatusBarMessage("Perforce: " + reason, 3000);
-            Display.showError(reason);
+            const error = reason.toString();
+            window.setStatusBarMessage("Perforce: " + error, 3000);
+            Display.showError(error);
         })
     }
 
