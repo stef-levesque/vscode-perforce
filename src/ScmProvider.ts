@@ -53,7 +53,7 @@ export class PerforceSCMProvider {
         this._model._sourceControl.quickDiffProvider = this;
         this._model._sourceControl.acceptInputCommand = { command: 'perforce.createChangelist', title: 'Create Changelist'};
 
-        scm.inputBox.value = "";
+        scm.inputBox.value = '';
 
     }
 

@@ -75,8 +75,15 @@ export class Model implements Disposable {
     public async CreateChangelist(): Promise<void> {
         const command = '-ztag change';
         const args = '-i ';
+        const desc = scm.inputBox.value.trim();
+        scm.inputBox.value = '';
+        if (desc.length === 0) {
+            return;
+        }
+
         let input = 'Change: new\n';
-        input += 'Description: ' + scm.inputBox.value;
+        input += 'Description: \n';
+        input += '\t' + desc.trim().split('\n').join('\n\t');
 
         Utils.getOutput(command, null, null, args, null, input).then((output) => {
             Display.channel.append(output);
