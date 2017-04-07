@@ -132,7 +132,6 @@ export class Model implements Disposable {
             Display.channel.append(output);
             this.Refresh();
         }).catch( (reason) => {
-            window.setStatusBarMessage("Perforce: " + reason, 3000);
             Display.showError(reason.toString());
         });
     }
@@ -164,9 +163,7 @@ export class Model implements Disposable {
             Display.channel.append(output);
             needRefresh = true;
         }).catch((reason) => {
-            const error = reason.toString();
-            window.setStatusBarMessage("Perforce: " + error, 3000);
-            Display.showError(error);
+            Display.showError(reason.toString());
         });
 
         // delete changelist after
@@ -182,9 +179,7 @@ export class Model implements Disposable {
                     Display.channel.append(output);
                     needRefresh = true;
                 }).catch((reason) => {
-                    const error = reason.toString();
-                    window.setStatusBarMessage("Perforce: " + error, 3000);
-                    Display.showError(error);
+                    Display.showError(reason.toString());
                 });
             }
         }
@@ -210,7 +205,7 @@ export class Model implements Disposable {
         let _this = this;
         window.showQuickPick(items, { matchOnDescription: true, placeHolder: "Choose a changelist:" }).then(function (selection) {
             if (selection == undefined) {
-                window.setStatusBarMessage("Perforce: operation cancelled", 3000);
+                Display.showMessage("operation cancelled");
                 return;
             }
 
@@ -221,9 +216,7 @@ export class Model implements Disposable {
                 Display.channel.append(output);
                 _this.Refresh();
             }).catch((reason) => {
-                const error = reason.toString();
-                window.setStatusBarMessage("Perforce: " + error, 3000);
-                Display.showError(error);
+                Display.showError(reason.toString());
             });
         });
 
@@ -243,9 +236,7 @@ export class Model implements Disposable {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {
-            const error = reason.toString();
-            window.setStatusBarMessage("Perforce: " + error, 3000);
-            Display.showError(error);
+            Display.showError(reason.toString());
         })
     }
 

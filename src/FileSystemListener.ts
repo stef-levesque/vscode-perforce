@@ -96,12 +96,11 @@ export default class FileSystemListener
                 resolve();
             }).then((openedForEdit) => {
                 resolve();
-            }).catch((err) => {
-                console.log(err);
-                Display.showError(err);
-                reject(err);
+            }).catch((reason) => {
+                Display.showError(reason.toString());
+                reject(reason);
             });
-        });        
+        });
     }
 
     private onFileDeleted(uri: Uri) {

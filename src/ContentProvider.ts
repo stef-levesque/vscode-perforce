@@ -29,8 +29,7 @@ export class PerforceContentProvider {
             return Utils.getOutput(command, file, revision, args);
             
         }).catch(reason => {
-            const error = reason.toString();
-            Display.showError(error);
+            Display.showError(reason.toString());
             return '';
         })
     }

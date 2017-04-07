@@ -17,7 +17,7 @@ export namespace Display
     export var channel = window.createOutputChannel('Perforce Log');
 
     export function initialize() {
-        _statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);
+        _statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, Number.MIN_VALUE);
         _statusBarItem.command = 'perforce.menuFunctions';
 
         updateEditor();
@@ -62,8 +62,13 @@ export namespace Display
         }
     }
 
+    export function showMessage(message: string) {
+        window.setStatusBarMessage("Perforce: " + message, 3000);
+        channel.append(message);
+    }
+
     export function showError(error: string) {
-        channel.show();
+        window.setStatusBarMessage("Perforce: " + error, 3000);
         channel.appendLine("ERROR:");
         channel.append(error);
     }

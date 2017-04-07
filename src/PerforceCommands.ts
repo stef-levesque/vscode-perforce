@@ -84,7 +84,7 @@ export namespace PerforceCommands
         PerforceService.execute("add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                window.setStatusBarMessage("Perforce: file opened for add", 3000);
+                Display.showError("file opened for add");
             }
         }, args, directoryOverride);
     }    
@@ -111,7 +111,7 @@ export namespace PerforceCommands
             PerforceService.execute("edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
                 if(!err) {
-                    window.setStatusBarMessage("Perforce: file opened for edit", 3000);
+                    Display.showError("file opened for edit");
                 }
                 resolve(err);
             }, args, directoryOverride);
@@ -123,7 +123,7 @@ export namespace PerforceCommands
         PerforceService.execute("delete", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                window.setStatusBarMessage("Perforce: file marked for delete", 3000);
+                Display.showError("file marked for delete");
             }
         }, args);
     }
@@ -145,7 +145,7 @@ export namespace PerforceCommands
         PerforceService.execute("revert", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                window.setStatusBarMessage("Perforce: file reverted", 3000);
+                Display.showError("file reverted");
             }
         }, args, directoryOverride);
     }
@@ -303,7 +303,7 @@ export namespace PerforceCommands
                 Display.showError(stderr.toString());
                 return false;
             } else {
-                window.setStatusBarMessage("Perforce: Logout successful", 3000);
+                Display.showMessage("Logout successful");
                 Display.updateEditor();
                 return true;
             }
@@ -322,7 +322,7 @@ export namespace PerforceCommands
                             Display.showError(stderr.toString());
                             return false;
                         } else {
-                            window.setStatusBarMessage("Perforce: Login successful", 3000);
+                            Display.showMessage("Login successful");
                             Display.updateEditor();
                             return true;
                         }
@@ -330,7 +330,7 @@ export namespace PerforceCommands
                 });
 
             } else {
-                window.setStatusBarMessage("Perforce: Login successful", 3000);
+                Display.showMessage("Login successful");
                 Display.updateEditor();
                 return true;
             }
@@ -391,7 +391,7 @@ export namespace PerforceCommands
 
     function checkFileSelected() {
         if(!window.activeTextEditor) {
-            window.setStatusBarMessage("Perforce: No file selected", 3000);
+            Display.showMessage("No file selected");
             return false;
         }
 
@@ -400,7 +400,7 @@ export namespace PerforceCommands
 
     export function checkFolderOpened() {
         if (workspace.rootPath == undefined) {
-            window.setStatusBarMessage("Perforce: No folder selected", 3000);
+            Display.showMessage("No folder selected");
             return false;
         }
 
