@@ -4,8 +4,9 @@ import {
     TextDocument
 } from 'vscode';
 
-import {Utils} from './Utils';
-import {Display} from './Display';
+import { Utils } from './Utils';
+import { Display } from './Display';
+import { PerforceSCMProvider } from './ScmProvider';
 
 import * as CP from 'child_process';
 
@@ -74,6 +75,7 @@ export namespace PerforceService {
         } else {
             Display.channel.append(stdout.toString());
             Display.updateEditor();
+            PerforceSCMProvider.Refresh();
         }
     }
 
