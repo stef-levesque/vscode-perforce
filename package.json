@@ -22,8 +22,9 @@
     "theme":"dark"
   },
   "engines":{
-    "vscode":"^1.6.x"
+    "vscode":"^1.11.0"
   },
+  "enableProposedApi": false,
   "keywords":[
     "vscode",
     "perforce"
@@ -77,12 +78,12 @@
       },
       {
         "command": "perforce.login",
-        "title": "login - Log in to Perforce by obtaining a session ticket",
+        "title": "Log in to Perforce",
         "category": "Perforce"
       },
       {
         "command": "perforce.logout",
-        "title": "logout - Log out from Perforce by removing or invalidating a ticket.",
+        "title": "Log out from Perforce",
         "category": "Perforce"
       },
       {
@@ -112,8 +113,99 @@
       },
       {
         "command":"perforce.info",
-        "title":"info - Display client/server information",
-        "category":"Perforce"
+        "title":"Display client/server information",
+        "category":"Perforce",
+        "icon": {
+          "light": "resources/icons/light/p4.svg",
+          "dark": "resources/icons/dark/p4.svg"
+        }
+      },
+      {
+        "command": "perforce.Sync",
+        "title": "Sync",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/sync.svg",
+          "dark": "resources/icons/dark/sync.svg"
+        }
+      },
+      {
+        "command": "perforce.Refresh",
+        "title": "Refresh",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/refresh.svg",
+          "dark": "resources/icons/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "perforce.createChangelist",
+        "title": "Create changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/create.svg",
+          "dark": "resources/icons/dark/create.svg"
+        }
+      },
+      {
+        "command": "perforce.submitDefault",
+        "title": "Submit default",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/submit.svg",
+          "dark": "resources/icons/dark/submit.svg"
+        }
+      },
+      {
+        "command": "perforce.submitChangelist",
+        "title": "Submit changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/submit.svg",
+          "dark": "resources/icons/dark/submit.svg"
+        }
+      },
+      {
+        "command": "perforce.openResource",
+        "title": "Open changes",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.openFile",
+        "title": "Open file",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.revertFile",
+        "title": "Revert file",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/revert.svg",
+          "dark": "resources/icons/dark/revert.svg"
+        }
+      },
+      {
+        "command": "perforce.revertChangelist",
+        "title": "Revert changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/revert.svg",
+          "dark": "resources/icons/dark/revert.svg"
+        }
+      },
+      {
+        "command": "perforce.describe",
+        "title": "Describe changelist",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.reopenFile",
+        "title": "Move to changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/reopen.svg",
+          "dark": "resources/icons/dark/reopen.svg"
+        }
       },
       {
         "command":"perforce.opened",
@@ -121,6 +213,109 @@
         "category":"Perforce"
       }
     ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "perforce.Sync",
+          "group": "navigation@1",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.Refresh",
+          "group": "navigation@2",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.Sync",
+          "group": "1_sync",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.Refresh",
+          "group": "1_sync",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.login",
+          "group": "2_login",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.logout",
+          "group": "2_login",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.info",
+          "group": "3_info",
+          "when": "scmProvider == perforce"
+        },
+        {
+          "command": "perforce.showOutput",
+          "group": "3_info",
+          "when": "scmProvider == perforce"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "perforce.submitChangelist",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "inline@1"
+        },
+        {
+          "command": "perforce.revertChangelist",
+          "when": "scmProvider == perforce",
+          "group": "inline@2"
+        },
+        {
+          "command": "perforce.submitChangelist",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "perforce.revertChangelist",
+          "when": "scmProvider == perforce",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "perforce.describe",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "2_info"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "perforce.revertFile",
+          "when": "scmProvider == perforce",
+          "group": "inline"
+        },
+        {
+          "command": "perforce.reopenFile",
+          "when": "scmProvider == perforce",
+          "group": "inline"
+        },
+        {
+          "command": "perforce.openResource",
+          "when": "scmProvider == perforce",
+          "group": "navigation"
+        },
+        {
+          "command": "perforce.openFile",
+          "when": "scmProvider == perforce",
+          "group": "navigation"
+        },
+        {
+          "command": "perforce.revertFile",
+          "when": "scmProvider == perforce",
+          "group": "1_modification"
+        },
+        {
+          "command": "perforce.reopenFile",
+          "when": "scmProvider == perforce",
+          "group": "1_modification"
+        }
+      ]
+    },
     "keybindings":[
       {
         "key":"alt+p space",

@@ -1,5 +1,6 @@
 import { workspace, Uri, Disposable, Event, EventEmitter } from 'vscode';
 import { Utils } from './Utils';
+import { Display } from './Display';
 
 export class PerforceContentProvider {
     private onDidChangeEmitter = new EventEmitter<Uri>();
@@ -15,11 +16,22 @@ export class PerforceContentProvider {
     }
 
     public provideTextDocumentContent(uri: Uri): Promise<string> {
-        let command: string = uri.authority;
-        let file: string = uri.fsPath;
-        let revision: number = parseInt(uri.fragment);
-        let args: string = decodeURIComponent(uri.query);
+        return Utils.isLoggedIn().then(value => {
+            if (!value) {
+                return '';
+            }
 
-        return Utils.getOutput(command, file, revision, args);
+            let command: string = uri.authority;
+            let file: Uri = uri.fsPath ? Uri.file(uri.fsPath) : null;
+            let revision: number = parseInt(uri.fragment);
+            let args: string = decodeURIComponent(uri.query);
+
+            return Utils.getOutput(command, file, revision, args);
+            
+        }).catch(reason => {
+            const error = reason.toString();
+            Display.showError(error);
+            return '';
+        })
     }
 }

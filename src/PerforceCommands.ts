@@ -9,9 +9,10 @@ import {
 
 import * as Path from 'path';
 
-import {PerforceService} from './PerforceService';
-import {Display} from './Display';
-import {Utils} from './Utils';
+import { PerforceService } from './PerforceService';
+import { Display } from './Display';
+import { Utils } from './Utils';
+import { PerforceSCMProvider } from './ScmProvider';
 
 export namespace PerforceCommands 
 {
@@ -27,6 +28,41 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.login', login);
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
+
+        // SCM commands
+        commands.registerCommand('perforce.Sync', () => {
+            PerforceSCMProvider.Sync();
+        });
+        commands.registerCommand('perforce.Refresh', () => {
+            PerforceSCMProvider.Refresh();
+        });
+        commands.registerCommand('perforce.openFile', (e) => {
+            PerforceSCMProvider.OpenFile(e);
+        });
+        commands.registerCommand('perforce.openResource', (e) => {
+            PerforceSCMProvider.Open(e);
+        });
+        commands.registerCommand('perforce.submitDefault', () => {
+            PerforceSCMProvider.Submit();
+        });
+        commands.registerCommand('perforce.createChangelist', () => {
+            PerforceSCMProvider.CreateChangelist();
+        });
+        commands.registerCommand('perforce.describe', (e) => {
+            PerforceSCMProvider.Describe(e);
+        });
+        commands.registerCommand('perforce.submitChangelist', (e) => {
+            PerforceSCMProvider.Submit(e);
+        });
+        commands.registerCommand('perforce.revertChangelist', (e) => {
+            PerforceSCMProvider.Revert(e);
+        });
+        commands.registerCommand('perforce.revertFile', (e) => {
+            PerforceSCMProvider.Revert(e);
+        });
+        commands.registerCommand('perforce.reopenFile', (e) => {
+            PerforceSCMProvider.ReopenFile(e);
+        });
     }
 
     function addOpenFile() {
@@ -184,6 +220,7 @@ export namespace PerforceCommands
             return false;
         }
 
+        showOutput();
         PerforceService.execute('info', PerforceService.handleCommonServiceResponse);
     }
 
