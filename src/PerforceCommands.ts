@@ -36,6 +36,9 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.Refresh', () => {
             PerforceSCMProvider.Refresh();
         });
+        commands.registerCommand('perforce.openFile', (e) => {
+            PerforceSCMProvider.OpenFile(e);
+        });
         commands.registerCommand('perforce.openResource', (e) => {
             PerforceSCMProvider.Open(e);
         });

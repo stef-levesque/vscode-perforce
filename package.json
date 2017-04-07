@@ -166,6 +166,16 @@
         }
       },
       {
+        "command": "perforce.openResource",
+        "title": "Open changes",
+        "category": "Perforce"
+      },
+      {
+        "command": "perforce.openFile",
+        "title": "Open file",
+        "category": "Perforce"
+      },
+      {
         "command": "perforce.revertFile",
         "title": "Revert file",
         "category": "Perforce",

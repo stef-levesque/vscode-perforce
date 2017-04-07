@@ -65,6 +65,12 @@ export class PerforceSCMProvider {
         return perforceProvider;
     }
 
+    public static async OpenFile(resource: Resource): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider.openFile(resource);
+    };
+
     public static async Open(resource: Resource): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
 
@@ -146,6 +152,10 @@ export class PerforceSCMProvider {
         commands.executeCommand<void>("vscode.diff", left, right, title);
         return;
 
+    }
+
+    private openFile(resource: Resource): void {
+        commands.executeCommand<void>("vscode.open", resource.uri);
     }
 
     // Gets the uri for the previous version of the file.
