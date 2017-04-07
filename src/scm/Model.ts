@@ -5,6 +5,10 @@ import { Resource } from './Resource';
 
 import * as Path from 'path';
 
+function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
+    return arg.id !== undefined;
+}
+
 
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
@@ -25,8 +29,8 @@ export class Model implements Disposable {
     private _infos = new Map<string, string>();
 
     private _defaultGroup: SourceControlResourceGroup;
-    private _pendingGroups: SourceControlResourceGroup[] = [];
-    private _shelvedGroups: SourceControlResourceGroup[] = [];
+    private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
+    private _shelvedGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
         const result: SourceControlResourceGroup[] = [];
@@ -35,11 +39,11 @@ export class Model implements Disposable {
             result.push(this._defaultGroup);
         
         this._pendingGroups.forEach((value) => {
-            result.push(value);
+            result.push(value.group);
         });
 
         this._shelvedGroups.forEach((value) => {
-            result.push(value);
+            result.push(value.group);
         });
         
         return result;
@@ -143,13 +147,48 @@ export class Model implements Disposable {
         });
     }
 
+    public async ReopenFile(input: Resource): Promise<void> {
+        const loggedin = await Utils.isLoggedIn();
+        if (!loggedin) {
+            return;
+        }
+
+        //TODO: remove the file current changelist
+        let items = [];
+        items.push({ id: 'default', label: this._defaultGroup.label, description: '' });
+        this._pendingGroups.forEach((value, key) => {
+            items.push({ id: key.toString(), label: '#' + key.toString(), description: value.description });
+        });
+
+        let _this = this;
+        window.showQuickPick(items, { matchOnDescription: true, placeHolder: "Choose a changelist:" }).then(function (selection) {
+            if (selection == undefined) {
+                window.setStatusBarMessage("Perforce: operation cancelled", 3000);
+                return;
+            }
+
+            const file = Uri.file(input.uri.fsPath);
+            const args = '-c ' + selection.id;
+
+            Utils.getOutput('reopen', file, null, args).then((output) => {
+                Display.channel.append(output);
+                _this.Refresh();
+            }).catch((reason) => {
+                const error = reason.toString();
+                window.setStatusBarMessage("Perforce: " + error, 3000);
+                Display.showError(error);
+            });
+        });
+
+    }
+
     private clean() {
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
         }
 
-        this._pendingGroups.forEach((value) => value.dispose());
-        this._shelvedGroups.forEach((value) => value.dispose());
+        this._pendingGroups.forEach((value) => value.group.dispose());
+        this._shelvedGroups.forEach((value) => value.group.dispose());
     }
 
     private async syncUpdate(): Promise<void> {
@@ -177,6 +216,9 @@ export class Model implements Disposable {
         let defaults: Resource[] = [];
         let pendings = new Map<number, Resource[]>();
         let shelved = new Map<number, Resource[]>();
+
+        this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
+        this._pendingGroups.clear(); // dispose ?
         
         const pendingArgs = '-c ' + this._infos.get('clientName') + ' -s pending';
         var output: string = await Utils.getOutput('changes', null, null, pendingArgs);
@@ -194,8 +236,12 @@ export class Model implements Disposable {
 
                 const chnum: number = parseInt(num.toString());
 
-                if (!pendings.has(chnum)) {
-                    pendings.set(chnum, []);
+                if (!this._pendingGroups.has(chnum)) {
+                    const group = this._sourceControl.createResourceGroup('pending:' + chnum, '#' + chnum + ': ' + description);
+                    group.resourceStates = [];
+                    this._pendingGroups.set(chnum, {description: description, group: group});
+                } else {
+                    console.log('ERROR: pending changelist already exist: ' + chnum.toString() );
                 }
                 
             }
@@ -247,16 +293,15 @@ export class Model implements Disposable {
 
         }
 
-        //TODO shelved
-
-        this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
         this._defaultGroup.resourceStates = defaults;
 
         pendings.forEach( (value, key) => {
             const chnum = key.toString();
-            const pending = this._sourceControl.createResourceGroup('pending:' + chnum, 'Changelist #' + chnum);
-            pending.resourceStates = value;
-            this._pendingGroups.push( pending );
+            if (this._pendingGroups.has(key)) {
+                this._pendingGroups.get(key).group.resourceStates = value;
+            } else {
+                console.log('ERROR: pending changelist not found: ' + key.toString());
+            }
         });
 
         this._onDidChange.fire(this.ResourceGroups);

@@ -54,6 +54,9 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.revertFile', (e) => {
             PerforceSCMProvider.Revert(e);
         });
+        commands.registerCommand('perforce.reopenFile', (e) => {
+            PerforceSCMProvider.ReopenFile(e);
+        });
     }
 
     function addOpenFile() {

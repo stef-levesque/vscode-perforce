@@ -101,6 +101,12 @@ export class PerforceSCMProvider {
         await perforceProvider._model.Revert(input);
     };
 
+    public static async ReopenFile(input: Resource): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.ReopenFile(input);
+    };
+
     provideOriginalResource(uri: Uri): ProviderResult<Uri> {
         if (uri.scheme !== 'file') {
             return;

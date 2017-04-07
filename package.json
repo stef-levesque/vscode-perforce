@@ -184,6 +184,15 @@
         }
       },
       {
+        "command": "perforce.reopenFile",
+        "title": "Move to changelist",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/reopen.svg",
+          "dark": "resources/icons/dark/reopen.svg"
+        }
+      },
+      {
         "command":"perforce.opened",
         "title":"opened - Display 'open' files and open one in the editor",
         "category":"Perforce"
@@ -232,6 +241,11 @@
       "scm/resourceState/context": [
         {
           "command": "perforce.revertFile",
+          "when": "scmProvider == perforce",
+          "group": "inline"
+        },
+        {
+          "command": "perforce.reopenFile",
           "when": "scmProvider == perforce",
           "group": "inline"
         }
