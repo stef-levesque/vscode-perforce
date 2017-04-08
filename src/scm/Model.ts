@@ -31,6 +31,7 @@ export class Model implements Disposable {
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _shelvedGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
+    private _compatibilityMode: string;
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
         const result: SourceControlResourceGroup[] = [];
@@ -49,10 +50,12 @@ export class Model implements Disposable {
         return result;
     }
 
-    public constructor() {}
+    public constructor(compatibilityMode: string) {
+        this._compatibilityMode = compatibilityMode;
+    }
 
     public async Sync(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -62,8 +65,7 @@ export class Model implements Disposable {
 
     public async Refresh(): Promise<void> {
         this.clean();
-
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -190,7 +192,7 @@ export class Model implements Disposable {
     }
 
     public async ReopenFile(input: Resource): Promise<void> {
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -241,13 +243,11 @@ export class Model implements Disposable {
     }
 
     private async updateInfo(): Promise<void> {
-        this._infos = await Utils.getZtag('info');
-
+        this._infos = await Utils.processInfo(await Utils.getOutput('info'));
     }
 
     private async updateStatus(): Promise<void> {
-
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -259,7 +259,7 @@ export class Model implements Disposable {
         this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
         this._pendingGroups.clear(); // dispose ?
         
-        const pendingArgs = '-c ' + this._infos.get('clientName') + ' -s pending';
+        const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
         var output: string = await Utils.getOutput('changes', null, null, pendingArgs);
         output.trim().split('\n').forEach( (value) => {
             // Change num on date by user@client [status] description
@@ -310,10 +310,13 @@ export class Model implements Disposable {
                 const change = matches[4];
                 const type = matches[5];
 
-                const output: string = await Utils.getOutput('fstat', depotFile, null, '-T clientFile');
+                // fstat -T isn't supported in Source Depot
+                const output: string = await Utils.getOutput('fstat', depotFile, null);
 
-                if (output.indexOf('... clientFile ') === 0) {
-                    const clientFile = output.substring(15, output.indexOf('\n')).trim();
+                const filteredOutput = output.trim().split('\n').filter((line) => line.startsWith('... clientFile '));
+
+                if (filteredOutput.length === 1) {
+                    const clientFile = filteredOutput[0].substring(15).trim();
                     const uri = Uri.file(clientFile);
                     const resource: Resource = new Resource(uri, change, action);
 

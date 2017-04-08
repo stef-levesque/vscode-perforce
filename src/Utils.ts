@@ -5,8 +5,6 @@ import { PerforceService } from './PerforceService';
 
 export namespace Utils
 {
-    const ztagRegex = /^\.\.\.\s+(\w+)\s+(.+)/;
-
     export function normalizePath(path: string): string
     {
         var normalizedPath = path;
@@ -29,14 +27,13 @@ export namespace Utils
         return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
     }
 
-    // process output from a p4 command executed with -ztag
-    function processZtag(output): Map<string, string> {
+    export function processInfo(output): Map<string, string> {
         const map = new Map<string, string>();
         const lines = output.trim().split('\n');
 
         for (let i = 0, n = lines.length; i < n; ++i) {
-            // ... key value
-            const matches = lines[i].match(/\.\.\.\s(.[\w-]+)\s(.+)/);
+            // Property Name: Property Value
+            const matches = lines[i].match(/([^:]+): (.+)/);
 
             if (matches) {
                 map.set(matches[1], matches[2]);
@@ -47,19 +44,13 @@ export namespace Utils
         return map;
     }
 
-    // Get a map containing the keys and values of the command
-    export function getZtag(command: string, file?: Uri | string, revision?: number, prefixArgs?: string): Promise<Map<string, string>> {
+    export function isLoggedIn(compatibilityMode: string) : Promise<boolean> {
         return new Promise((resolve, reject) => {
-            getOutput(command, file, revision, prefixArgs, '-ztag').then(output => {
-                const map = processZtag(output);
-                resolve( map );
-            });
-        });
+            if(compatibilityMode === 'sourcedepot') {
+                resolve(true);
+                return;
+            }
 
-    }
-
-    export function isLoggedIn() : Promise<boolean> {
-        return new Promise((resolve, reject) => {
             PerforceService.execute('login', (err, stdout, stderr) => {
                 if (err) {
                     resolve(false);
