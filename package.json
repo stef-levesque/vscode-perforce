@@ -62,6 +62,15 @@
           "type":"string",
           "default":"none",
           "description":"Configure a path to p4 or an alternate command if needed"
+        },
+        "perforce.compatibilityMode": {
+          "type": "string",
+          "default": "perforce",
+          "enum": [
+              "perforce",
+              "sourcedepot"
+          ],
+          "description": "Specify if we should run in compatibility mode, currently support 'perforce' and 'sourcedepot'"
         }
       }
     },
@@ -238,12 +247,12 @@
         {
           "command": "perforce.login",
           "group": "2_login",
-          "when": "scmProvider == perforce"
+          "when": "scmProvider == perforce && config.perforce.compatibilityMode !== 'sourcedepot'"
         },
         {
           "command": "perforce.logout",
           "group": "2_login",
-          "when": "scmProvider == perforce"
+          "when": "scmProvider == perforce && config.perforce.compatibilityMode !== 'sourcedepot'"
         },
         {
           "command": "perforce.info",

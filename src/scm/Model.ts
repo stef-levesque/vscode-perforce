@@ -31,6 +31,7 @@ export class Model implements Disposable {
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _shelvedGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
+    private _compatibilityMode: string;
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
         const result: SourceControlResourceGroup[] = [];
@@ -49,10 +50,12 @@ export class Model implements Disposable {
         return result;
     }
 
-    public constructor() {}
+    public constructor(compatibilityMode: string) {
+        this._compatibilityMode = compatibilityMode;
+    }
 
     public async Sync(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -62,14 +65,14 @@ export class Model implements Disposable {
 
     public async Refresh(): Promise<void> {
         this.clean();
-
-        const loggedin = await Utils.isLoggedIn();
+        console.log('Refresh');
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
 
-        window.withScmProgress(() => this.updateInfo());
-        window.withScmProgress(() => this.updateStatus());
+        await window.withScmProgress(() => this.updateInfo());
+        // await window.withScmProgress(() => this.updateStatus());
     }
 
     public async CreateChangelist(): Promise<void> {
@@ -190,7 +193,7 @@ export class Model implements Disposable {
     }
 
     public async ReopenFile(input: Resource): Promise<void> {
-        const loggedin = await Utils.isLoggedIn();
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -241,13 +244,16 @@ export class Model implements Disposable {
     }
 
     private async updateInfo(): Promise<void> {
-        this._infos = await Utils.getZtag('info');
-
+        // this._infos = this._compatibilityMode === 'perforce'
+        //     ? await Utils.getZtag('info')
+        //     : await Utils.processInfo(await Utils.getOutput('info'));
+        console.log('UpdateInfo');
+        this._infos = await Utils.processInfo(await Utils.getOutput('info'));
     }
 
     private async updateStatus(): Promise<void> {
-
-        const loggedin = await Utils.isLoggedIn();
+        console.log('UpdateStatus');
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
         }

@@ -5,6 +5,8 @@ import { Status } from './scm/Status';
 import * as Path from 'path';
 
 export class PerforceSCMProvider {
+    private compatibilityMode: string;
+
     private disposables: Disposable[] = [];
     dispose(): void {
         this.disposables.forEach(d => d.dispose());
@@ -38,12 +40,13 @@ export class PerforceSCMProvider {
         return 'idle'
     }
 
-    constructor() {
+    constructor(compatibilityMode: string) {
+        this.compatibilityMode = compatibilityMode;
         this.Initialize();
     }
 
     public Initialize() {
-        this._model = new Model();
+        this._model = new Model(this.compatibilityMode);
         // Hook up the model change event to trigger our own event
         this._model.onDidChange((groups: SourceControlResourceGroup[]) => this._onDidChange.fire(this));
         this._model.Refresh();

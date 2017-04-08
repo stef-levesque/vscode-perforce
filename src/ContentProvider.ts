@@ -9,14 +9,17 @@ export class PerforceContentProvider {
     private disposables: Disposable[] = [];
     dispose(): void { this.disposables.forEach(d => d.dispose()); }
 
-    constructor() {
+    private compatibilityMode: string;
+
+    constructor(compaitiblityMode: string) {
+        this.compatibilityMode = compaitiblityMode;
         this.disposables.push(
             workspace.registerTextDocumentContentProvider('perforce', this),
         );
     }
 
     public provideTextDocumentContent(uri: Uri): Promise<string> {
-        return Utils.isLoggedIn().then(value => {
+        return Utils.isLoggedIn(this.compatibilityMode).then(value => {
             if (!value) {
                 return '';
             }
