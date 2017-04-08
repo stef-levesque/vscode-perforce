@@ -11,8 +11,8 @@ export class PerforceContentProvider {
 
     private compatibilityMode: string;
 
-    constructor(compaitiblityMode: string) {
-        this.compatibilityMode = compaitiblityMode;
+    constructor(compatibilityMode: string) {
+        this.compatibilityMode = compatibilityMode;
         this.disposables.push(
             workspace.registerTextDocumentContentProvider('perforce', this),
         );

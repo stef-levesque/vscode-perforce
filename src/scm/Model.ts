@@ -247,7 +247,6 @@ export class Model implements Disposable {
     }
 
     private async updateStatus(): Promise<void> {
-        console.log('UpdateStatus');
         const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
             return;
