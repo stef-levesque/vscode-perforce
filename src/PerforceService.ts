@@ -61,7 +61,6 @@ export namespace PerforceService {
         }     
 
         Display.channel.appendLine(cmdLine);
-        console.log(`execCommand: ${cmdLine}`);
         var child = CP.exec(cmdLine, {cwd: workspace.rootPath}, responseCallback);
 
         if (input != null) {
