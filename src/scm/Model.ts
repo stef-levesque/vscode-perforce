@@ -68,7 +68,7 @@ export class Model implements Disposable {
             return;
         }
 
-        window.withScmProgress(() => this.updateInfo());
+        await window.withScmProgress(() => this.updateInfo());
         window.withScmProgress(() => this.updateStatus());
     }
 
