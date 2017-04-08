@@ -247,12 +247,12 @@
         {
           "command": "perforce.login",
           "group": "2_login",
-          "when": "scmProvider == perforce && config.perforce.compatibilityMode !== 'sourcedepot'"
+          "when": "scmProvider == perforce"
         },
         {
           "command": "perforce.logout",
           "group": "2_login",
-          "when": "scmProvider == perforce && config.perforce.compatibilityMode !== 'sourcedepot'"
+          "when": "scmProvider == perforce"
         },
         {
           "command": "perforce.info",
