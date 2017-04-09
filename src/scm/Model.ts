@@ -38,7 +38,7 @@ export class Model implements Disposable {
 
         if (this._defaultGroup)
             result.push(this._defaultGroup);
-        
+
         this._pendingGroups.forEach((value) => {
             result.push(value.group);
         });
@@ -46,7 +46,7 @@ export class Model implements Disposable {
         this._shelvedGroups.forEach((value) => {
             result.push(value.group);
         });
-        
+
         return result;
     }
 
@@ -110,7 +110,7 @@ export class Model implements Disposable {
     public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';
-        
+
         const group = input as SourceControlResourceGroup;
 
         if (group) {
@@ -258,7 +258,7 @@ export class Model implements Disposable {
 
         this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
         this._pendingGroups.clear(); // dispose ?
-        
+
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
         var output: string = await Utils.getOutput('changes', null, null, pendingArgs);
         output.trim().split('\n').forEach( (value) => {
@@ -282,58 +282,31 @@ export class Model implements Disposable {
                 } else {
                     console.log('ERROR: pending changelist already exist: ' + chnum.toString() );
                 }
-                
-            }
 
-            const line = value.trim();
-            const start = value.indexOf("'");
-            const end = value.indexOf("'", start);
-            const changelistDesc = line.substring(start, end);
+            }
         });
-    
 
-        output = await Utils.getOutput('opened');
-        var opened = output.trim().split('\n');
-        if (opened.length === 0) {
-            return;
-        }
+        const depotOpenedFilePaths = await this.getDepotOpenedFilePaths();
+        const fstatInfo = await this.getFstatInfoForFiles(depotOpenedFilePaths);
 
+        fstatInfo.forEach(info => {
+            const clientFile = info['clientFile'];
+            const change = info['change'];
+            const action = info['action'];
+            const uri = Uri.file(clientFile);
+            const resource: Resource = new Resource(uri, change, action);
 
-        for (let i = 0, n = opened.length; i < n; ++i) {
-            // depot-file#rev - action chnum change (type) [lock-status]
-            const matches = opened[i].match(/(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\((\w+)\)/);
+            if (change.startsWith('default')) {
+                defaults.push(resource);
+            } else {
+                let chnum: number = parseInt( change );
 
-            if (matches) {
-                const depotFile = matches[1];
-                const rev = matches[2];
-                const action = matches[3];
-                const change = matches[4];
-                const type = matches[5];
-
-                // fstat -T isn't supported in Source Depot
-                const output: string = await Utils.getOutput('fstat', depotFile, null);
-
-                const filteredOutput = output.trim().split('\n').filter((line) => line.startsWith('... clientFile '));
-
-                if (filteredOutput.length === 1) {
-                    const clientFile = filteredOutput[0].substring(15).trim();
-                    const uri = Uri.file(clientFile);
-                    const resource: Resource = new Resource(uri, change, action);
-
-                    if (change === 'default change') {
-                        defaults.push(resource);
-                    } else {
-                        let chnum: number = parseInt( change.substr(change.indexOf(' ')).trim() );
-
-                        if (!pendings.has(chnum)) {
-                            pendings.set(chnum, []);
-                        }
-                        pendings.get(chnum).push(resource);
-                    }
+                if (!pendings.has(chnum)) {
+                    pendings.set(chnum, []);
                 }
+                pendings.get(chnum).push(resource);
             }
-
-        }
+        });
 
         this._defaultGroup.resourceStates = defaults;
 
@@ -347,6 +320,46 @@ export class Model implements Disposable {
         });
 
         this._onDidChange.fire(this.ResourceGroups);
+    }
 
+    private async getDepotOpenedFilePaths(): Promise<string[]> {
+        const output = await Utils.getOutput('opened');
+        const opened = output.trim().split('\n');
+        if (opened.length === 0) {
+            return;
+        }
+
+        const files = [];
+        opened.forEach(open => {
+            const matches = open.match(/(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\((\w+)\)/);
+            if (matches) {
+                files.push(matches[1]);
+            }
+        });
+
+        return files;
+    }
+
+    private async getFstatInfoForFiles(files: string[]): Promise<any> {
+        const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);
+        // Windows will have lines end with \r\n.
+        // Each file has multiple lines of output separated by a blank line.
+        // Splitting on \n\r?\n will find newlines followed immediately by a newline
+        // which will split the output for each file.
+        const fstatFiles = fstatOutput.trim().split(/\n\r?\n/);
+        return fstatFiles.map((file) => {
+            const lines = file.split('\n');
+            const lineMap = {};
+            lines.forEach(line => {
+                // ... Key Value
+                const matches = line.match(/[.]{3} (\w+)[ ]*(.+)?/);
+                if (matches) {
+                    // A key may not have a value (e.g. `isMapped`).
+                    // Treat these as flags and map them to 'true'.
+                    lineMap[matches[1]] = matches[2] ? matches[2] : 'true';
+                }
+            });
+            return lineMap;
+        });
     }
 }
