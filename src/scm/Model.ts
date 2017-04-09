@@ -352,7 +352,7 @@ export class Model implements Disposable {
             const lineMap = {};
             lines.forEach(line => {
                 // ... Key Value
-                const matches = line.match(/[.]{3} (\w+) (.+)?/);
+                const matches = line.match(/[.]{3} (\w+)[ ]*(.+)?/);
                 if (matches) {
                     // A key may not have a value (e.g. `isMapped`).
                     // Treat these as flags and map them to 'true'.
