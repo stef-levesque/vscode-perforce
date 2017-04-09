@@ -296,7 +296,7 @@ export class Model implements Disposable {
             const uri = Uri.file(clientFile);
             const resource: Resource = new Resource(uri, change, action);
 
-            if (change === 'default change') {
+            if (change.startsWith('default')) {
                 defaults.push(resource);
             } else {
                 let chnum: number = parseInt( change );
@@ -341,19 +341,22 @@ export class Model implements Disposable {
     }
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
-        const fstatOutput: string = await Utils.getOutput(`fstat ${files.join(' ')}`);
-        // Windows will have lines end with \n\r.
+        const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);
+        // Windows will have lines end with \r\n.
         // Each file has multiple lines of output separated by a blank line.
-        // Splitting on \n\r?\n will separate the output for each file.
+        // Splitting on \n\r?\n will find newlines followed immediately by a newline
+        // which will split the output for each file.
         const fstatFiles = fstatOutput.trim().split(/\n\r?\n/);
         return fstatFiles.map((file) => {
             const lines = file.split('\n');
             const lineMap = {};
             lines.forEach(line => {
-                // ... Name Value
-                const matches = line.match(/[.]{3} (\w+) (.+)/);
+                // ... Key Value
+                const matches = line.match(/[.]{3} (\w+) (.+)?/);
                 if (matches) {
-                    lineMap[matches[1]] = matches[2];
+                    // A key may not have a value (e.g. `isMapped`).
+                    // Treat these as flags and map them to 'true'.
+                    lineMap[matches[1]] = matches[2] ? matches[2] : 'true';
                 }
             });
             return lineMap;
