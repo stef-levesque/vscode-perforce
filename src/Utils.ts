@@ -1,7 +1,8 @@
-import { Uri } from 'vscode';
-import * as CP from 'child_process';
+import { Uri, workspace } from 'vscode';
 import * as Path from 'path';
 import { PerforceService } from './PerforceService';
+
+import * as fs from 'fs';
 
 export namespace Utils
 {
@@ -24,6 +25,12 @@ export namespace Utils
 
     // Use ASCII expansion for special characters
     export function expansePath(path: string): string {
+        if (workspace.getConfiguration('perforce').get('realpath', false)) {
+            if (fs.existsSync(path)) {
+                path = fs.realpathSync(path);
+            }
+        }
+
         return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
     }
 
