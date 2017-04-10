@@ -1,7 +1,7 @@
 {
   "name":"perforce",
   "displayName":"Perforce for VS Code",
-  "description":"Perforce basic commands for Visual Studio Code",
+  "description":"Rich integration with VS Code's SCM features",
   "version":"2.0.0",
   "publisher":"slevesque",
   "license":"LICENSE.md",
