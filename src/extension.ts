@@ -1,6 +1,6 @@
 'use strict';
 
-import { ExtensionContext, workspace } from 'vscode';
+import { ExtensionContext, workspace, commands } from 'vscode';
 
 import { PerforceCommands } from './PerforceCommands';
 import { PerforceContentProvider } from './ContentProvider';
@@ -10,6 +10,7 @@ import { Display } from './Display';
 
 export function activate(ctx: ExtensionContext) : void {
     const compatibilityMode = workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
+    commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
 
     //Register all commands
     PerforceCommands.registerCommands();
