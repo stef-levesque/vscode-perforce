@@ -1,8 +1,8 @@
 {
   "name":"perforce",
   "displayName":"Perforce for VS Code",
-  "description":"Perforce basic commands for Visual Studio Code",
-  "version":"2.0.0",
+  "description":"Perforce integration with VS Code's SCM features",
+  "version":"2.0.1",
   "publisher":"slevesque",
   "license":"LICENSE.md",
   "categories":[
@@ -27,7 +27,9 @@
   "enableProposedApi": false,
   "keywords":[
     "vscode",
-    "perforce"
+    "scm",
+    "perforce",
+    "sourcedepot"
   ],
   "main":"./out/src/extension",
   "activationEvents":[

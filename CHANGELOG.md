@@ -1,5 +1,13 @@
 # Change log
 
+## [2.0.1] - 2017-04-09
+
+* Display errors as status bar message (#33)
+* Better compatibility with sourcedepot (#48, thanks @hoovercj)
+* Improve performance on refresh (#50, #52, thanks @hoovercj)
+* Configurable maxBuffer for commands (#53)
+* Experimental: Resolve realpath before executing commands (#42, thanks @silenaker)
+
 ## [2.0.0] - 2017-04-07
 
 * VS Code SCM Provider - beta (#39, 41, thanks @seanmcbreen, @joaomoreno)
@@ -82,6 +90,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[2.0.1]: https://github.com/stef-levesque/vscode-perforce/compare/1a08507ae3a0b825563d2c9444210194abf75962...852d772956b3e68baf06a064632b71e0f7c44444
 [2.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/a83bf106468feec7ed8c6aaac841487654eb0737...3fe2af32f4c4b6e34443e1baf0724984c76be69d
 [1.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/e08c66e833e8508fda4d190697934b5bb1a7a3d5...b143313ec7263d82fd40f6a32c3e366c0778998f
 [1.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/dc0542519de6249438582750cc928b70ac075114...e68aee4a38589ebfbb1346e945c117fcb111ac25

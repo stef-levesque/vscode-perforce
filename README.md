@@ -19,6 +19,19 @@ Perforce integration for Visual Studio Code
 * `info` - Display client/server information
 * `login`, `logout` - Login operations
 
+## Configuration
+
+|Name|Type|Description|
+|---|---|---|
+|`perforce.editOnFileSave`|`boolean`|Automatically open a file for edit when saved|
+|`perforce.editOnFileModified`|`boolean`|Automatically open a file for edit when Modified|
+|`perforce.addOnFileCreate`|`boolean`|Automatically Add a file to depot when Created|
+|`perforce.deleteOnFileDelete`|`boolean`|Automatically delete a file from depot when deleted|
+|`perforce.command`|`string`|Configure a path to p4 or an alternate command if needed|
+|`perforce.compatibilityMode`|`string`|Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`|
+|`perforce.maxBuffer`|`number`|Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)|
+|`perforce.realpath`|`boolean`|**Experimental** Try to resolve real file path before executing command|
+
 ## Status bar icons
 
 * ![check](https://cdn.rawgit.com/github/octicons/master/lib/svg/check.svg) opened in add or edit
