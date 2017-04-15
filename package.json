@@ -311,7 +311,7 @@
         },
         {
           "command": "perforce.describe",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "when": "scmProvider == perforce",
           "group": "2_info"
         }
       ],
