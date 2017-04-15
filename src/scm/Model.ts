@@ -96,6 +96,28 @@ export class Model implements Disposable {
 
     }
 
+    public async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
+        let descStr = '';
+        const id = input.id;
+        let args = '-o ';
+        if (id.startsWith('pending')) {
+            const chnum = id.substr(id.indexOf(':') + 1);
+            descStr = `#${chnum}\n`;
+            args += chnum;
+        }
+
+        const output: string = await Utils.getOutput('change', null, null, args);
+        const changeFields = output.trim().split(/\n\r?\n/);
+        for (let field of changeFields) {
+            if (field.startsWith('Description:')) {
+                descStr += field.substr(field.indexOf('\n')).replace(/\n\t/g, '\n').trim();
+                break;
+            }
+        }
+
+        scm.inputBox.value = descStr;
+    }
+
     public async Describe(input: SourceControlResourceGroup): Promise<void> {
         const command = 'describe';
         const id = input.id;

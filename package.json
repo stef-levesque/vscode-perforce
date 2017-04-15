@@ -221,6 +221,15 @@
         "category": "Perforce"
       },
       {
+        "command": "perforce.editChangelist",
+        "title": "Edit changelist description",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/edit.svg",
+          "dark": "resources/icons/dark/edit.svg"
+        }
+      },
+      {
         "command": "perforce.reopenFile",
         "title": "Move to changelist",
         "category": "Perforce",
@@ -290,14 +299,24 @@
           "group": "inline@2"
         },
         {
+          "command": "perforce.editChangelist",
+          "when": "scmProvider == perforce",
+          "group": "inline@3"
+        },
+        {
           "command": "perforce.submitChangelist",
           "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification@1"
         },
         {
+          "command": "perforce.editChangelist",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "1_modification@2"
+        },
+        {
           "command": "perforce.revertChangelist",
           "when": "scmProvider == perforce",
-          "group": "1_modification@2"
+          "group": "1_modification@3"
         },
         {
           "command": "perforce.describe",
