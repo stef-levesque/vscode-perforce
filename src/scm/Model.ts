@@ -74,26 +74,42 @@ export class Model implements Disposable {
         window.withScmProgress(() => this.updateStatus());
     }
 
-    public async CreateChangelist(): Promise<void> {
-        const command = '-ztag change';
-        const args = '-i ';
-        const desc = scm.inputBox.value.trim();
+    public async ProcessChangelist(): Promise<void> {
+        const command = 'change';
+        let args = '-o ';
+
+        const input = scm.inputBox.value;
         scm.inputBox.value = '';
-        if (desc.length === 0) {
-            return;
+        let description = input;
+
+        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
+        if (matches) {
+            // Change existing changelist
+            args += matches[1];
+            description = matches[2];
         }
 
-        let input = 'Change: new\n';
-        input += 'Description: \n';
-        input += '\t' + desc.trim().split('\n').join('\n\t');
+        const spec: string = await Utils.getOutput(command, null, null, args);
+        const changeFields = spec.trim().split(/\n\r?\n/);
+        let newSpec = '';
+        for (let field of changeFields) {
+            if (field.startsWith('Description:')) {
+                newSpec += 'Description:\n\t';
+                newSpec += description.trim().split('\n').join('\n\t');
+                newSpec += '\n\n';
+            } else {
+                newSpec += field;
+                newSpec += '\n\n';
+            }
+        }
 
-        Utils.getOutput(command, null, null, args, null, input).then((output) => {
+        args = '-i';
+        Utils.getOutput(command, null, null, args, null, newSpec).then((output) => {
             Display.channel.append(output);
             this.Refresh();
         }).catch((reason) => {
             Display.showError(reason.toString());
         });
-
     }
 
     public async EditChangelist(input: SourceControlResourceGroup): Promise<void> {

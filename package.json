@@ -161,15 +161,6 @@
         }
       },
       {
-        "command": "perforce.createChangelist",
-        "title": "Create changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/create.svg",
-          "dark": "resources/icons/dark/create.svg"
-        }
-      },
-      {
         "command": "perforce.submitDefault",
         "title": "Submit default",
         "category": "Perforce",
