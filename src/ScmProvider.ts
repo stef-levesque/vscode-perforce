@@ -54,7 +54,7 @@ export class PerforceSCMProvider {
         PerforceSCMProvider.instance = this;
         this._model._sourceControl = scm.createSourceControl(this.id, this.label);
         this._model._sourceControl.quickDiffProvider = this;
-        this._model._sourceControl.acceptInputCommand = { command: 'perforce.createChangelist', title: 'Create Changelist'};
+        this._model._sourceControl.acceptInputCommand = { command: 'perforce.processChangelist', title: 'Process Changelist'};
 
         scm.inputBox.value = '';
 
@@ -92,10 +92,16 @@ export class PerforceSCMProvider {
         await perforceProvider._model.Refresh();
     };
 
-    public static async CreateChangelist(): Promise<void> {
+    public static async ProcessChangelist(): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
 
-        await perforceProvider._model.CreateChangelist();
+        await perforceProvider._model.ProcessChangelist();
+    };
+
+    public static async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.EditChangelist(input);
     };
 
     public static async Describe(input: SourceControlResourceGroup): Promise<void> {

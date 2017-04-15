@@ -161,15 +161,6 @@
         }
       },
       {
-        "command": "perforce.createChangelist",
-        "title": "Create changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/create.svg",
-          "dark": "resources/icons/dark/create.svg"
-        }
-      },
-      {
         "command": "perforce.submitDefault",
         "title": "Submit default",
         "category": "Perforce",
@@ -219,6 +210,15 @@
         "command": "perforce.describe",
         "title": "Describe changelist",
         "category": "Perforce"
+      },
+      {
+        "command": "perforce.editChangelist",
+        "title": "Edit changelist description",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/edit.svg",
+          "dark": "resources/icons/dark/edit.svg"
+        }
       },
       {
         "command": "perforce.reopenFile",
@@ -290,18 +290,28 @@
           "group": "inline@2"
         },
         {
+          "command": "perforce.editChangelist",
+          "when": "scmProvider == perforce",
+          "group": "inline@3"
+        },
+        {
           "command": "perforce.submitChangelist",
           "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification@1"
         },
         {
-          "command": "perforce.revertChangelist",
-          "when": "scmProvider == perforce",
+          "command": "perforce.editChangelist",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification@2"
         },
         {
+          "command": "perforce.revertChangelist",
+          "when": "scmProvider == perforce",
+          "group": "1_modification@3"
+        },
+        {
           "command": "perforce.describe",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "when": "scmProvider == perforce",
           "group": "2_info"
         }
       ],
