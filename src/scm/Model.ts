@@ -1,4 +1,4 @@
-import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window, commands } from 'vscode';
+import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window, workspace, commands } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -303,8 +303,15 @@ export class Model implements Disposable {
         this._pendingGroups.clear(); // dispose ?
 
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
-        var output: string = await Utils.getOutput('changes', null, null, pendingArgs);
-        output.trim().split('\n').forEach( (value) => {
+        let output: string = await Utils.getOutput('changes', null, null, pendingArgs);
+        let changelists = output.trim().split('\n');
+
+        const config = workspace.getConfiguration('perforce');
+        if (config.get('changelistOrder') == 'ascending') {
+            changelists = changelists.reverse();
+        }
+
+        changelists.forEach( (value) => {
             // Change num on date by user@client [status] description
             const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.+)\'/);
 
