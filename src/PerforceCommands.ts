@@ -7,7 +7,11 @@ import {
     Uri
 } from 'vscode';
 
+import { DecorationInstanceRenderOptions, DecorationOptions, OverviewRulerLane, Disposable, ExtensionContext, Range, TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+
+
 import * as Path from 'path';
+import * as fs from 'fs';
 
 import { PerforceService } from './PerforceService';
 import { Display } from './Display';
@@ -22,6 +26,7 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.revert', revert);
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
+        commands.registerCommand('perforce.annotate', annotate);
         commands.registerCommand('perforce.info', info);
         commands.registerCommand('perforce.opened', opened);
         commands.registerCommand('perforce.logout', logout);
@@ -218,6 +223,74 @@ export namespace PerforceCommands
 
     }
 
+    export async function annotate() {
+        var editor = window.activeTextEditor;
+        if (!checkFileSelected()) {
+            return false;
+        }
+
+        const doc = editor.document;
+        const conf = workspace.getConfiguration('perforce')
+        const cl = conf.get('annotate.changelist');
+        const args = cl ? '-cqu' : '-qu';
+
+        const decorationType = window.createTextEditorDecorationType({
+            isWholeLine: true,
+            before: {
+                margin: '0 1.75em 0 0'
+            }
+        });
+        let decorateColors: string[] = ['rgb(153, 153, 153)', 'rgb(103, 103, 103)' ];
+        let decorations: DecorationOptions[] = [];
+        let colorIndex = 0;
+        let lastNum = '';
+
+        const output: string = await Utils.getOutput('annotate', doc.uri.fsPath, null, args);
+        const annotations = output.split(/\r?\n/);
+
+        for (let i = 0, n = annotations.length; i < n; ++i) {
+            const matches = annotations[i].match(/^(\d+): (\S+) (\S+)/);
+            if(matches) {
+                const num = matches[1];
+                const user = matches[2];
+                const date = matches[3];
+
+                if (num !== lastNum) {
+                    lastNum = num;
+                    colorIndex = (colorIndex + 1) % decorateColors.length
+                }
+
+                decorations.push({
+                    range: new Range(i, 0, i, 0),
+                    hoverMessage: user + ' ' + date,
+                    renderOptions: {
+                        before: {
+                            color: decorateColors[colorIndex],
+                            contentText: (cl ? '' : '#') + num
+                        } as DecorationInstanceRenderOptions
+                    }
+                });
+
+            }
+        }
+
+        let p4Uri = doc.uri;
+        let query = encodeURIComponent('-q');
+        p4Uri = p4Uri.with({
+            scheme: 'perforce',
+            authority: 'print',
+            path: doc.uri.path,
+            query: query
+        });
+
+        workspace.openTextDocument(p4Uri).then(d => {
+            window.showTextDocument(d).then(e => {
+                e.setDecorations(decorationType, decorations);
+            })
+        })
+
+    }
+
     export function info() {
         if(!checkFolderOpened()) {
             return false;
@@ -351,6 +424,7 @@ export namespace PerforceCommands
         items.push({ label: "revert", description: "Discard changes from an opened file" });
         items.push({ label: "diff", description: "Display diff of client file with depot file" });
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
+        items.push({ label: "annotate", description: "Print file lines and their revisions" });
         items.push({ label: "info", description: "Display client/server information" });
         items.push({ label: "opened", description: "View 'open' files and open one in editor" });
         items.push({ label: "login", description: "Log in to Perforce" });
@@ -373,6 +447,9 @@ export namespace PerforceCommands
                     break;
                 case "diffRevision":
                     diffRevision();
+                    break;
+                case "annotate":
+                    annotate();
                     break;
                 case "info":
                     info();

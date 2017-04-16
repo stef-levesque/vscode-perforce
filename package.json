@@ -60,6 +60,16 @@
           "default":false,
           "description":"Automatically delete a file from depot when deleted"
         },
+        "perforce.annotate.changelist": {
+          "type": "boolean",
+          "default": false,
+          "description": "Output changelist numbers rather than revision numbers for each line"
+        },
+        "perforce.annotate.enable": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show annotation for every file"
+        },
         "perforce.command":{
           "type":"string",
           "default":"none",
@@ -132,6 +142,11 @@
         "command":"perforce.diffRevision",
         "title":"diff revision - Display diff of client file with depot file at a specific revision",
         "category":"Perforce"
+      },
+      {
+        "command": "perforce.annotate",
+        "title": "annotate - Print file lines and their revisions in the gutter",
+        "category": "Perforce"
       },
       {
         "command":"perforce.info",
@@ -384,6 +399,11 @@
         "key":"alt+p d",
         "command":"perforce.diff",
         "when":"editorTextFocus"
+      },
+      {
+        "key": "alt+p n",
+        "command": "perforce.annotate",
+        "when": "editorTextFocus"
       },
       {
         "key":"alt+p i",
