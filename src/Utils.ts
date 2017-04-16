@@ -31,7 +31,7 @@ export namespace Utils
             }
         }
 
-        return path.replace('%', '%25').replace('*', '%2A').replace('#', '%23').replace('@', '%40');
+        return path.replace(/%/g, '%25').replace(/\*/g, '%2A').replace(/#/g, '%23').replace(/@/g, '%40');
     }
 
     export function processInfo(output): Map<string, string> {
