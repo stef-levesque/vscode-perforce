@@ -381,7 +381,7 @@ export class Model implements Disposable {
 
         const files = [];
         opened.forEach(open => {
-            const matches = open.match(/(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\((\w+)\)/);
+            const matches = open.match(/(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\(([\w\+]+)\)/);
             if (matches) {
                 files.push(matches[1]);
             }
