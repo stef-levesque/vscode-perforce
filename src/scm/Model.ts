@@ -2,6 +2,7 @@ import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGrou
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
+import { Status } from './Status';
 
 import * as Path from 'path';
 
@@ -234,16 +235,42 @@ export class Model implements Disposable {
         }
     }
 
-    public async Shelve(input: Resource): Promise<void> {
-        const uri = input.uri;
+    public async ShelveOrUnshelve(input: Resource): Promise<void> {
+        const file = input.uri;
 
-        console.log(input);
-    }
+        let needRefresh = false;
 
-    public async Unshelve(input: Resource): Promise<void> {
-        const uri = input.uri;
+        if (input.status == Status.SHELVE) {
+            let args = '-c ' + input.change + ' -s ' + input.change;
+            const command = 'unshelve';
+            await Utils.getOutput(command, file, null, args).then((output) => {
+                needRefresh = true;
+                
+                let args = '-d -c ' + input.change;
+                const command = 'shelve';
+                Utils.getOutput('shelve', file, null, args).then((output) => {
+                    Display.updateEditor();
+                    Display.channel.append(output);
 
-        console.log(input);
+                    this.Refresh();
+                }).catch((reason) => {
+                    Display.showError(reason.toString());
+
+                    this.Refresh();
+                });
+            }).catch((reason) => {
+                Display.showError(reason.toString());
+            });
+        }
+        else {
+            let args = '-f -c ' + input.change;
+            const command = 'shelve';
+            await Utils.getOutput(command, file, null, args).then((output) => {
+                this.Revert(input);
+            }).catch((reason) => {
+                Display.showError(reason.toString());
+            });
+        }
     }
 
     public async ReopenFile(input: Resource): Promise<void> {

@@ -231,21 +231,12 @@
         }
       },
       {
-        "command": "perforce.shelve",
-        "title": "Shelve file",
+        "command": "perforce.shelveunshelve",
+        "title": "Shelve/Unshelve file",
         "category": "Perforce",
         "icon": {
-          "light": "resources/icons/light/shelve.svg",
-          "dark": "resources/icons/dark/shelve.svg"
-        }
-      },
-      {
-        "command": "perforce.unshelve",
-        "title": "Unshelve file",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/unshelve.svg",
-          "dark": "resources/icons/dark/unshelve.svg"
+          "light": "resources/icons/light/shelveunshelve.svg",
+          "dark": "resources/icons/dark/shelveunshelve.svg"
         }
       },
       {
@@ -369,12 +360,7 @@
           "group": "inline"
         },
         {
-          "command": "perforce.shelve",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "inline"
-        },
-        {
-          "command": "perforce.unshelve",
+          "command": "perforce.shelveunshelve",
           "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "inline"
         },
@@ -399,12 +385,7 @@
           "group": "1_modification"
         },
         {
-          "command": "perforce.shelve",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "1_modification"
-        },
-        {
-          "command": "perforce.unshelve",
+          "command": "perforce.shelveunshelve",
           "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification"
         }

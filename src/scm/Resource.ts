@@ -38,6 +38,10 @@ export class Resource implements SourceControlResourceState {
         };
     }
 
+    get change(): string {
+        return this._change;
+    }
+
     constructor(private _uri: Uri, private _change: string, action: string) {
         this._statuses = GetStatuses(action);
     }
