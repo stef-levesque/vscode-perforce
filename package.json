@@ -231,6 +231,24 @@
         }
       },
       {
+        "command": "perforce.shelve",
+        "title": "Shelve file",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/shelve.svg",
+          "dark": "resources/icons/dark/shelve.svg"
+        }
+      },
+      {
+        "command": "perforce.unshelve",
+        "title": "Unshelve file",
+        "category": "Perforce",
+        "icon": {
+          "light": "resources/icons/light/unshelve.svg",
+          "dark": "resources/icons/dark/unshelve.svg"
+        }
+      },
+      {
         "command": "perforce.describe",
         "title": "Describe changelist",
         "category": "Perforce"
@@ -351,6 +369,16 @@
           "group": "inline"
         },
         {
+          "command": "perforce.shelve",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "inline"
+        },
+        {
+          "command": "perforce.unshelve",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "inline"
+        },
+        {
           "command": "perforce.openResource",
           "when": "scmProvider == perforce",
           "group": "navigation"
@@ -368,6 +396,16 @@
         {
           "command": "perforce.reopenFile",
           "when": "scmProvider == perforce",
+          "group": "1_modification"
+        },
+        {
+          "command": "perforce.shelve",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
+          "group": "1_modification"
+        },
+        {
+          "command": "perforce.unshelve",
+          "when": "scmProvider == perforce && scmResourceGroup != default",
           "group": "1_modification"
         }
       ]

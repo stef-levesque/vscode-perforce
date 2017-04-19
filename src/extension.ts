@@ -17,5 +17,5 @@ export function activate(ctx: ExtensionContext) : void {
     Display.initialize();
     ctx.subscriptions.push(new PerforceContentProvider(compatibilityMode));
     ctx.subscriptions.push(new FileSystemListener());
-    ctx.subscriptions.push( new PerforceSCMProvider(compatibilityMode));
+    ctx.subscriptions.push(new PerforceSCMProvider(compatibilityMode));
 }

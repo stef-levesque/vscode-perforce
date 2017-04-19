@@ -234,6 +234,18 @@ export class Model implements Disposable {
         }
     }
 
+    public async Shelve(input: Resource): Promise<void> {
+        const uri = input.uri;
+
+        console.log(input);
+    }
+
+    public async Unshelve(input: Resource): Promise<void> {
+        const uri = input.uri;
+
+        console.log(input);
+    }
+
     public async ReopenFile(input: Resource): Promise<void> {
         const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {

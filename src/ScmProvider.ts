@@ -122,6 +122,18 @@ export class PerforceSCMProvider {
         await perforceProvider._model.Revert(input);
     };
 
+    public static async Shelve(input: Resource): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.Shelve(input);
+    };
+
+    public static async Unshelve(input: Resource): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.Unshelve(input);
+    };
+
     public static async ReopenFile(input: Resource): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
 
