@@ -333,6 +333,16 @@ export class Model implements Disposable {
                     console.log('ERROR: pending changelist already exist: ' + chnum.toString() );
                 }
 
+                this.getDepotShelvedFilePaths(chnum).then((value) => {
+                    if (!pendings.has(chnum)) {
+                        pendings.set(chnum, []);
+                    }
+                    value.forEach(element => {
+                        const resource: Resource = new Resource(Uri.file(element), chnum.toString(), "shelve");
+                        pendings.get(chnum).push(resource);
+                    });
+                });
+
             }
         });
 
@@ -389,6 +399,24 @@ export class Model implements Disposable {
 
         return files;
     }
+
+    private async getDepotShelvedFilePaths(chnum: number): Promise <string[]> {
+        const output = await Utils.getOutput('describe -Ss ' + chnum);
+        const shelved = output.trim().split('\n');
+        if (shelved.length === 0) {
+             return;
+        }
+
+        const files = [];
+        shelved.forEach(open => {
+            const matches = open.match(/(\.+)\ (.*)#(.*)/);
+            if (matches) {
+                files.push(matches[2]);
+            }
+        });
+
+        return files;
+}
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
         const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);

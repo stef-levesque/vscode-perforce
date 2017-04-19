@@ -18,6 +18,7 @@ export function GetStatuses(statusText: string): Status[] {
             case "move/add": result.push(Status.MOVE_ADD); break;
             case "move/delete": result.push(Status.MOVE_DELETE); break;
             case "purge": result.push(Status.PURGE); break;
+            case "shelve": result.push(Status.SHELVE); break;
             default:
                 result.push(Status.UNKNOWN); break;
         }
@@ -38,5 +39,6 @@ export enum Status {
     MOVE_ADD,
     MOVE_DELETE,
     PURGE,
+    SHELVE,
     UNKNOWN
 }
