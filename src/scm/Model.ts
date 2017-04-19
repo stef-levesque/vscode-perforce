@@ -238,14 +238,10 @@ export class Model implements Disposable {
     public async ShelveOrUnshelve(input: Resource): Promise<void> {
         const file = input.uri;
 
-        let needRefresh = false;
-
         if (input.status == Status.SHELVE) {
             let args = '-c ' + input.change + ' -s ' + input.change;
             const command = 'unshelve';
             await Utils.getOutput(command, file, null, args).then((output) => {
-                needRefresh = true;
-                
                 let args = '-d -c ' + input.change;
                 const command = 'shelve';
                 Utils.getOutput('shelve', file, null, args).then((output) => {
