@@ -65,6 +65,9 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.revertChangelist', (e) => {
             PerforceSCMProvider.Revert(e);
         });
+        commands.registerCommand('perforce.shelveunshelve', (e) => {
+            PerforceSCMProvider.ShelveOrUnshelve(e);
+        });
         commands.registerCommand('perforce.revertFile', (e) => {
             PerforceSCMProvider.Revert(e);
         });

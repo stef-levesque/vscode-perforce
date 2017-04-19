@@ -2,6 +2,7 @@ import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGrou
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
+import { Status } from './Status';
 
 import * as Path from 'path';
 
@@ -234,6 +235,40 @@ export class Model implements Disposable {
         }
     }
 
+    public async ShelveOrUnshelve(input: Resource): Promise<void> {
+        const file = input.uri;
+
+        if (input.status == Status.SHELVE) {
+            let args = '-c ' + input.change + ' -s ' + input.change;
+            const command = 'unshelve';
+            await Utils.getOutput(command, file, null, args).then((output) => {
+                let args = '-d -c ' + input.change;
+                const command = 'shelve';
+                Utils.getOutput('shelve', file, null, args).then((output) => {
+                    Display.updateEditor();
+                    Display.channel.append(output);
+
+                    this.Refresh();
+                }).catch((reason) => {
+                    Display.showError(reason.toString());
+
+                    this.Refresh();
+                });
+            }).catch((reason) => {
+                Display.showError(reason.toString());
+            });
+        }
+        else {
+            let args = '-f -c ' + input.change;
+            const command = 'shelve';
+            await Utils.getOutput(command, file, null, args).then((output) => {
+                this.Revert(input);
+            }).catch((reason) => {
+                Display.showError(reason.toString());
+            });
+        }
+    }
+
     public async ReopenFile(input: Resource): Promise<void> {
         const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
         if (!loggedin) {
@@ -333,6 +368,16 @@ export class Model implements Disposable {
                     console.log('ERROR: pending changelist already exist: ' + chnum.toString() );
                 }
 
+                this.getDepotShelvedFilePaths(chnum).then((value) => {
+                    if (!pendings.has(chnum)) {
+                        pendings.set(chnum, []);
+                    }
+                    value.forEach(element => {
+                        const resource: Resource = new Resource(Uri.file(element), chnum.toString(), "shelve");
+                        pendings.get(chnum).push(resource);
+                    });
+                });
+
             }
         });
 
@@ -389,6 +434,24 @@ export class Model implements Disposable {
 
         return files;
     }
+
+    private async getDepotShelvedFilePaths(chnum: number): Promise <string[]> {
+        const output = await Utils.getOutput('describe -Ss ' + chnum);
+        const shelved = output.trim().split('\n');
+        if (shelved.length === 0) {
+             return;
+        }
+
+        const files = [];
+        shelved.forEach(open => {
+            const matches = open.match(/(\.+)\ (.*)#(.*)/);
+            if (matches) {
+                files.push(matches[2]);
+            }
+        });
+
+        return files;
+}
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
         const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);

@@ -56,6 +56,7 @@ export class DecorationProvider {
             case Status.MOVE_ADD: return DecorationProvider.getIconUri('status-move', theme);
             case Status.MOVE_DELETE: return DecorationProvider.getIconUri('status-move', theme);
             case Status.PURGE: return DecorationProvider.getIconUri('status-delete', theme);
+            case Status.SHELVE: return DecorationProvider.getIconUri('status-shelve', theme);
             default: return void 0;
         }
     }
