@@ -12,6 +12,7 @@ import {
 
 import * as micromatch from 'micromatch';
 import * as parseignore from 'parse-gitignore';
+import * as process from 'process';
 
 import {Display} from './Display';
 import {PerforceCommands} from './PerforceCommands';
@@ -56,7 +57,9 @@ export default class FileSystemListener
         }
 
         this._p4ignore = [];
-        workspace.findFiles('.p4ignore', null, 1).then((result) => {
+
+        const p4IgnoreFileName = process.env.P4IGNORE ? process.env.P4IGNORE : '.p4ignore';
+        workspace.findFiles(p4IgnoreFileName, null, 1).then((result) => {
             if (result.length > 0) {
                 this._p4ignore = parseignore(result[0].fsPath);
             }
