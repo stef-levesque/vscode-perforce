@@ -10,6 +10,9 @@ import {
     Uri
 } from 'vscode';
 
+import * as micromatch from 'micromatch';
+import * as parseignore from 'parse-gitignore';
+
 import {Display} from './Display';
 import {PerforceCommands} from './PerforceCommands';
 import {PerforceService} from './PerforceService';
@@ -20,6 +23,7 @@ export default class FileSystemListener
     private _watcher: FileSystemWatcher;
 
     private _lastCheckedFilePath: string;
+    private _p4ignore: string[];
 
     constructor() {
         const subscriptions: Disposable[] = [];
@@ -50,6 +54,13 @@ export default class FileSystemListener
                 }
             }
         }
+
+        this._p4ignore = [];
+        workspace.findFiles('.p4ignore', null, 1).then((result) => {
+            if (result.length > 0) {
+                this._p4ignore = parseignore(result[0].fsPath);
+            }
+        });
 
         this._disposable = Disposable.from.apply(this, subscriptions);
     }
@@ -104,7 +115,17 @@ export default class FileSystemListener
     }
 
     private onFileDeleted(uri: Uri) {
-        PerforceCommands.p4delete(uri.fsPath);
+        const fileExcludes = Object.keys(workspace.getConfiguration('files').exclude);
+        const ignoredPatterns = this._p4ignore.concat(fileExcludes);
+
+        const shouldIgnore: boolean = micromatch.any(uri.fsPath, ignoredPatterns, { dot: true });
+
+        // Only `p4 delete` files that are not marked as ignored either in:
+        // .p4ignore
+        // files.exclude setting
+        if (!shouldIgnore) {
+            PerforceCommands.p4delete(uri.fsPath);
+        }
     }
 
     private onFileCreated(uri: Uri) {
