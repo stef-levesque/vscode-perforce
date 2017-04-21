@@ -444,7 +444,9 @@
     ]
   },
   "dependencies":{
-    "tmp":"0.0.28"
+    "tmp":"0.0.28",
+    "micromatch":"^2.3.11",
+    "parse-gitignore":"^0.4.0"
   },
   "devDependencies":{
     "vscode":"^1.0.0",
