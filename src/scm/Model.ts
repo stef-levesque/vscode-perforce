@@ -188,19 +188,29 @@ export class Model implements Disposable {
         let args = null;
         let needRefresh = false;
 
+        let message = "Are you sure you want to revert the changes ";
         if (input instanceof Resource) {
             file = Uri.file(input.uri.fsPath);
+            message += "to file " + Path.basename(input.uri.fsPath) + "?";
         } else if (isResourceGroup(input)) {
             const id = input.id;
             if (id.startsWith('default')) {
                 args = '-c default //...';
+                message += "in the default changelist?";
             } else if (id.startsWith('pending')) {
                 const chnum = id.substr(id.indexOf(':') + 1);
                 args = '-c ' + chnum + ' //...';
+                message += "in the changelist " + chnum + "?";
             } else {
                 return;
             }
         } else {
+            return;
+        }
+
+        const yes = "Revert Changes";
+        const pick = await window.showWarningMessage(message, { modal: true }, yes);
+        if (pick !== yes) {
             return;
         }
 
