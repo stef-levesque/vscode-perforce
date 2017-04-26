@@ -12,7 +12,6 @@ import {
 
 import * as micromatch from 'micromatch';
 import * as parseignore from 'parse-gitignore';
-import * as process from 'process';
 
 import {Display} from './Display';
 import {PerforceCommands} from './PerforceCommands';
