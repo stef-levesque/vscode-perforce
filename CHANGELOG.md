@@ -1,5 +1,13 @@
 # Change log
 
+## [2.1.0] - 2017-05-15
+
+* Improve changelist workflow
+* Add `annotate` support (#31)
+* Support for shelved files (thanks @ihalip)
+* Ignore files specified in settings and .p4ignore (#27, thanks @ihalip)
+* Change extension category to `SCM Providers` (thanks @joaomoreno)
+
 ## [2.0.1] - 2017-04-09
 
 * Display errors as status bar message (#33)
@@ -90,6 +98,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[2.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/5dd2025bdcbc906fc77b4019fe92d2263c06bc00...61ff3b2a6dd1d32d3e572e788034fedd62455b35
 [2.0.1]: https://github.com/stef-levesque/vscode-perforce/compare/1a08507ae3a0b825563d2c9444210194abf75962...852d772956b3e68baf06a064632b71e0f7c44444
 [2.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/a83bf106468feec7ed8c6aaac841487654eb0737...3fe2af32f4c4b6e34443e1baf0724984c76be69d
 [1.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/e08c66e833e8508fda4d190697934b5bb1a7a3d5...b143313ec7263d82fd40f6a32c3e366c0778998f
