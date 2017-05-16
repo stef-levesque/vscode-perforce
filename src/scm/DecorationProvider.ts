@@ -10,7 +10,10 @@ export class DecorationProvider {
         const light = { iconPath: DecorationProvider.getIconPath(status, 'light') };
         const dark = { iconPath: DecorationProvider.getIconPath(status, 'dark') };
 
-        return { strikeThrough: DecorationProvider.useStrikeThrough(status), light, dark };
+        const strikeThrough = DecorationProvider.useStrikeThrough(status);
+        const faded = DecorationProvider.useFaded(status);
+
+        return { strikeThrough, faded, light, dark };
     }
 
     private static getDominantStatus(statuses: Status[]) {
@@ -63,5 +66,9 @@ export class DecorationProvider {
 
     private static useStrikeThrough(status: Status): boolean {
         return (status === Status.DELETE) || status === Status.MOVE_DELETE;
+    }
+
+    private static useFaded(status: Status): boolean {
+        return (status === Status.SHELVE);
     }
 }
