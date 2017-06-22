@@ -93,6 +93,12 @@
           ],
           "description": "Specifies the direction of the chnagelist sorting"
         },
+        "perforce.maxFilePerCommand": {
+          "type": "number",
+          "minimum": 1,
+          "default": 32,
+          "description": "Specify the maximum number of file should be processed in a single command line (doesn't include changelist operations). Default is 32"
+        },
         "perforce.maxBuffer": {
           "type": "number",
           "minimum": 1024,

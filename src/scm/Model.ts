@@ -352,6 +352,7 @@ export class Model implements Disposable {
         let changelists = output.trim().split('\n');
 
         const config = workspace.getConfiguration('perforce');
+        const maxFilePerCommand: number = config.get<number>('maxFilePerCommand');
         if (config.get('changelistOrder') == 'ascending') {
             changelists = changelists.reverse();
         }
@@ -387,31 +388,32 @@ export class Model implements Disposable {
                         pendings.get(chnum).push(resource);
                     });
                 });
-
             }
         });
 
         const depotOpenedFilePaths = await this.getDepotOpenedFilePaths();
-        const fstatInfo = await this.getFstatInfoForFiles(depotOpenedFilePaths);
+        for (let i = 0; i < depotOpenedFilePaths.length; i += maxFilePerCommand) {
+            const fstatInfo = await this.getFstatInfoForFiles(depotOpenedFilePaths.slice(i, i + maxFilePerCommand));
 
-        fstatInfo.forEach(info => {
-            const clientFile = info['clientFile'];
-            const change = info['change'];
-            const action = info['action'];
-            const uri = Uri.file(clientFile);
-            const resource: Resource = new Resource(uri, change, action);
+            fstatInfo.forEach(info => {
+                const clientFile = info['clientFile'];
+                const change = info['change'];
+                const action = info['action'];
+                const uri = Uri.file(clientFile);
+                const resource: Resource = new Resource(uri, change, action);
 
-            if (change.startsWith('default')) {
-                defaults.push(resource);
-            } else {
-                let chnum: number = parseInt( change );
+                if (change.startsWith('default')) {
+                    defaults.push(resource);
+                } else {
+                    let chnum: number = parseInt(change);
 
-                if (!pendings.has(chnum)) {
-                    pendings.set(chnum, []);
+                    if (!pendings.has(chnum)) {
+                        pendings.set(chnum, []);
+                    }
+                    pendings.get(chnum).push(resource);
                 }
-                pendings.get(chnum).push(resource);
-            }
-        });
+            });
+        }
 
         this._defaultGroup.resourceStates = defaults;
 
