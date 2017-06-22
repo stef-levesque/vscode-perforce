@@ -1,6 +1,7 @@
 import { Uri, workspace } from 'vscode';
 import * as Path from 'path';
 import { PerforceService } from './PerforceService';
+import { Display } from './Display';
 
 import * as fs from 'fs';
 
@@ -59,12 +60,14 @@ export namespace Utils
             }
 
             PerforceService.execute('login', (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                stderr && Display.showError(stderr.toString());
                 if (err) {
-                    resolve(false);
+                    reject(err);
                 } else if (stderr) {
-                    resolve(false);
+                    reject(stderr);
                 } else {
-                    resolve(true);
+                    resolve(stdout);
                 }
             }, '-s');
         });
@@ -90,6 +93,8 @@ export namespace Utils
             }
 
             PerforceService.execute(command, (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                stderr && Display.showError(stderr.toString());
                 if (err) {
                     reject(err);
                 } else if (stderr) {
