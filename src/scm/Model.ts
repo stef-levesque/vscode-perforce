@@ -1,4 +1,4 @@
-import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, window, workspace, commands } from 'vscode';
+import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, ProgressLocation, window, workspace, commands } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -61,7 +61,10 @@ export class Model implements Disposable {
             return;
         }
 
-        window.withScmProgress(() => this.syncUpdate());
+        window.withProgress({
+            location: ProgressLocation.SourceControl,
+            title: 'Syncing...'
+        }, () => this.syncUpdate());
     }
 
     public async Refresh(): Promise<void> {
@@ -71,8 +74,14 @@ export class Model implements Disposable {
             return;
         }
 
-        await window.withScmProgress(() => this.updateInfo());
-        window.withScmProgress(() => this.updateStatus());
+        await window.withProgress({
+            location: ProgressLocation.SourceControl,
+            title: 'Updating info...'
+        }, () => this.updateInfo());
+        window.withProgress({
+            location: ProgressLocation.SourceControl,
+            title: 'Updating status...'
+        }, () => this.updateStatus());
     }
 
     public async ProcessChangelist(): Promise<void> {
