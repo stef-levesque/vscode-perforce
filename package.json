@@ -70,10 +70,35 @@
           "default": false,
           "description": "Show annotation for every file"
         },
+        "perforce.client":{
+          "type": "string",
+          "default": "none",
+          "description": "Overrides any P4CLIENT setting with the specified client name"
+        },
+        "perforce.user":{
+          "type": "string",
+          "default": "none",
+          "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name"
+        },
+        "perforce.port": {
+          "type": "string",
+          "default": "none",
+          "description": "Overrides any P4PORT setting with the specified protocol:host:port"
+        },
+        "perforce.password": {
+          "type": "string",
+          "default": "none",
+          "description": "Overrides any P4PASSWD setting with the specified password"
+        },
+        "perforce.dir": {
+          "type": "string",
+          "default": "none",
+          "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory"
+        },
         "perforce.command":{
-          "type":"string",
-          "default":"none",
-          "description":"Configure a path to p4 or an alternate command if needed"
+          "type": "string",
+          "default": "none",
+          "description": "Configure a path to p4 or an alternate command if needed"
         },
         "perforce.compatibilityMode": {
           "type": "string",

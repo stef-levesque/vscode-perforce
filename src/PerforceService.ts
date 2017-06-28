@@ -13,8 +13,12 @@ import * as CP from 'child_process';
 export namespace PerforceService {
 
     export function getPerforceCmdPath() : string {
-        var p4Path = workspace.getConfiguration('perforce').get('command', 'none');
+        var p4Path   = workspace.getConfiguration('perforce').get('command', 'none');
+        var p4User   = workspace.getConfiguration('perforce').get('user', 'none');
         var p4Client = workspace.getConfiguration('perforce').get('client', 'none');
+        var p4Port   = workspace.getConfiguration('perforce').get('port', 'none');
+        var p4Pass   = workspace.getConfiguration('perforce').get('password', 'none');
+        var p4Dir    = workspace.getConfiguration('perforce').get('dir', 'none');
 
         if(p4Path == 'none') {
             var isWindows = /^win/.test(process.platform);
@@ -23,8 +27,24 @@ export namespace PerforceService {
             p4Path = Utils.normalizePath(p4Path);
         }
 
+        if (p4User !== 'none') {
+            p4Path += ' -u ' + p4User;
+        }
+
         if(p4Client !== 'none') {
             p4Path += ' -c ' + p4Client;
+        }
+
+        if (p4Port !== 'none') {
+            p4Path += ' -p ' + p4Port;
+        }
+
+        if (p4Pass !== 'none') {
+            p4Path += ' -P ' + p4Pass;
+        }
+
+        if (p4Dir !== 'none') {
+            p4Path += ' -d ' + p4Dir;
         }
 
         return p4Path;
