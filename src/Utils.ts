@@ -1,9 +1,13 @@
-import { Uri, workspace } from 'vscode';
+import { Event, Uri, workspace } from 'vscode';
 import * as Path from 'path';
 import { PerforceService } from './PerforceService';
 import { Display } from './Display';
 
 import * as fs from 'fs';
+
+export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
+    return (listener, thisArgs = null, disposables?) => event(i => listener.call(thisArgs, map(i)), null, disposables);
+}
 
 export namespace Utils
 {

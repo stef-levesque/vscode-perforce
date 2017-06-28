@@ -14,8 +14,8 @@ function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
 
-    private _onDidChange = new EventEmitter<SourceControlResourceGroup[]>();
-    public get onDidChange(): Event<SourceControlResourceGroup[]> {
+    private _onDidChange = new EventEmitter<void>();
+    public get onDidChange(): Event<void> {
         return this._onDidChange.event;
     }
 
@@ -31,7 +31,6 @@ export class Model implements Disposable {
 
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
-    private _shelvedGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _compatibilityMode: string;
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
@@ -41,10 +40,6 @@ export class Model implements Disposable {
             result.push(this._defaultGroup);
 
         this._pendingGroups.forEach((value) => {
-            result.push(value.group);
-        });
-
-        this._shelvedGroups.forEach((value) => {
             result.push(value.group);
         });
 
@@ -324,10 +319,13 @@ export class Model implements Disposable {
     private clean() {
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
+            this._defaultGroup = null;
         }
 
         this._pendingGroups.forEach((value) => value.group.dispose());
-        this._shelvedGroups.forEach((value) => value.group.dispose());
+        this._pendingGroups.clear();
+
+        this._onDidChange.fire();
     }
 
     private async syncUpdate(): Promise<void> {
@@ -435,7 +433,7 @@ export class Model implements Disposable {
             }
         });
 
-        this._onDidChange.fire(this.ResourceGroups);
+        this._onDidChange.fire();
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {

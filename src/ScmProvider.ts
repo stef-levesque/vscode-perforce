@@ -2,6 +2,7 @@ import { scm, commands, window, Uri, Disposable, SourceControl, SourceControlRes
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
+import { mapEvent } from './Utils';
 import * as Path from 'path';
 
 export class PerforceSCMProvider {
@@ -16,16 +17,24 @@ export class PerforceSCMProvider {
     private static instance: PerforceSCMProvider = undefined;
     private _model: Model;
 
-    private _onDidChange = new EventEmitter<this>();
-    public get onDidChange(): Event<this> {
-        return this._onDidChange.event;
+    get onDidChange(): Event<this> {
+        return mapEvent(this._model.onDidChange, () => this);
     }
 
     public get resources(): SourceControlResourceGroup[] { return this._model.ResourceGroups; }
     public get id(): string { return 'perforce'; }
     public get label(): string { return 'Perforce'; }
     public get count(): number {
-        return this._model.ResourceGroups.reduce((r, g) => r + g.resourceStates.length, 0);
+        const countBadge = workspace.getConfiguration('perforce').get<string>('countBadge');
+        const total = this._model.ResourceGroups.reduce((r, g) => r + g.resourceStates.length, 0);
+
+        switch (countBadge) {
+            case 'off': 
+                return 0;
+            case 'all':
+            default: 
+                return total;
+        }
     }
 
     get sourceControl(): SourceControl {
@@ -48,7 +57,7 @@ export class PerforceSCMProvider {
     public Initialize() {
         this._model = new Model(this.compatibilityMode);
         // Hook up the model change event to trigger our own event
-        this._model.onDidChange((groups: SourceControlResourceGroup[]) => this._onDidChange.fire(this));
+        this._model.onDidChange(this.onDidModelChange, this, this.disposables);
         this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
@@ -58,6 +67,11 @@ export class PerforceSCMProvider {
 
         scm.inputBox.value = '';
 
+    }
+
+    private onDidModelChange(): void {
+        this._model._sourceControl.count = this.count;
+        commands.executeCommand('setContext', 'perforceState', this.stateContextKey);
     }
 
     private static GetInstance(): PerforceSCMProvider {
