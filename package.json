@@ -136,6 +136,11 @@
           ],
           "description": "Specifies the direction of the chnagelist sorting"
         },
+        "perforce.scmFileChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open file changes when selected in SCM Explorer."
+        },
         "perforce.maxFilePerCommand": {
           "type": "number",
           "minimum": 1,

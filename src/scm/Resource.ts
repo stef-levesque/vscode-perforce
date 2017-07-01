@@ -1,4 +1,4 @@
-import { Command, SourceControlResourceState, SourceControlResourceGroup, SourceControlResourceDecorations, Uri } from 'vscode';
+import { Command, SourceControlResourceState, SourceControlResourceGroup, SourceControlResourceDecorations, Uri, workspace } from 'vscode';
 import { DecorationProvider } from './DecorationProvider';
 import { GetStatuses, Status } from './Status';
 
@@ -31,9 +31,12 @@ export class Resource implements SourceControlResourceState {
     }
 
     get command(): Command {
+        const command = workspace.getConfiguration('perforce').get('scmFileChanges') ?
+                        'perforce.openResource' :
+                        'perforce.openFile';
         return {
             title: 'Open',
-            command: 'perforce.openResource',
+            command,
             arguments: [this]
         };
     }
