@@ -65,6 +65,11 @@
           "default": false,
           "description": "Output changelist numbers rather than revision numbers for each line"
         },
+        "perforce.annotate.user": {
+          "type": "boolean",
+          "default": false,
+          "description": "output the user who modified the line in the file and the date it was modified"
+        },
         "perforce.annotate.enable": {
           "type": "boolean",
           "default": false,

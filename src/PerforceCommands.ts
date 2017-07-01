@@ -235,7 +235,10 @@ export namespace PerforceCommands
         const doc = editor.document;
         const conf = workspace.getConfiguration('perforce')
         const cl = conf.get('annotate.changelist');
-        const args = cl ? '-cqu' : '-qu';
+        const usr = conf.get('annotate.user');
+        let args = '-q';
+        if (cl) args += 'c';
+        if (usr) args += 'u';
 
         const decorationType = window.createTextEditorDecorationType({
             isWholeLine: true,
@@ -252,11 +255,10 @@ export namespace PerforceCommands
         const annotations = output.split(/\r?\n/);
 
         for (let i = 0, n = annotations.length; i < n; ++i) {
-            const matches = annotations[i].match(/^(\d+): (\S+) (\S+)/);
+            const matches = annotations[i].match(usr ? /^(\d+): (\S+ \S+)/ : /^(\d+): /);
             if(matches) {
                 const num = matches[1];
-                const user = matches[2];
-                const date = matches[3];
+                const hoverMessage = matches[2];
 
                 if (num !== lastNum) {
                     lastNum = num;
@@ -265,7 +267,7 @@ export namespace PerforceCommands
 
                 decorations.push({
                     range: new Range(i, 0, i, 0),
-                    hoverMessage: user + ' ' + date,
+                    hoverMessage,
                     renderOptions: {
                         before: {
                             color: decorateColors[colorIndex],
