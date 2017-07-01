@@ -180,6 +180,7 @@ export class Model implements Disposable {
 
         Utils.getOutput(command, null, null, args).then((output) => {
             Display.channel.append(output);
+            Display.showMessage("Changelist Submitted");
             this.Refresh();
         }).catch( (reason) => {
             Display.showError(reason.toString());
