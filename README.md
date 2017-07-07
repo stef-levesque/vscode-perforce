@@ -34,9 +34,9 @@ Perforce integration for Visual Studio Code
 
 ## Status bar icons
 
-* ![check](https://cdn.rawgit.com/github/octicons/master/lib/svg/check.svg) opened in add or edit
-* ![file-text](https://cdn.rawgit.com/github/octicons/master/lib/svg/file-text.svg) not opened on this client
-* ![circle-slash](https://cdn.rawgit.com/github/octicons/master/lib/svg/circle-slash.svg) not under client's root
+* ![check](images/check.png) opened in add or edit
+* ![file-text](images/file-text.png) not opened on this client
+* ![circle-slash](images/circle-slash.png) not under client's root
 
 ## Source Control in VS Code
 
