@@ -498,13 +498,13 @@
     ]
   },
   "dependencies":{
-    "tmp":"0.0.28",
-    "micromatch":"^2.3.11",
+    "tmp":"^0.0.31",
+    "micromatch":"^3.0.3",
     "parse-gitignore":"^0.4.0"
   },
   "devDependencies":{
     "vscode":"^1.0.0",
-    "@types/node":"^6.0.45",
+    "@types/node":"^8.0.8",
     "typescript":"^2.0.3"
   },
   "scripts":{
