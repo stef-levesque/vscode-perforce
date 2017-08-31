@@ -7,7 +7,7 @@ import {
     Uri
 } from 'vscode';
 
-import { DecorationInstanceRenderOptions, DecorationOptions, OverviewRulerLane, Disposable, ExtensionContext, Range, TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+import { ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions, OverviewRulerLane, Disposable, ExtensionContext, Range, TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
 
 
 import * as Path from 'path';
@@ -124,7 +124,7 @@ export namespace PerforceCommands
                 if(!err) {
                     Display.showError("file opened for edit");
                 }
-                resolve(err);
+                reject(err);
             }, args, directoryOverride);
         });
     }
@@ -265,15 +265,16 @@ export namespace PerforceCommands
                     colorIndex = (colorIndex + 1) % decorateColors.length
                 }
 
+                const before: ThemableDecorationAttachmentRenderOptions = {
+                    contentText: (cl ? '' : '#') + num,
+                    color: decorateColors[colorIndex]
+                };
+                const renderOptions: DecorationInstanceRenderOptions = { before };
+
                 decorations.push({
                     range: new Range(i, 0, i, 0),
                     hoverMessage,
-                    renderOptions: {
-                        before: {
-                            color: decorateColors[colorIndex],
-                            contentText: (cl ? '' : '#') + num
-                        } as DecorationInstanceRenderOptions
-                    }
+                    renderOptions
                 });
 
             }
