@@ -504,6 +504,10 @@
       {
         "key":"alt+p o",
         "command":"perforce.opened"
+      },
+      {
+        "key":"alt+p s",
+        "command":"perforce.submitDefault"
       }
     ]
   },
