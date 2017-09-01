@@ -183,7 +183,7 @@ export class Model implements Disposable {
         const descStr = await vscode.window.showInputBox({
             placeHolder: 'New changelist description',
             validateInput: (value: string) => {
-                if (!value || value.length === 0) {
+                if (!value || value.trim().length === 0) {
                     return 'Cannot set empty description';
                 }
                 return null;
@@ -191,7 +191,9 @@ export class Model implements Disposable {
             ignoreFocusOut: true
         });
 
-        if (descStr === undefined) {
+        if (descStr === undefined || descStr.trim().length == 0) {
+            // pressing enter with no other input will still submit the empty string
+            Display.showError('Cannot set empty description');
             return;
         }
 
