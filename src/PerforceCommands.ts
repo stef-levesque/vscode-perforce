@@ -48,7 +48,7 @@ export namespace PerforceCommands
             PerforceSCMProvider.Open(e);
         });
         commands.registerCommand('perforce.submitDefault', () => {
-            PerforceSCMProvider.Submit();
+            PerforceSCMProvider.SubmitDefault();
         });
         commands.registerCommand('perforce.processChangelist', () => {
             PerforceSCMProvider.ProcessChangelist();
