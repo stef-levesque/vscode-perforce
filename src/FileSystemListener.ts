@@ -59,7 +59,7 @@ export default class FileSystemListener
 
         const p4IgnoreFileName = process.env.P4IGNORE ? process.env.P4IGNORE : '.p4ignore';
         workspace.findFiles(p4IgnoreFileName, null, 1).then((result) => {
-            if (result.length > 0) {
+            if (result && result.length > 0) {
                 this._p4ignore = parseignore(result[0].fsPath);
             }
         });
