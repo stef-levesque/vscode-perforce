@@ -1,64 +1,64 @@
 {
-  "name":"perforce",
-  "displayName":"Perforce for VS Code",
-  "description":"Perforce integration with VS Code's SCM features",
-  "version":"2.1.1",
-  "publisher":"slevesque",
-  "license":"LICENSE.md",
-  "categories":[
+  "name": "perforce",
+  "displayName": "Perforce for VS Code",
+  "description": "Perforce integration with VS Code's SCM features",
+  "version": "2.1.1",
+  "publisher": "slevesque",
+  "license": "LICENSE.md",
+  "categories": [
     "SCM Providers"
   ],
-  "icon":"icon.png",
-  "bugs":{
-    "url":"https://github.com/stef-levesque/vscode-perforce/issues"
+  "icon": "icon.png",
+  "bugs": {
+    "url": "https://github.com/stef-levesque/vscode-perforce/issues"
   },
-  "homepage":"https://github.com/stef-levesque/vscode-perforce/blob/master/README.md",
-  "repository":{
-    "type":"git",
-    "url":"https://github.com/stef-levesque/vscode-perforce.git"
+  "homepage": "https://github.com/stef-levesque/vscode-perforce/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stef-levesque/vscode-perforce.git"
   },
-  "galleryBanner":{
-    "color":"#5c2d91",
-    "theme":"dark"
+  "galleryBanner": {
+    "color": "#5c2d91",
+    "theme": "dark"
   },
-  "engines":{
-    "vscode":"^1.12.1"
+  "engines": {
+    "vscode": "^1.12.1"
   },
   "enableProposedApi": false,
-  "keywords":[
+  "keywords": [
     "vscode",
     "scm",
     "perforce",
     "sourcedepot"
   ],
-  "main":"./out/src/extension",
-  "activationEvents":[
+  "main": "./out/src/extension",
+  "activationEvents": [
     "*"
   ],
-  "contributes":{
-    "configuration":{
-      "type":"object",
-      "title":"VS Code Perforce Configuration",
-      "properties":{
-        "perforce.editOnFileSave":{
-          "type":"boolean",
-          "default":false,
-          "description":"Automatically open a file for edit when saved"
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "VS Code Perforce Configuration",
+      "properties": {
+        "perforce.editOnFileSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open a file for edit when saved"
         },
-        "perforce.editOnFileModified":{
-          "type":"boolean",
-          "default":false,
-          "description":"Automatically open a file for edit when Modified"
+        "perforce.editOnFileModified": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open a file for edit when Modified"
         },
-        "perforce.addOnFileCreate":{
-          "type":"boolean",
-          "default":false,
-          "description":"Automatically Add a file to depot when Created"
+        "perforce.addOnFileCreate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically Add a file to depot when Created"
         },
-        "perforce.deleteOnFileDelete":{
-          "type":"boolean",
-          "default":false,
-          "description":"Automatically delete a file from depot when deleted"
+        "perforce.deleteOnFileDelete": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically delete a file from depot when deleted"
         },
         "perforce.annotate.changelist": {
           "type": "boolean",
@@ -75,12 +75,12 @@
           "default": false,
           "description": "Show annotation for every file"
         },
-        "perforce.client":{
+        "perforce.client": {
           "type": "string",
           "default": "none",
           "description": "Overrides any P4CLIENT setting with the specified client name"
         },
-        "perforce.user":{
+        "perforce.user": {
           "type": "string",
           "default": "none",
           "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name"
@@ -100,7 +100,7 @@
           "default": "none",
           "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory"
         },
-        "perforce.command":{
+        "perforce.command": {
           "type": "string",
           "default": "none",
           "description": "Configure a path to p4 or an alternate command if needed"
@@ -109,8 +109,8 @@
           "type": "string",
           "default": "perforce",
           "enum": [
-              "perforce",
-              "sourcedepot"
+            "perforce",
+            "sourcedepot"
           ],
           "description": "Specify if we should run in compatibility mode, currently support 'perforce' and 'sourcedepot'"
         },
@@ -160,16 +160,16 @@
         }
       }
     },
-    "commands":[
+    "commands": [
       {
-        "command":"perforce.menuFunctions",
-        "title":"Show Perforce functions",
-        "category":"Perforce"
+        "command": "perforce.menuFunctions",
+        "title": "Show Perforce functions",
+        "category": "Perforce"
       },
       {
-        "command":"perforce.showOutput",
-        "title":"Show Output",
-        "category":"Perforce"
+        "command": "perforce.showOutput",
+        "title": "Show Output",
+        "category": "Perforce"
       },
       {
         "command": "perforce.login",
@@ -182,29 +182,29 @@
         "category": "Perforce"
       },
       {
-        "command":"perforce.add",
-        "title":"add - Open a new file to add it to the depot",
-        "category":"Perforce"
+        "command": "perforce.add",
+        "title": "add - Open a new file to add it to the depot",
+        "category": "Perforce"
       },
       {
-        "command":"perforce.edit",
-        "title":"edit - Open an existing file for edit",
-        "category":"Perforce"
+        "command": "perforce.edit",
+        "title": "edit - Open an existing file for edit",
+        "category": "Perforce"
       },
       {
-        "command":"perforce.revert",
-        "title":"revert - Discard changes from an opened file",
-        "category":"Perforce"
+        "command": "perforce.revert",
+        "title": "revert - Discard changes from an opened file",
+        "category": "Perforce"
       },
       {
-        "command":"perforce.diff",
-        "title":"diff - Display diff of client file with depot file",
-        "category":"Perforce"
+        "command": "perforce.diff",
+        "title": "diff - Display diff of client file with depot file",
+        "category": "Perforce"
       },
       {
-        "command":"perforce.diffRevision",
-        "title":"diff revision - Display diff of client file with depot file at a specific revision",
-        "category":"Perforce"
+        "command": "perforce.diffRevision",
+        "title": "diff revision - Display diff of client file with depot file at a specific revision",
+        "category": "Perforce"
       },
       {
         "command": "perforce.annotate",
@@ -212,9 +212,9 @@
         "category": "Perforce"
       },
       {
-        "command":"perforce.info",
-        "title":"Display client/server information",
-        "category":"Perforce",
+        "command": "perforce.info",
+        "title": "Display client/server information",
+        "category": "Perforce",
         "icon": {
           "light": "resources/icons/light/p4.svg",
           "dark": "resources/icons/dark/p4.svg"
@@ -317,9 +317,9 @@
         }
       },
       {
-        "command":"perforce.opened",
-        "title":"opened - Display 'open' files and open one in the editor",
-        "category":"Perforce"
+        "command": "perforce.opened",
+        "title": "opened - Display 'open' files and open one in the editor",
+        "category": "Perforce"
       }
     ],
     "menus": {
@@ -455,14 +455,14 @@
         }
       ]
     },
-    "keybindings":[
+    "keybindings": [
       {
-        "key":"alt+p space",
-        "command":"perforce.menuFunctions"
+        "key": "alt+p space",
+        "command": "perforce.menuFunctions"
       },
       {
-        "key":"alt+p l",
-        "command":"perforce.showOutput"
+        "key": "alt+p l",
+        "command": "perforce.showOutput"
       },
       {
         "key": "alt+p enter",
@@ -473,24 +473,24 @@
         "command": "perforce.logout"
       },
       {
-        "key":"alt+p a",
-        "command":"perforce.add",
-        "when":"editorTextFocus"
+        "key": "alt+p a",
+        "command": "perforce.add",
+        "when": "editorTextFocus"
       },
       {
-        "key":"alt+p e",
-        "command":"perforce.edit",
-        "when":"editorTextFocus"
+        "key": "alt+p e",
+        "command": "perforce.edit",
+        "when": "editorTextFocus"
       },
       {
-        "key":"alt+p r",
-        "command":"perforce.revert",
-        "when":"editorTextFocus"
+        "key": "alt+p r",
+        "command": "perforce.revert",
+        "when": "editorTextFocus"
       },
       {
-        "key":"alt+p d",
-        "command":"perforce.diff",
-        "when":"editorTextFocus"
+        "key": "alt+p d",
+        "command": "perforce.diff",
+        "when": "editorTextFocus"
       },
       {
         "key": "alt+p n",
@@ -498,32 +498,33 @@
         "when": "editorTextFocus"
       },
       {
-        "key":"alt+p i",
-        "command":"perforce.info"
+        "key": "alt+p i",
+        "command": "perforce.info"
       },
       {
-        "key":"alt+p o",
-        "command":"perforce.opened"
+        "key": "alt+p o",
+        "command": "perforce.opened"
       },
       {
-        "key":"alt+p s",
-        "command":"perforce.submitDefault"
+        "key": "alt+p s",
+        "command": "perforce.submitDefault"
       }
     ]
   },
-  "dependencies":{
-    "tmp":"^0.0.31",
-    "micromatch":"^3.0.3",
-    "parse-gitignore":"^0.4.0"
+  "dependencies": {
+    "tmp": "^0.0.31",
+    "ini": "^1.3.4",
+    "micromatch": "^3.0.3",
+    "parse-gitignore": "^0.4.0"
   },
-  "devDependencies":{
-    "vscode":"^1.0.0",
-    "@types/node":"^8.0.8",
-    "typescript":"^2.0.3"
+  "devDependencies": {
+    "vscode": "^1.1.5",
+    "@types/node": "^8.0.8",
+    "typescript": "^2.0.3"
   },
-  "scripts":{
-    "vscode:prepublish":"tsc -p ./",
-    "compile":"tsc -watch -p ./",
-    "postinstall":"node ./node_modules/vscode/bin/install"
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
   }
 }

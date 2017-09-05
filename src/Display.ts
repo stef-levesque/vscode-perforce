@@ -34,7 +34,7 @@ export namespace Display
 
         //If no folder is open, override the perforce directory to the files
         var directoryOverride = null;
-        if (workspace.rootPath == undefined) {
+        if (workspace.rootPath === undefined) {
             directoryOverride = Path.dirname(doc.uri.fsPath);
         }
 
@@ -69,7 +69,6 @@ export namespace Display
 
     export function showError(error: string) {
         window.setStatusBarMessage("Perforce: " + error, 3000);
-        channel.appendLine("ERROR:");
-        channel.append(error);
+        channel.appendLine(`ERROR: ${JSON.stringify(error)}`);
     }
 }

@@ -94,6 +94,8 @@ export default class FileSystemListener
     }
 
     private tryEditFile(docPath: string): Promise<boolean> {
+        docPath = PerforceService.convertToRel(docPath);
+        
         return new Promise((resolve, reject) => {
             //Check if this file is in client root first
             this.fileInClientRoot(docPath).then((inClientRoot) => {
@@ -110,23 +112,25 @@ export default class FileSystemListener
             }).then((openedForEdit) => {
                 resolve();
             }).catch((reason) => {
-                Display.showError(reason.toString());
+                if(reason) Display.showError(reason.toString());
                 reject(reason);
             });
         });
     }
 
     private onFileDeleted(uri: Uri) {
+        let docPath = uri.fsPath;
+
         const fileExcludes = Object.keys(workspace.getConfiguration('files').exclude);
         const ignoredPatterns = this._p4ignore.concat(fileExcludes);
 
-        const shouldIgnore: boolean = micromatch.any(uri.fsPath, ignoredPatterns, { dot: true });
+        const shouldIgnore: boolean = micromatch.any(docPath, ignoredPatterns, { dot: true });
 
         // Only `p4 delete` files that are not marked as ignored either in:
         // .p4ignore
         // files.exclude setting
         if (!shouldIgnore) {
-            PerforceCommands.p4delete(uri.fsPath);
+            PerforceCommands.p4delete(docPath);
         }
     }
 

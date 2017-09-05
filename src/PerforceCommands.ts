@@ -1,15 +1,10 @@
 'use strict';
 
 import {
-    commands,
-    workspace,
-    window,
-    Uri
-} from 'vscode';
-
-import { ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions, OverviewRulerLane, Disposable, ExtensionContext, Range, TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
-
-
+    commands, workspace, window, Uri,
+    ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
+    OverviewRulerLane, Disposable, ExtensionContext, Range,
+    TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
 import * as Path from 'path';
 import * as fs from 'fs';
 
@@ -490,7 +485,7 @@ export namespace PerforceCommands
 
     export function checkFolderOpened() {
         if (workspace.rootPath == undefined) {
-            Display.showMessage("No folder selected");
+            Display.showMessage("No folder selected\n");
             return false;
         }
 

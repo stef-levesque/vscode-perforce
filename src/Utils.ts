@@ -9,23 +9,17 @@ export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
     return (listener, thisArgs = null, disposables?) => event(i => listener.call(thisArgs, map(i)), null, disposables);
 }
 
-export namespace Utils
-{
-    export function normalizePath(path: string): string
-    {
-        var normalizedPath = path;
-
-        if (!pathIsUNC(normalizedPath)) {
-            var replaceable = normalizedPath.split('\\');
-            normalizedPath = replaceable.join('\\\\');
+export namespace Utils {
+    // normalize function for turning windows paths into
+    // something comparable before and after processing
+    export function normalize(path): string {
+        path = path.replace(/\\\\/g, '/');
+        path = path.replace(/\\/g, '/');
+        const matches = /([A-Z]):(.*)/.exec(path);
+        if (matches) {
+            path = `${matches[1].toLowerCase()}:${matches[2]}`;
         }
-        
-        normalizedPath = "\"" + normalizedPath + "\"";
-        return normalizedPath;
-    }
-
-    function pathIsUNC(path: string): boolean {
-        return path.indexOf('\\\\') == 0;
+        return path;
     }
 
     // Use ASCII expansion for special characters
@@ -36,7 +30,9 @@ export namespace Utils
             }
         }
 
-        return path.replace(/%/g, '%25').replace(/\*/g, '%2A').replace(/#/g, '%23').replace(/@/g, '%40');
+        const fixup = path.replace(/%/g, '%25').replace(/\*/g, '%2A').replace(/#/g, '%23').replace(/@/g, '%40');
+        const relativeToRoot = PerforceService.convertToRel(fixup);
+        return relativeToRoot;        
     }
 
     export function processInfo(output): Map<string, string> {
@@ -56,9 +52,9 @@ export namespace Utils
         return map;
     }
 
-    export function isLoggedIn(compatibilityMode: string) : Promise<boolean> {
+    export function isLoggedIn(compatibilityMode: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            if(compatibilityMode === 'sourcedepot') {
+            if (compatibilityMode === 'sourcedepot') {
                 resolve(true);
                 return;
             }
@@ -81,7 +77,7 @@ export namespace Utils
     export function getOutput(command: string, file?: Uri | string, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
-            
+
             if (gOpts != null) {
                 command = gOpts + ' ' + command;
             }
@@ -89,11 +85,10 @@ export namespace Utils
             var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
 
             if (file) {
-                if (file instanceof Uri) {
-                    args += ' "' + expansePath(file.fsPath) + revisionString + '"';
-                } else {
-                    args += ' "' + file + revisionString + '"';
-                }
+                let path = (typeof file === 'string') ? file : file.fsPath;
+                path = expansePath(path);
+                
+                args += ' "' + path + revisionString + '"';
             }
 
             PerforceService.execute(command, (err, stdout, stderr) => {
@@ -111,7 +106,7 @@ export namespace Utils
     }
 
     // Get a path to a file containing the output of the command
-    export function getFile(command: string, localFilePath?: string, revision?: number, prefixArgs?: string) : Promise<string> {
+    export function getFile(command: string, localFilePath?: string, revision?: number, prefixArgs?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             var args = prefixArgs != null ? prefixArgs : '';
             var revisionString: string = isNaN(revision) ? '' : `#${revision}`;
@@ -122,7 +117,7 @@ export namespace Utils
 
             var requirePipe = true;
             if (command == "print") {
-                if(localFilePath == null) {
+                if (localFilePath == null) {
                     reject("P4 Print command require a file path");
                 }
 
@@ -141,7 +136,7 @@ export namespace Utils
             }
 
             PerforceService.execute("print", (err, strdout, stderr) => {
-                if(err){
+                if (err) {
                     reject(err);
                 } else if (stderr) {
                     reject(stderr);
