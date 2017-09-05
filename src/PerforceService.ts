@@ -152,6 +152,14 @@ export namespace PerforceService {
 
     }
 
+    export function handleInfoServiceResponse(err: Error, stdout: string, stderr: string) {
+        if (err) {
+            Display.showError(stderr.toString());
+        } else {
+            Display.channel.append(stdout.toString());
+        }
+    }
+    
     export function handleCommonServiceResponse(err: Error, stdout: string, stderr: string) {
         if (err) {
             Display.showError(stderr.toString());

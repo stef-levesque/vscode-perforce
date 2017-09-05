@@ -298,7 +298,7 @@ export namespace PerforceCommands
         }
 
         showOutput();
-        PerforceService.execute('info', PerforceService.handleCommonServiceResponse);
+        PerforceService.execute('info', PerforceService.handleInfoServiceResponse);
     }
 
     export function opened() {
