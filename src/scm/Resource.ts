@@ -1,6 +1,7 @@
 import { Command, SourceControlResourceState, SourceControlResourceGroup, SourceControlResourceDecorations, Uri, workspace } from 'vscode';
 import { DecorationProvider } from './DecorationProvider';
 import { GetStatuses, Status } from './Status';
+import { IFileType, GetFileType, FileType } from './FileTypes';
 
 
 /**
@@ -15,6 +16,7 @@ import { GetStatuses, Status } from './Status';
  */
 export class Resource implements SourceControlResourceState {
     private _statuses: Status[];
+    private _headType: IFileType;
 
     get uri(): Uri { return this._uri; }
     get resourceUri(): Uri { return this._uri; }
@@ -45,7 +47,12 @@ export class Resource implements SourceControlResourceState {
         return this._change;
     }
 
-    constructor(private _uri: Uri, private _change: string, action: string) {
+    constructor(private _uri: Uri, private _change: string, action: string, headType?: string) {
         this._statuses = GetStatuses(action);
+        this._headType = GetFileType(headType);
+    }
+
+    get FileType(): IFileType {
+        return this._headType;
     }
 }

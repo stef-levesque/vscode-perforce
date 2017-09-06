@@ -497,8 +497,9 @@ export class Model implements Disposable {
                 const clientFile = info['clientFile'];
                 const change = info['change'];
                 const action = info['action'];
+                const headType = info['headType'];
                 const uri = Uri.file(clientFile);
-                const resource: Resource = new Resource(uri, change, action);
+                const resource: Resource = new Resource(uri, change, action, headType);
 
                 if (change.startsWith('default')) {
                     defaults.push(resource);
