@@ -172,6 +172,7 @@ export class Model implements Disposable {
             }
         } catch (err) {
             Display.showError(err.toString());
+            return;
         }
 
 
