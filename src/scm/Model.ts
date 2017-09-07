@@ -80,28 +80,16 @@ export class Model implements Disposable {
         }, () => this.updateStatus());
     }
 
-    public async ProcessChangelist(): Promise<void> {
-        const command = 'change';
-        let args = '-o ';
+    public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
+        const args = `-o ${existingChangelist ? existingChangelist : ''}`;
 
-        const input = scm.inputBox.value;
-        scm.inputBox.value = '';
-        let description = input;
-
-        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
-        if (matches) {
-            // Change existing changelist
-            args += matches[1];
-            description = matches[2];
-        }
-
-        const spec: string = await Utils.getOutput(command, null, null, args);
+        const spec: string = await Utils.getOutput('change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
         for (let field of changeFields) {
             if (field.startsWith('Description:')) {
                 newSpec += 'Description:\n\t';
-                newSpec += description.trim().split('\n').join('\n\t');
+                newSpec += descStr.trim().split('\n').join('\n\t');
                 newSpec += '\n\n';
             } else {
                 newSpec += field;
@@ -109,13 +97,31 @@ export class Model implements Disposable {
             }
         }
 
-        args = '-i';
-        Utils.getOutput(command, null, null, args, null, newSpec).then((output) => {
-            Display.channel.append(output);
+        let newChangelistNumber;
+        try {
+            const createdStr = await Utils.getOutput('change', null, null, '-i', null, newSpec);
+            // Change #### created with ... 
+            // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
+            Display.channel.append(createdStr);
             this.Refresh();
-        }).catch((reason) => {
-            Display.showError(reason.toString());
-        });
+        } catch(err) {
+            Display.showError(err.toString());
+        }
+    }
+    
+    public async ProcessChangelist(): Promise<void> {
+        const input = scm.inputBox.value;
+        scm.inputBox.value = '';
+        let description = input;
+
+        let existingChangelist = '';
+        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
+        if (matches) {
+            existingChangelist = matches[1];
+            description = matches[2];
+        }
+
+        this.SaveToChangelist(description, existingChangelist);
     }
 
     public async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
@@ -175,7 +181,6 @@ export class Model implements Disposable {
             return;
         }
 
-
         const fileList = fileListStr.split("\n").map(file => {
             const endOfFileStr = file.indexOf('#');
             return file.substring(0, endOfFileStr);
@@ -212,32 +217,7 @@ export class Model implements Disposable {
             return;
         }
 
-        // Save to changelist
-        const spec: string = await Utils.getOutput('change', null, null, '-o');
-        const changeFields = spec.trim().split(/\n\r?\n/);
-        let newSpec = '';
-        for (let field of changeFields) {
-            if (field.startsWith('Description:')) {
-                newSpec += 'Description:\n\t';
-                newSpec += descStr.trim().split('\n').join('\n\t');
-                newSpec += '\n\n';
-            } else {
-                newSpec += field;
-                newSpec += '\n\n';
-            }
-        }
-
-        let newChangelistNumber;
-        try {
-            const createdStr = await Utils.getOutput('change', null, null, '-i', null, newSpec);
-            // Change #### created with ... 
-            // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
-            Display.channel.append(createdStr);
-            this.Refresh();
-        } catch(err) {
-            Display.showError(err.toString());
-            return;
-        }
+        this.SaveToChangelist(descStr);
     }
 
 
