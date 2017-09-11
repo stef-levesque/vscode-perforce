@@ -71,7 +71,7 @@ export namespace Utils
                 } else if (stderr) {
                     reject(stderr);
                 } else {
-                    resolve(stdout);
+                    resolve(true);
                 }
             }, '-s');
         });
