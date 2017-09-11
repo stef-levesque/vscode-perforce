@@ -3,6 +3,7 @@ import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
 import { mapEvent } from './Utils';
+import { FileType } from './scm/FileTypes';
 import * as Path from 'path';
 
 export class PerforceSCMProvider {
@@ -171,6 +172,13 @@ export class PerforceSCMProvider {
      */
 
     private open(resource: Resource): void {
+        if(resource.FileType.base === FileType.BINARY) {
+            const uri = resource.uri.with({ scheme: 'perforce', authority: 'fstat' });
+            workspace.openTextDocument(uri)
+                .then(doc => window.showTextDocument(doc));
+            return;
+        }
+
         const left: Uri = this.getLeftResource(resource);
         const right: Uri = this.getRightResource(resource);
         const title: string = this.getTitle(resource);
@@ -186,7 +194,6 @@ export class PerforceSCMProvider {
         }
         commands.executeCommand<void>("vscode.diff", left, right, title);
         return;
-
     }
 
     private openFile(resource: Resource): void {
