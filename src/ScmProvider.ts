@@ -124,6 +124,12 @@ export class PerforceSCMProvider {
         await perforceProvider._model.Describe(input);
     };
 
+    public static async SubmitDefault(): Promise<void> {
+        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+
+        await perforceProvider._model.SubmitDefault();
+    };
+    
     public static async Submit(input?: Resource | SourceControlResourceGroup): Promise<void> {
         const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
 

@@ -48,7 +48,7 @@ export namespace PerforceCommands
             PerforceSCMProvider.Open(e);
         });
         commands.registerCommand('perforce.submitDefault', () => {
-            PerforceSCMProvider.Submit();
+            PerforceSCMProvider.SubmitDefault();
         });
         commands.registerCommand('perforce.processChangelist', () => {
             PerforceSCMProvider.ProcessChangelist();
@@ -428,6 +428,7 @@ export namespace PerforceCommands
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({ label: "revert", description: "Discard changes from an opened file" });
+        items.push({ label: "submitDefault", description: "Submit or Save the default changelist" });
         items.push({ label: "diff", description: "Display diff of client file with depot file" });
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
         items.push({ label: "annotate", description: "Print file lines and their revisions" });
@@ -447,6 +448,9 @@ export namespace PerforceCommands
                     break;
                 case "revert":
                     revert();
+                    break;
+                case "submitDefault":
+                    PerforceSCMProvider.SubmitDefault();
                     break;
                 case "diff":
                     diff();

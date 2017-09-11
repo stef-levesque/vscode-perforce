@@ -5,6 +5,7 @@ import { Resource } from './Resource';
 import { Status } from './Status';
 
 import * as Path from 'path';
+import * as vscode from 'vscode';
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
@@ -79,28 +80,16 @@ export class Model implements Disposable {
         }, () => this.updateStatus());
     }
 
-    public async ProcessChangelist(): Promise<void> {
-        const command = 'change';
-        let args = '-o ';
+    public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
+        const args = `-o ${existingChangelist ? existingChangelist : ''}`;
 
-        const input = scm.inputBox.value;
-        scm.inputBox.value = '';
-        let description = input;
-
-        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
-        if (matches) {
-            // Change existing changelist
-            args += matches[1];
-            description = matches[2];
-        }
-
-        const spec: string = await Utils.getOutput(command, null, null, args);
+        const spec: string = await Utils.getOutput('change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
         for (let field of changeFields) {
             if (field.startsWith('Description:')) {
                 newSpec += 'Description:\n\t';
-                newSpec += description.trim().split('\n').join('\n\t');
+                newSpec += descStr.trim().split('\n').join('\n\t');
                 newSpec += '\n\n';
             } else {
                 newSpec += field;
@@ -108,13 +97,31 @@ export class Model implements Disposable {
             }
         }
 
-        args = '-i';
-        Utils.getOutput(command, null, null, args, null, newSpec).then((output) => {
-            Display.channel.append(output);
+        let newChangelistNumber;
+        try {
+            const createdStr = await Utils.getOutput('change', null, null, '-i', null, newSpec);
+            // Change #### created with ... 
+            // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
+            Display.channel.append(createdStr);
             this.Refresh();
-        }).catch((reason) => {
-            Display.showError(reason.toString());
-        });
+        } catch(err) {
+            Display.showError(err.toString());
+        }
+    }
+    
+    public async ProcessChangelist(): Promise<void> {
+        const input = scm.inputBox.value;
+        scm.inputBox.value = '';
+        let description = input;
+
+        let existingChangelist = '';
+        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
+        if (matches) {
+            existingChangelist = matches[1];
+            description = matches[2];
+        }
+
+        this.SaveToChangelist(description, existingChangelist);
     }
 
     public async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
@@ -150,31 +157,91 @@ export class Model implements Disposable {
         } else if (id.startsWith('pending')) {
             const command = 'describe';
             const args = id.substr(id.indexOf(':') + 1);
-            const uri: Uri = new Uri().with({scheme: 'perforce', authority: command, query: args});
+            const uri: Uri = new Uri().with({ scheme: 'perforce', authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         }
     }
+
+    public async SubmitDefault(): Promise<void> {
+        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        if (!loggedin) {
+            return;
+        }
+
+        const noFiles = 'File(s) not opened on this client.';
+        let fileListStr;
+        try {
+            fileListStr = await Utils.getOutput('opened', null, null, '-c default');
+            if (fileListStr === noFiles) {
+                Display.showError(noFiles);
+                return;
+            }
+        } catch (err) {
+            Display.showError(err.toString());
+            return;
+        }
+
+        const fileList = fileListStr.split("\n").map(file => {
+            const endOfFileStr = file.indexOf('#');
+            return file.substring(0, endOfFileStr);
+        });
+
+        const descStr = await vscode.window.showInputBox({
+            placeHolder: 'New changelist description',
+            validateInput: (value: string) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Cannot set empty description';
+                }
+                return null;
+            },
+            ignoreFocusOut: true
+        });
+
+        if (descStr === undefined || descStr.trim().length == 0) {
+            // pressing enter with no other input will still submit the empty string
+            Display.showError('Cannot set empty description');
+            return;
+        }
+
+        const pick = await vscode.window.showQuickPick(["Submit", "Save Changelist", "Cancel"], { ignoreFocusOut: true });
+
+        let command;
+        let args = '';
+
+        if (!pick || pick == "Cancel") {
+            return;
+        }
+
+        if(pick === "Submit") {
+            this.Submit(descStr);
+            return;
+        }
+
+        this.SaveToChangelist(descStr);
+    }
+
 
     public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';
 
-        const group = input as SourceControlResourceGroup;
-
-        if (group) {
+        if (typeof input === 'string') {
+            args = `-d "${input}"`;
+        } else {
+            const group = input as SourceControlResourceGroup;
             const id = group.id;
-            const chnum = id.substr(id.indexOf(':') + 1);
-            if (id.startsWith('pending')) {
-                args = '-c ' + chnum;
-            } else if (id.startsWith('shelved')) {
-                args = '-e ' + chnum;
+            if (id) {
+                const chnum = id.substr(id.indexOf(':') + 1);
+                if (id.startsWith('pending')) {
+                    args = '-c ' + chnum;
+                } else if (id.startsWith('shelved')) {
+                    args = '-e ' + chnum;
+                } else {
+                    return;
+                }
             } else {
                 return;
             }
-        } else if (typeof input === 'string') {
-            args = '-d ' + input;
-        } else {
-            return;
         }
 
 
@@ -182,7 +249,7 @@ export class Model implements Disposable {
             Display.channel.append(output);
             Display.showMessage("Changelist Submitted");
             this.Refresh();
-        }).catch( (reason) => {
+        }).catch((reason) => {
             Display.showError(reason.toString());
         });
     }
@@ -365,7 +432,7 @@ export class Model implements Disposable {
             changelists = changelists.reverse();
         }
 
-        changelists.forEach( (value) => {
+        changelists.forEach((value) => {
             // Change num on date by user@client [status] description
             const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.+)\'/);
 
@@ -382,9 +449,9 @@ export class Model implements Disposable {
                 if (!this._pendingGroups.has(chnum)) {
                     const group = this._sourceControl.createResourceGroup('pending:' + chnum, '#' + chnum + ': ' + description);
                     group.resourceStates = [];
-                    this._pendingGroups.set(chnum, {description: description, group: group});
+                    this._pendingGroups.set(chnum, { description: description, group: group });
                 } else {
-                    console.log('ERROR: pending changelist already exist: ' + chnum.toString() );
+                    console.log('ERROR: pending changelist already exist: ' + chnum.toString());
                 }
 
                 this.getDepotShelvedFilePaths(chnum).then((value) => {
@@ -425,7 +492,7 @@ export class Model implements Disposable {
 
         this._defaultGroup.resourceStates = defaults;
 
-        pendings.forEach( (value, key) => {
+        pendings.forEach((value, key) => {
             const chnum = key.toString();
             if (this._pendingGroups.has(key)) {
                 this._pendingGroups.get(key).group.resourceStates = value;
@@ -455,11 +522,11 @@ export class Model implements Disposable {
         return files;
     }
 
-    private async getDepotShelvedFilePaths(chnum: number): Promise <string[]> {
+    private async getDepotShelvedFilePaths(chnum: number): Promise<string[]> {
         const output = await Utils.getOutput('describe -Ss ' + chnum);
         const shelved = output.trim().split('\n');
         if (shelved.length === 0) {
-             return;
+            return;
         }
 
         const files = [];
@@ -471,7 +538,7 @@ export class Model implements Disposable {
         });
 
         return files;
-}
+    }
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
         const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);
