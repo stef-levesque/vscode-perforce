@@ -5,6 +5,7 @@ import {
     ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
     OverviewRulerLane, Disposable, ExtensionContext, Range,
     TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+
 import * as Path from 'path';
 import * as fs from 'fs';
 
