@@ -1,3 +1,4 @@
+import { PerforceService, IPerforceConfig } from './../PerforceService';
 import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, ProgressLocation, window, workspace, commands } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
@@ -397,7 +398,10 @@ export class Model implements Disposable {
     }
 
     private async syncUpdate(): Promise<void> {
-        await Utils.getOutput('sync').then(output => {
+        const config: IPerforceConfig = PerforceService.getConfig();
+        const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
+        
+        await Utils.getOutput('sync', pathToSync, null, '-q').then(output => {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {

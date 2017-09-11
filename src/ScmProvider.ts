@@ -56,17 +56,17 @@ export class PerforceSCMProvider {
 
     public Initialize() {
         this._model = new Model(this.compatibilityMode);
-        // Hook up the model change event to trigger our own event
-        this._model.onDidChange(this.onDidModelChange, this, this.disposables);
-        this._model.Refresh();
 
         PerforceSCMProvider.instance = this;
         this._model._sourceControl = scm.createSourceControl(this.id, this.label);
         this._model._sourceControl.quickDiffProvider = this;
         this._model._sourceControl.acceptInputCommand = { command: 'perforce.processChangelist', title: 'Process Changelist'};
 
-        scm.inputBox.value = '';
+        // Hook up the model change event to trigger our own event
+        this._model.onDidChange(this.onDidModelChange, this, this.disposables);
+        this._model.Refresh();
 
+        scm.inputBox.value = '';
     }
 
     private onDidModelChange(): void {
