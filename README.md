@@ -9,6 +9,8 @@
 
 Perforce integration for Visual Studio Code
 
+![Login Example](images/login.gif)
+
 ## Commands
 
 * `add` - Open a new file to add it to the depot
