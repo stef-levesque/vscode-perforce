@@ -23,16 +23,31 @@ Perforce integration for Visual Studio Code
 
 ## Configuration
 
-|Name|Type|Description|
-|---|---|---|
-|`perforce.editOnFileSave`|`boolean`|Automatically open a file for edit when saved|
-|`perforce.editOnFileModified`|`boolean`|Automatically open a file for edit when Modified|
-|`perforce.addOnFileCreate`|`boolean`|Automatically Add a file to depot when Created|
-|`perforce.deleteOnFileDelete`|`boolean`|Automatically delete a file from depot when deleted|
-|`perforce.command`|`string`|Configure a path to p4 or an alternate command if needed|
-|`perforce.compatibilityMode`|`string`|Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`|
-|`perforce.maxBuffer`|`number`|Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)|
-|`perforce.realpath`|`boolean`|**Experimental** Try to resolve real file path before executing command|
+|Name                           |Type       |Description
+|-------------------------------|-----------|-----------
+|`perforce.client`              |`string`   |Use the specified client
+|`perforce.user`                |`string`   |Use the specified user
+|`perforce.port`                |`string`   |Use the specified protocol:host:port
+|`perforce.password`            |`string`   |Use the specified password
+|&nbsp;
+|`perforce.editOnFileSave`      |`boolean`  |Automatically open a file for edit when saved
+|`perforce.editOnFileModified`  |`boolean`  |Automatically open a file for edit when Modified
+|`perforce.addOnFileCreate`     |`boolean`  |Automatically Add a file to depot when Created
+|`perforce.deleteOnFileDelete`  |`boolean`  |Automatically delete a file from depot when deleted
+|&nbsp;
+|`perforce.dir`                 |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
+|`perforce.command`             |`string`   |Configure a path to p4 or an alternate command if needed
+|`perforce.compatibilityMode`   |`string`   |Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`
+|`perforce.maxBuffer`           |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)
+|`perforce.realpath`            |`boolean`  |**Experimental** Try to resolve real file path before executing command
+|&nbsp;
+|`perforce.countBadge`          |`string`   |Controls the badge counter for Perforce (`all`,`off`)
+|`perforce.annotate.enable`     |`boolean`  |Show annotation for every file
+|`perforce.annotate.changelist` |`boolean`  |Output changelist numbers rather than revision numbers for each line
+|`perforce.annotate.user`       |`boolean`  |Output the user who modified the line in the file and the date it was modified
+|`perforce.changelistOrder`     |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
+|`perforce.scmFileChanges`      |`boolean`  |Open file changes when selected in SCM Explorer
+
 
 ## Status bar icons
 
@@ -54,7 +69,7 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 
 ## Installation
 
-1. Install *Visual Studio Code* (1.11.1 or higher)
+1. Install *Visual Studio Code* (1.12.1 or higher)
 2. Launch *Code*
 3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
 4. Select `Install Extensions`
@@ -71,7 +86,7 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 
 ## Requirements
 
-Visual Studio Code v1.11.1
+Visual Studio Code v1.12.1
 
 ## Credits
 

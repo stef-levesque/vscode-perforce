@@ -2,7 +2,7 @@
   "name": "perforce",
   "displayName": "Perforce for VS Code",
   "description": "Perforce integration with VS Code's SCM features",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "publisher": "slevesque",
   "license": "LICENSE.md",
   "categories": [
@@ -68,7 +68,7 @@
         "perforce.annotate.user": {
           "type": "boolean",
           "default": false,
-          "description": "output the user who modified the line in the file and the date it was modified"
+          "description": "Output the user who modified the line in the file and the date it was modified"
         },
         "perforce.annotate.enable": {
           "type": "boolean",
@@ -139,7 +139,7 @@
         "perforce.scmFileChanges": {
           "type": "boolean",
           "default": true,
-          "description": "Open file changes when selected in SCM Explorer."
+          "description": "Open file changes when selected in SCM Explorer"
         },
         "perforce.maxFilePerCommand": {
           "type": "number",

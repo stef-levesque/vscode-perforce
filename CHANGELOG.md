@@ -1,5 +1,16 @@
 # Change log
 
+## [2.2.0] - 2017-09-17
+
+* New setting to display badge or not (`perforce.countBadge`)
+* More global options in settings (`client`, `user`, `port`, `password`, `dir`) (#76, #95)
+* Optional `user` for annotation (#75)
+* Confirmation on submit (#73)
+* New setting to open file change when selected in Explorer (`perforce.scmFileChanges`) (#70)
+* Submit Default Changelist (#72, #87, thanks @vrachels)
+* Multi-repo SCM support (#74, #83, #84, #88, thanks @vrachels)
+* Show fstat output when selecting a binary file (#89, thanks @vrachels)
+
 ## [2.1.1] - 2017-06-28
 
 * Set a maximum number of line per command ()
@@ -104,7 +115,8 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
-[2.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/a990e0c936bbc9550785e0e126c91ac3f6ddb46e...101845c66cc94ff3fc957b1b0b5591f487958899
+[2.2.0]: https://github.com/stef-levesque/vscode-perforce/compare/51d8b0d7794deb7d382848e77821c9efffe7728a...85e34a85acfb68dae314846cb37aa2d0df6f2ef4
+[2.1.1]: https://github.com/stef-levesque/vscode-perforce/compare/a990e0c936bbc9550785e0e126c91ac3f6ddb46e...101845c66cc94ff3fc957b1b0b5591f487958899
 [2.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/5dd2025bdcbc906fc77b4019fe92d2263c06bc00...61ff3b2a6dd1d32d3e572e788034fedd62455b35
 [2.0.1]: https://github.com/stef-levesque/vscode-perforce/compare/1a08507ae3a0b825563d2c9444210194abf75962...852d772956b3e68baf06a064632b71e0f7c44444
 [2.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/a83bf106468feec7ed8c6aaac841487654eb0737...3fe2af32f4c4b6e34443e1baf0724984c76be69d
