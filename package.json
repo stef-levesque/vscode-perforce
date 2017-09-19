@@ -2,7 +2,7 @@
   "name": "perforce",
   "displayName": "Perforce for VS Code",
   "description": "Perforce integration with VS Code's SCM features",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "publisher": "slevesque",
   "license": "LICENSE.md",
   "categories": [
