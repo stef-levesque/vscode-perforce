@@ -104,7 +104,13 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
             vscode.workspace.findFiles('**/.p4config', '**/node_modules/**')
                 .then((files: vscode.Uri[]) => {
 
-                    if (!files || files.length === 0) return;
+                    if (!files || files.length === 0) {
+                        if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
+                            const config: IPerforceConfig = { localDir: ''};
+                            CreateP4(config);
+                        } 
+                        return;
+                    }
 
                     files.forEach((file) => {
                         CreateP4FromConfig(file);
@@ -121,6 +127,10 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
     // const editor = vscode.window.activeTextEditor;
     // var filePath = Path.dirname(editor.document.uri.fsPath);
+
+    if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'off') { 
+        return;
+    }
 
     if (vscode.workspace.rootPath !== undefined) {
         TryCreateP4(vscode.workspace.rootPath, ctx);

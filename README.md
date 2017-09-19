@@ -41,6 +41,7 @@ Perforce integration for Visual Studio Code
 |`perforce.maxBuffer`           |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)
 |`perforce.realpath`            |`boolean`  |**Experimental** Try to resolve real file path before executing command
 |&nbsp;
+|`perforce.activationMode`      |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
 |`perforce.countBadge`          |`string`   |Controls the badge counter for Perforce (`all`,`off`)
 |`perforce.annotate.enable`     |`boolean`  |Show annotation for every file
 |`perforce.annotate.changelist` |`boolean`  |Output changelist numbers rather than revision numbers for each line
@@ -48,6 +49,31 @@ Perforce integration for Visual Studio Code
 |`perforce.changelistOrder`     |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
 |`perforce.scmFileChanges`      |`boolean`  |Open file changes when selected in SCM Explorer
 
+
+## Activation
+
+You can specify how you want the extension to activate by setting the parameter `perforce.activationMode`
+
+* `always` - Always try to activate the extension (old behavior)
+* `autodetect` - Only activate when detecting a valid depot or `.p4config` file (default)
+* `off` - Don't try to activate
+
+The following can be set in VSCode user or workspace settings to properly detect the perforce depot
+```json
+{
+    "perforce.user": "your_user",
+    "perforce.client": "your_client",
+    "perforce.port": "example.com:1666"
+}
+```
+
+You can also create a `.p4config` file at the root of your workspace with perforce variables
+```
+P4USER=your_user
+P4CLIENT=your_client
+P4PORT=example.com:1666
+```
+More detail in [Perforce Documentation](https://www.perforce.com/perforce/r17.1/manuals/cmdref/index.html#CmdRef/P4CONFIG.html?Highlight=p4config)
 
 ## Status bar icons
 
