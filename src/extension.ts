@@ -99,22 +99,33 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
             throw 'workspace is not within p4 clientRoot';
         })
         .catch((err) => {
+
+            const CheckAlways = () => {
+                // if autodetect fails, enable if settings dictate
+                if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
+                    const config: IPerforceConfig = { localDir: '' };
+                    CreateP4(config);
+                }
+            }
+
             // workspace is not within client root.
-            // look for .p4config files to specify p4Dir association
-            vscode.workspace.findFiles('**/.p4config', '**/node_modules/**')
-                .then((files: vscode.Uri[]) => {
+            // look for config files to specify p4Dir association
+            PerforceService.getConfigFilename()
+                .then((p4ConfigFileName) => {
+                    vscode.workspace.findFiles(`**/${p4ConfigFileName}`, '**/node_modules/**')
+                        .then((files: vscode.Uri[]) => {
 
-                    if (!files || files.length === 0) {
-                        if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
-                            const config: IPerforceConfig = { localDir: ''};
-                            CreateP4(config);
-                        } 
-                        return;
-                    }
+                            if (!files || files.length === 0) {
+                                return CheckAlways();
+                            }
 
-                    files.forEach((file) => {
-                        CreateP4FromConfig(file);
-                    });
+                            files.forEach((file) => {
+                                CreateP4FromConfig(file);
+                            });
+                        });
+                })
+                .catch((err) => {
+                    return CheckAlways();
                 });
         });
 }
@@ -128,7 +139,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     // const editor = vscode.window.activeTextEditor;
     // var filePath = Path.dirname(editor.document.uri.fsPath);
 
-    if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'off') { 
+    if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'off') {
         return;
     }
 
