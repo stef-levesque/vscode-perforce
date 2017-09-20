@@ -144,7 +144,8 @@ export namespace PerforceService {
         }
 
         Display.channel.appendLine(cmdLine);
-        var child = CP.exec(cmdLine, { cwd: _config ? _config.localDir : undefined, maxBuffer: maxBuffer }, responseCallback);
+        const cmdArgs = { cwd: _config ? _config.localDir : workspace.rootPath, maxBuffer: maxBuffer };
+        var child = CP.exec(cmdLine, cmdArgs, responseCallback);
 
         if (input != null) {
             child.stdin.end(input, 'utf8');
