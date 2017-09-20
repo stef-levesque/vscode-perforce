@@ -27,6 +27,9 @@ export interface IPerforceConfig {
 
     // root directory of the user space (or .p4config)
     localDir: string;
+
+    // whether to strip the localDir when calling espansePath
+    stripLocalDir?: boolean;
 }
 
 export namespace PerforceService {
@@ -44,6 +47,7 @@ export namespace PerforceService {
     }
     export function convertToRel(path: string): string {
         if (!_config
+            || !_config.stripLocalDir
             || !_config.localDir || _config.localDir.length === 0
             || !_config.p4Dir || _config.p4Dir.length === 0) {
 
@@ -136,7 +140,7 @@ export namespace PerforceService {
         cmdLine += ' ' + command;
 
         if (args != null) {
-            if (_config) {
+            if (_config && _config.stripLocalDir) {
                 args = args.replace(_config.localDir, '');
             }
 
@@ -150,7 +154,6 @@ export namespace PerforceService {
         if (input != null) {
             child.stdin.end(input, 'utf8');
         }
-
     }
 
     export function handleInfoServiceResponse(err: Error, stdout: string, stderr: string) {
