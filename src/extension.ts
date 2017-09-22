@@ -63,6 +63,7 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
 
         const config: IPerforceConfig = {
             localDir: configPath,
+            stripLocalDir: cfg.P4DIR ? true : false,
             p4Dir: cfg.P4DIR ? Utils.normalize(cfg.P4DIR) : configPath,
 
             p4Client: cfg.P4CLIENT,
@@ -103,7 +104,7 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
             const CheckAlways = () => {
                 // if autodetect fails, enable if settings dictate
                 if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
-                    const config: IPerforceConfig = { localDir: '' };
+                    const config: IPerforceConfig = { localDir: vscode.workspace.rootPath };
                     CreateP4(config);
                 }
             }
