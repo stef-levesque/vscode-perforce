@@ -1,5 +1,9 @@
 # Change log
 
+## [2.2.2] - 2017-10-16
+
+* Fix issues with config and detection (#98, #99, thanks @vrachels)
+
 ## [2.2.1] - 2017-09-19
 
 * New setting to controls when to activate the extension
@@ -119,6 +123,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[2.2.1]: https://github.com/stef-levesque/vscode-perforce/compare/fc74e236c7c40525ad9101e1a9541b4963d36355...f953b90996f2420bb19b391708a624515d2b604f
 [2.2.1]: https://github.com/stef-levesque/vscode-perforce/compare/dc1a00baebbb17f8ad754a0b13bf5438c49b0319...89a12db65daead7a7eb74577762b9ebd21bfe12d
 [2.2.0]: https://github.com/stef-levesque/vscode-perforce/compare/51d8b0d7794deb7d382848e77821c9efffe7728a...85e34a85acfb68dae314846cb37aa2d0df6f2ef4
 [2.1.1]: https://github.com/stef-levesque/vscode-perforce/compare/a990e0c936bbc9550785e0e126c91ac3f6ddb46e...101845c66cc94ff3fc957b1b0b5591f487958899
