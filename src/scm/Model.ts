@@ -34,6 +34,7 @@ export class Model implements Disposable {
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _compatibilityMode: string;
+    private _config: IPerforceConfig
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
         const result: SourceControlResourceGroup[] = [];
@@ -48,7 +49,8 @@ export class Model implements Disposable {
         return result;
     }
 
-    public constructor(compatibilityMode: string) {
+    public constructor(config: IPerforceConfig, compatibilityMode: string) {
+        this._config = config;
         this._compatibilityMode = compatibilityMode;
     }
 
@@ -153,12 +155,12 @@ export class Model implements Disposable {
         if (id.startsWith('default')) {
             const command = 'change';
             const args = '-o';
-            const uri: Uri = new Uri().with({ scheme: 'perforce', authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({ authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         } else if (id.startsWith('pending')) {
             const command = 'describe';
             const args = id.substr(id.indexOf(':') + 1);
-            const uri: Uri = new Uri().with({ scheme: 'perforce', authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({ authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         }
     }
@@ -401,7 +403,7 @@ export class Model implements Disposable {
         const config: IPerforceConfig = PerforceService.getConfig();
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
         
-        await Utils.getOutput('sync', pathToSync, null, '-q').then(output => {
+        await Utils.getOutput('sync', Uri.parse(pathToSync), null, '-q').then(output => {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {
@@ -410,7 +412,8 @@ export class Model implements Disposable {
     }
 
     private async updateInfo(): Promise<void> {
-        this._infos = await Utils.processInfo(await Utils.getOutput('info'));
+        let resource = Uri.file(this._config.localDir);
+        this._infos = await Utils.processInfo(await Utils.getCommandOutput(resource, 'info'));
     }
 
     private async updateStatus(): Promise<void> {
@@ -510,7 +513,8 @@ export class Model implements Disposable {
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
-        const output = await Utils.getOutput('opened');
+        let resource = Uri.file(this._config.localDir);
+        const output = await Utils.getCommandOutput(resource, 'opened');
         const opened = output.trim().split('\n');
         if (opened.length === 0) {
             return;
@@ -528,7 +532,8 @@ export class Model implements Disposable {
     }
 
     private async getDepotShelvedFilePaths(chnum: number): Promise<string[]> {
-        const output = await Utils.getOutput('describe -Ss ' + chnum);
+        let resource = Uri.file(this._config.localDir);
+        const output = await Utils.getCommandOutput(resource, 'describe -Ss ' + chnum);
         const shelved = output.trim().split('\n');
         if (shelved.length === 0) {
             return;
@@ -546,7 +551,8 @@ export class Model implements Disposable {
     }
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
-        const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);
+        let resource = Uri.file(this._config.localDir);
+        const fstatOutput: string = await Utils.getCommandOutput(resource, `fstat "${files.join('" "')}"`);
         // Windows will have lines end with \r\n.
         // Each file has multiple lines of output separated by a blank line.
         // Splitting on \n\r?\n will find newlines followed immediately by a newline

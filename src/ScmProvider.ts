@@ -4,10 +4,12 @@ import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
 import { mapEvent } from './Utils';
 import { FileType } from './scm/FileTypes';
+import { IPerforceConfig } from './PerforceService';
 import * as Path from 'path';
 
 export class PerforceSCMProvider {
     private compatibilityMode: string;
+    private config: IPerforceConfig;
 
     private disposables: Disposable[] = [];
     dispose(): void {
@@ -15,7 +17,7 @@ export class PerforceSCMProvider {
         this.disposables = [];
     }
 
-    private static instance: PerforceSCMProvider = undefined;
+    private static instances: PerforceSCMProvider[] = [];
     private _model: Model;
 
     get onDidChange(): Event<this> {
@@ -50,15 +52,19 @@ export class PerforceSCMProvider {
         return 'idle'
     }
 
-    constructor(compatibilityMode: string) {
+    constructor(config: IPerforceConfig, compatibilityMode: string) {
         this.compatibilityMode = compatibilityMode;
+        this.config = config;
         this.Initialize();
     }
 
-    public Initialize() {
-        this._model = new Model(this.compatibilityMode);
+    //TODO: track new workspaceFolder
+    //TODO: track closed workspaceFolder
 
-        PerforceSCMProvider.instance = this;
+    public Initialize() {
+        this._model = new Model(this.config, this.compatibilityMode);
+
+        PerforceSCMProvider.instances.push(this);
         this._model._sourceControl = scm.createSourceControl(this.id, this.label);
         this._model._sourceControl.quickDiffProvider = this;
         this._model._sourceControl.acceptInputCommand = { command: 'perforce.processChangelist', title: 'Process Changelist'};
@@ -76,11 +82,12 @@ export class PerforceSCMProvider {
     }
 
     private static GetInstance(): PerforceSCMProvider {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.instance;
-        if (!perforceProvider) {
+        const perforceProvider = PerforceSCMProvider.instances;
+        if (perforceProvider.length === 0) {
             console.log('perforceProvider instance undefined');
         }
-        return perforceProvider;
+        //TODO: support more than just first provider
+        return perforceProvider[0];
     }
 
     public static async OpenFile(resource: Resource): Promise<void> {

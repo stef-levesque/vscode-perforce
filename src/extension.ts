@@ -16,13 +16,14 @@ import * as Ini from 'ini';
 
 let _isRegistered: boolean = false;
 
-function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
-    if (!path) return;
+function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
+    if (!uri.fsPath) return;
 
     const CreateP4 = (config: IPerforceConfig): void => {
-        const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
+        const compatibilityMode = vscode.workspace.getConfiguration('perforce', uri).get('compatibilityMode', 'perforce');
         vscode.commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
 
+        //TODO: move that
         // Register all commands
         if (!_isRegistered) {
             _isRegistered = true;
@@ -47,7 +48,7 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
             PerforceService.setConfig(config);
             ctx.subscriptions.push(new PerforceContentProvider(compatibilityMode));
             ctx.subscriptions.push(new FileSystemListener());
-            ctx.subscriptions.push(new PerforceSCMProvider(compatibilityMode));
+            ctx.subscriptions.push(new PerforceSCMProvider(config, compatibilityMode));
 
             // todo: fix dependency / order of operations issues
             PerforceCommands.registerCommands();
@@ -77,7 +78,7 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
         CreateP4(config);
     }
 
-    PerforceService.getClientRoot()
+    PerforceService.getClientRoot(uri)
         .then((cliRoot) => {
             cliRoot = Utils.normalize(cliRoot);
 
@@ -111,7 +112,7 @@ function TryCreateP4(path: string, ctx: vscode.ExtensionContext): void {
 
             // workspace is not within client root.
             // look for config files to specify p4Dir association
-            PerforceService.getConfigFilename()
+            PerforceService.getConfigFilename(uri)
                 .then((p4ConfigFileName) => {
                     vscode.workspace.findFiles(`**/${p4ConfigFileName}`, '**/node_modules/**')
                         .then((files: vscode.Uri[]) => {
@@ -144,11 +145,13 @@ export function activate(ctx: vscode.ExtensionContext): void {
         return;
     }
 
-    if (vscode.workspace.rootPath !== undefined) {
-        TryCreateP4(vscode.workspace.rootPath, ctx);
+    if (vscode.workspace.workspaceFolders !== undefined) {
+        vscode.workspace.workspaceFolders.forEach((workspace) => {
+            TryCreateP4(workspace.uri, ctx);
+        });
     } else {
-        vscode.workspace.textDocuments.forEach((uri) => {
-            TryCreateP4(uri.fileName, ctx);
+        vscode.workspace.textDocuments.forEach((doc) => {
+            TryCreateP4(doc.uri, ctx);
         });
     }
 }

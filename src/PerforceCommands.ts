@@ -78,17 +78,17 @@ export namespace PerforceCommands
             return false;
         }
 
-        var filePath = editor.document.uri.fsPath;
+        var fileUri = editor.document.uri;
         if(checkFolderOpened()) {
-            add(filePath);
+            add(fileUri);
         } else {
-            add(filePath, Path.dirname(filePath));
+            add(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function add(filePath: string, directoryOverride?: string) {
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("add", (err, stdout, stderr) => {
+    export function add(fileUri: Uri, directoryOverride?: string) {
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 Display.showError("file opened for add");
@@ -102,20 +102,20 @@ export namespace PerforceCommands
             return false;
         }
 
-        var filePath = editor.document.uri.fsPath; 
+        var fileUri = editor.document.uri; 
 
         //If folder not opened, run p4 in files folder.
         if(checkFolderOpened()) {
-            edit(filePath);
+            edit(fileUri);
         } else {
-            edit(filePath, Path.dirname(filePath));
+            edit(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function edit(filePath: string, directoryOverride?: string): Promise<boolean> {
+    export function edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const args = '"' + Utils.expansePath(filePath) + '"';
-            PerforceService.execute("edit", (err, stdout, stderr) => {
+            const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+            PerforceService.execute(fileUri, "edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
                 if(!err) {
                     Display.showError("file opened for edit");
@@ -125,9 +125,9 @@ export namespace PerforceCommands
         });
     }
 
-    export function p4delete(filePath: string) {
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("delete", (err, stdout, stderr) => {
+    export function p4delete(fileUri: Uri) {
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "delete", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 Display.showError("file marked for delete");
@@ -142,14 +142,14 @@ export namespace PerforceCommands
         }
 
         //If folder not opened, overrided p4 directory
-        var filePath = editor.document.uri.fsPath;
+        var fileUri = editor.document.uri
         var directoryOverride = null;
         if(!checkFolderOpened()) {
-            directoryOverride = Path.dirname(filePath);
+            directoryOverride = Path.dirname(fileUri.fsPath);
         }
 
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("revert", (err, stdout, stderr) => {
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "revert", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
                 Display.showError("file reverted");
@@ -170,7 +170,7 @@ export namespace PerforceCommands
         var doc = editor.document;
 
         if(!doc.isUntitled) {
-            Utils.getFile('print', doc.uri.fsPath, revision).then((tmpFile: string) => {
+            Utils.getFile('print', doc.uri, revision).then((tmpFile: string) => {
                 var tmpFileUri = Uri.file(tmpFile)
                 var revisionLabel = isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
                 commands.executeCommand('vscode.diff', tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + ' - Diff Against ' + revisionLabel);
@@ -193,7 +193,7 @@ export namespace PerforceCommands
         var doc = editor.document;
 
         const args = '-s "' + Utils.expansePath(doc.uri.fsPath) + '"';
-        PerforceService.execute('filelog', (err, stdout, stderr) => {
+        PerforceService.execute(doc.uri, 'filelog', (err, stdout, stderr) => {
             if (err) {
                 Display.showError(err.message);
             } else if (stderr) {
@@ -247,7 +247,7 @@ export namespace PerforceCommands
         let colorIndex = 0;
         let lastNum = '';
 
-        const output: string = await Utils.getOutput('annotate', doc.uri.fsPath, null, args);
+        const output: string = await Utils.getOutput('annotate', doc.uri, null, args);
         const annotations = output.split(/\r?\n/);
 
         for (let i = 0, n = annotations.length; i < n; ++i) {
@@ -297,17 +297,19 @@ export namespace PerforceCommands
         if(!checkFolderOpened()) {
             return false;
         }
-
+        //TODO: find proper workspace
+        let resource = workspace.workspaceFolders[0].uri;
         showOutput();
-        PerforceService.execute('info', PerforceService.handleInfoServiceResponse);
+        PerforceService.execute(resource, 'info', PerforceService.handleInfoServiceResponse);
     }
 
     export function opened() {
         if(!checkFolderOpened()) {
             return false;
         }
-
-        PerforceService.execute('opened', (err, stdout, stderr) => {
+        //TODO: find proper workspace
+        let resource = workspace.workspaceFolders[0].uri;
+        PerforceService.execute(resource, 'opened', (err, stdout, stderr) => {
             if(err){
                 Display.showError(err.message);
             } else if(stderr) {
@@ -357,8 +359,10 @@ export namespace PerforceCommands
                 reject();
                 return;
             }
+            //TODO: find proper workspace
+            let resource = Uri.file(file);
             const args = '"' + file + '"';
-            PerforceService.execute('where', (err, stdout, stderr) => {
+            PerforceService.execute(resource, 'where', (err, stdout, stderr) => {
                 if(err){
                     Display.showError(err.message);
                     reject(err);
@@ -373,7 +377,9 @@ export namespace PerforceCommands
     }
 
     export function logout() {
-        PerforceService.execute('logout', (err, stdout, stderr) => {
+        //TODO: find proper workspace
+        let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+        PerforceService.execute(resource, 'logout', (err, stdout, stderr) => {
             if(err) {
                 Display.showError(err.message);
                 return false;
@@ -389,10 +395,12 @@ export namespace PerforceCommands
     }
 
     export function login() {
-        PerforceService.execute('login', (err, stdout, stderr) => {
+        //TODO: find proper workspace
+        let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+        PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
             if(err || stderr) {
                 window.showInputBox({'prompt': 'Enter password', 'password': true}).then(passwd => {
-                    PerforceService.execute('login', (err, stdout, stderr) => {
+                    PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
                         if (err) {
                             Display.showError(err.message);
                             return false;

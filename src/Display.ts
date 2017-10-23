@@ -34,13 +34,13 @@ export namespace Display
 
         //If no folder is open, override the perforce directory to the files
         var directoryOverride = null;
-        if (workspace.rootPath === undefined) {
+        if (workspace.workspaceFolders === undefined) {
             directoryOverride = Path.dirname(doc.uri.fsPath);
         }
 
         if(!doc.isUntitled) {
             const args = '"' + Utils.expansePath(doc.uri.fsPath) + '"';
-            PerforceService.execute("opened", function(err, stdout, stderr) {
+            PerforceService.execute(doc.uri, "opened", function(err, stdout, stderr) {
                 if(err) {
                     // file not under client root
                     _statusBarItem.text = 'P4: $(circle-slash)';

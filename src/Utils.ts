@@ -58,8 +58,9 @@ export namespace Utils {
                 resolve(true);
                 return;
             }
-
-            PerforceService.execute('login', (err, stdout, stderr) => {
+            //TODO: find proper workspace
+            let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+            PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
                 if (err) {
@@ -73,8 +74,26 @@ export namespace Utils {
         });
     }
 
+    export function getSimpleOutput(resource: Uri, command: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            PerforceService.execute(resource, command, (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                stderr && Display.showError(stderr.toString());
+                if (err) {
+                    reject(err);
+                } else if (stderr) {
+                    reject(stderr);
+                } else {
+                    resolve(stdout);
+                }
+            });
+        });
+    }
+
     // Get a string containing the output of the command
-    export function getOutput(command: string, file?: Uri | string, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function getOutput(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+        //TODO: find proper workspace
+        let resource = file;
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
 
@@ -91,7 +110,7 @@ export namespace Utils {
                 args += ' "' + path + revisionString + '"';
             }
 
-            PerforceService.execute(command, (err, stdout, stderr) => {
+            PerforceService.execute(resource, command, (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
                 if (err) {
@@ -106,18 +125,20 @@ export namespace Utils {
     }
 
     // Get a path to a file containing the output of the command
-    export function getFile(command: string, localFilePath?: string, revision?: number, prefixArgs?: string): Promise<string> {
+    export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
+        //TODO: find proper workspace
+        let resource = file;
         return new Promise((resolve, reject) => {
             var args = prefixArgs != null ? prefixArgs : '';
             var revisionString: string = isNaN(revision) ? '' : `#${revision}`;
 
-            var ext = Path.extname(localFilePath);
+            var ext = Path.extname(file.fsPath);
             var tmp = require("tmp");
             var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
 
             var requirePipe = true;
             if (command == "print") {
-                if (localFilePath == null) {
+                if (!file.fsPath) {
                     reject("P4 Print command require a file path");
                 }
 
@@ -126,8 +147,8 @@ export namespace Utils {
                 requirePipe = false;
             }
 
-            if (localFilePath != null) {
-                args += ' "' + expansePath(localFilePath) + revisionString + '"'
+            if (!file.fsPath) {
+                args += ' "' + expansePath(file.fsPath) + revisionString + '"';
             }
 
             if (requirePipe) {
@@ -135,7 +156,7 @@ export namespace Utils {
                 args += ' > "' + tmpFilePath + '"';
             }
 
-            PerforceService.execute("print", (err, strdout, stderr) => {
+            PerforceService.execute(resource, "print", (err, strdout, stderr) => {
                 if (err) {
                     reject(err);
                 } else if (stderr) {

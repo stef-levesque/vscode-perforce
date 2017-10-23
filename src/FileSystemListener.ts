@@ -22,7 +22,7 @@ export default class FileSystemListener
     private _disposable: Disposable;
     private _watcher: FileSystemWatcher;
 
-    private _lastCheckedFilePath: string;
+    private _lastCheckedFilePath: Uri;
     private _p4ignore: string[];
 
     constructor() {
@@ -72,41 +72,42 @@ export default class FileSystemListener
     }
 
     private onWillSaveFile(doc: TextDocument): Promise<boolean> {
-        return this.tryEditFile(doc.uri.fsPath);
+        return this.tryEditFile(doc.uri);
     }
 
     private onFileModified(docChange: TextDocumentChangeEvent) {
-        var docPath = docChange.document.uri.fsPath;
+        var docUri = docChange.document.uri;
 
         //If this doc has already been checked, just returned
-        if(docPath == this._lastCheckedFilePath) {
+        if (docUri.toString() == this._lastCheckedFilePath.toString()) {
             return;
         }
 
         //Only try to open files open in the editor
         var editor = window.activeTextEditor;
-        if(!editor || !editor.document || editor.document.uri.fsPath != docPath) {
+        if (!editor || !editor.document || editor.document.uri.toString() != docUri.toString()) {
             return;
         }
 
-        this._lastCheckedFilePath = docPath;
-        this.tryEditFile(docPath);
+        this._lastCheckedFilePath = docUri;
+        this.tryEditFile(docUri);
     }
 
-    private tryEditFile(docPath: string): Promise<boolean> {
-        docPath = PerforceService.convertToRel(docPath);
+    private tryEditFile(uri: Uri): Promise<boolean> {
+        //TODO: needed?
+        //let docPath = PerforceService.convertToRel(uri.fsPath);
         
         return new Promise((resolve, reject) => {
             //Check if this file is in client root first
-            this.fileInClientRoot(docPath).then((inClientRoot) => {
+            this.fileInClientRoot(uri).then((inClientRoot) => {
                 if(inClientRoot) {
-                    return this.fileIsOpened(docPath);
+                    return this.fileIsOpened(uri);
                 }
                 resolve();
             }).then((isOpened) => {
                 //If not opened, open file for edit
                 if(!isOpened) {
-                    return PerforceCommands.edit(docPath);
+                    return PerforceCommands.edit(uri);
                 }
                 resolve();
             }).then((openedForEdit) => {
@@ -119,18 +120,16 @@ export default class FileSystemListener
     }
 
     private onFileDeleted(uri: Uri) {
-        let docPath = uri.fsPath;
-
         const fileExcludes = Object.keys(workspace.getConfiguration('files').exclude);
         const ignoredPatterns = this._p4ignore.concat(fileExcludes);
 
-        const shouldIgnore: boolean = micromatch.any(docPath, ignoredPatterns, { dot: true });
+        const shouldIgnore: boolean = micromatch.any(uri.fsPath, ignoredPatterns, { dot: true });
 
         // Only `p4 delete` files that are not marked as ignored either in:
         // .p4ignore
         // files.exclude setting
         if (!shouldIgnore) {
-            PerforceCommands.p4delete(docPath);
+            PerforceCommands.p4delete(uri);
         }
     }
 
@@ -138,13 +137,14 @@ export default class FileSystemListener
         //Only try to add files open in the editor
         var editor = window.activeTextEditor;
         if(editor && editor.document && editor.document.uri.fsPath == uri.fsPath) {
-            PerforceCommands.add(uri.fsPath);
+            PerforceCommands.add(uri);
         }
     }
 
-    private fileInClientRoot(docPath: string): Promise<boolean> {
+    private fileInClientRoot(uri: Uri): Promise<boolean> {
+        let docPath = uri.fsPath;
         return new Promise((resolve, reject) => {
-            PerforceService.getClientRoot().then((clientRoot) => {
+            PerforceService.getClientRoot(uri).then((clientRoot) => {
                 //Convert to lower and Strip newlines from paths
                 clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
                 var filePath = docPath.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
@@ -161,10 +161,11 @@ export default class FileSystemListener
         });
     }
 
-    private fileIsOpened(filePath: string): Promise<boolean> {
+    private fileIsOpened(fileUri: Uri): Promise<boolean> {
         return new Promise((resolve, reject) => {
             //opened stdout is set if file open, stderr set if not opened
-            PerforceService.executeAsPromise('opened', filePath).then((stdout) => {
+            //TODO: valid ?
+            PerforceService.executeAsPromise(fileUri, 'opened', fileUri.fsPath).then((stdout) => {
                 resolve(true);
             }).catch((stderr) => {
                 resolve(false);

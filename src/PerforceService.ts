@@ -2,7 +2,8 @@ import { IPerforceConfig } from './PerforceService';
 import {
     workspace,
     window,
-    TextDocument
+    TextDocument,
+    Uri
 } from 'vscode';
 
 import { Utils } from './Utils';
@@ -61,13 +62,13 @@ export namespace PerforceService {
         return path;
     }
 
-    export function getPerforceCmdPath(): string {
-        var p4Path = workspace.getConfiguration('perforce').get('command', 'none');
-        var p4User = workspace.getConfiguration('perforce').get('user', 'none');
-        var p4Client = workspace.getConfiguration('perforce').get('client', 'none');
-        var p4Port = workspace.getConfiguration('perforce').get('port', 'none');
-        var p4Pass = workspace.getConfiguration('perforce').get('password', 'none');
-        var p4Dir = workspace.getConfiguration('perforce').get('dir', 'none');
+    export function getPerforceCmdPath(resource: Uri): string {
+        var p4Path = workspace.getConfiguration('perforce', resource).get('command', 'none');
+        var p4User = workspace.getConfiguration('perforce', resource).get('user', 'none');
+        var p4Client = workspace.getConfiguration('perforce', resource).get('client', 'none');
+        var p4Port = workspace.getConfiguration('perforce', resource).get('port', 'none');
+        var p4Pass = workspace.getConfiguration('perforce', resource).get('password', 'none');
+        var p4Dir = workspace.getConfiguration('perforce', resource).get('dir', 'none');
 
         const buildCmd = (value, arg): string => {
             if (!value || value === 'none')
@@ -112,13 +113,13 @@ export namespace PerforceService {
         return p4Path;
     }
 
-    export function execute(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
-        execCommand(command, responseCallback, args, directoryOverride, input);
+    export function execute(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
+        execCommand(resource, command, responseCallback, args, directoryOverride, input);
     }
 
-    export function executeAsPromise(command: string, args?: string, directoryOverride?: string, input?: string): Promise<string> {
+    export function executeAsPromise(resource: Uri, command: string, args?: string, directoryOverride?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            execCommand(command, (err, stdout, stderr) => {
+            execCommand(resource, command, (err, stdout, stderr) => {
                 if (err) {
                     reject(err.message);
                 } else if (stderr) {
@@ -130,9 +131,9 @@ export namespace PerforceService {
         });
     }
 
-    function execCommand(command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
-        var cmdLine = getPerforceCmdPath();
-        const maxBuffer = workspace.getConfiguration('perforce').get('maxBuffer', 200 * 1024);
+    function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
+        var cmdLine = getPerforceCmdPath(resource);
+        const maxBuffer = workspace.getConfiguration('perforce', resource).get('maxBuffer', 200 * 1024);
 
         if (directoryOverride != null) {
             cmdLine += ' -d ' + directoryOverride;
@@ -174,9 +175,9 @@ export namespace PerforceService {
         }
     }
 
-    export function getClientRoot(): Promise<string> {
+    export function getClientRoot(resource: Uri): Promise<string> {
         return new Promise((resolve, reject) => {
-            PerforceService.executeAsPromise('info').then((stdout) => {
+            PerforceService.executeAsPromise(resource, 'info').then((stdout) => {
                 var clientRootIndex = stdout.indexOf('Client root: ');
                 if (clientRootIndex === -1) {
                     reject("P4 Info didn't specify a valid Client Root path");
@@ -198,9 +199,9 @@ export namespace PerforceService {
         });
     }
 
-    export function getConfigFilename(): Promise<string> {
+    export function getConfigFilename(resource: Uri): Promise<string> {
         return new Promise((resolve, reject) => {
-            PerforceService.executeAsPromise('set', '-q').then((stdout) => {
+            PerforceService.executeAsPromise(resource, 'set', '-q').then((stdout) => {
                 var configIndex = stdout.indexOf('P4CONFIG=');
                 if (configIndex === -1) {
                     resolve('.p4config');
