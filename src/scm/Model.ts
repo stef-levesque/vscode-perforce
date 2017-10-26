@@ -413,7 +413,7 @@ export class Model implements Disposable {
 
     private async updateInfo(): Promise<void> {
         let resource = Uri.file(this._config.localDir);
-        this._infos = await Utils.processInfo(await Utils.getCommandOutput(resource, 'info'));
+        this._infos = await Utils.processInfo(await Utils.getSimpleOutput(resource, 'info'));
     }
 
     private async updateStatus(): Promise<void> {
@@ -514,7 +514,7 @@ export class Model implements Disposable {
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
         let resource = Uri.file(this._config.localDir);
-        const output = await Utils.getCommandOutput(resource, 'opened');
+        const output = await Utils.getSimpleOutput(resource, 'opened');
         const opened = output.trim().split('\n');
         if (opened.length === 0) {
             return;
@@ -533,7 +533,7 @@ export class Model implements Disposable {
 
     private async getDepotShelvedFilePaths(chnum: number): Promise<string[]> {
         let resource = Uri.file(this._config.localDir);
-        const output = await Utils.getCommandOutput(resource, 'describe -Ss ' + chnum);
+        const output = await Utils.getSimpleOutput(resource, 'describe -Ss ' + chnum);
         const shelved = output.trim().split('\n');
         if (shelved.length === 0) {
             return;
@@ -552,7 +552,7 @@ export class Model implements Disposable {
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
         let resource = Uri.file(this._config.localDir);
-        const fstatOutput: string = await Utils.getCommandOutput(resource, `fstat "${files.join('" "')}"`);
+        const fstatOutput: string = await Utils.getSimpleOutput(resource, `fstat "${files.join('" "')}"`);
         // Windows will have lines end with \r\n.
         // Each file has multiple lines of output separated by a blank line.
         // Splitting on \n\r?\n will find newlines followed immediately by a newline
