@@ -153,12 +153,12 @@ export class Model implements Disposable {
         if (id.startsWith('default')) {
             const command = 'change';
             const args = '-o';
-            const uri: Uri = new Uri().with({ scheme: 'perforce', authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         } else if (id.startsWith('pending')) {
             const command = 'describe';
             const args = id.substr(id.indexOf(':') + 1);
-            const uri: Uri = new Uri().with({ scheme: 'perforce', authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({ scheme: 'perforce', authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         }
     }
