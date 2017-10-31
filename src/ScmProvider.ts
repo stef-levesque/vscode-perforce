@@ -45,7 +45,7 @@ export class PerforceSCMProvider {
     }
 
     get stateContextKey(): string {
-        if (workspace.rootPath == undefined) {
+        if (workspace.workspaceFolders == undefined) {
             return 'norepo';
         }
 

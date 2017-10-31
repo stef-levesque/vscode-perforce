@@ -493,7 +493,7 @@ export namespace PerforceCommands
     }
 
     export function checkFolderOpened() {
-        if (workspace.rootPath == undefined) {
+        if (workspace.workspaceFolders === undefined) {
             Display.showMessage("No folder selected\n");
             return false;
         }

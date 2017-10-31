@@ -82,18 +82,18 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
         .then((cliRoot) => {
             cliRoot = Utils.normalize(cliRoot);
 
-            const wksRoot = vscode.workspace.rootPath;
-            if (!wksRoot) return CreateP4({ localDir: '' }); // see uses of directoryOverride per file
+            const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
+            if (!wksFolder) return CreateP4({ localDir: '' }); // see uses of directoryOverride per file
 
             // asRelativePath doesn't catch if cliRoot IS wksRoot, so using startsWith
             // const rel = Utils.normalize(workspace.asRelativePath(cliRoot));
 
             // todo: per workspace folder for new interface
-            const wksRootN = Utils.normalize(wksRoot);
+            const wksRootN = Utils.normalize(wksFolder.uri.fsPath);
             if (wksRootN.startsWith(cliRoot)) return CreateP4({ localDir: wksRootN });
 
             // is p4dir specified in general settings?
-            const p4Dir = vscode.workspace.getConfiguration('perforce').get('dir', 'none');
+            const p4Dir = vscode.workspace.getConfiguration('perforce', uri).get('dir', 'none');
             if (p4Dir !== 'none') {
                 return CreateP4({ localDir: wksRootN });
             }
@@ -105,7 +105,9 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
             const CheckAlways = () => {
                 // if autodetect fails, enable if settings dictate
                 if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
-                    const config: IPerforceConfig = { localDir: vscode.workspace.rootPath };
+                    const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
+                    let localDir = wksFolder ? wksFolder.uri.fsPath : '';
+                    const config: IPerforceConfig = { localDir };
                     CreateP4(config);
                 }
             }

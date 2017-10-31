@@ -132,6 +132,8 @@ export namespace PerforceService {
     }
 
     function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
+        const wksFolder = workspace.getWorkspaceFolder(resource);
+        const wksPath = wksFolder ? wksFolder.uri.fsPath : '';
         var cmdLine = getPerforceCmdPath(resource);
         const maxBuffer = workspace.getConfiguration('perforce', resource).get('maxBuffer', 200 * 1024);
 
@@ -149,7 +151,7 @@ export namespace PerforceService {
         }
 
         Display.channel.appendLine(cmdLine);
-        const cmdArgs = { cwd: _config ? _config.localDir : workspace.rootPath, maxBuffer: maxBuffer };
+        const cmdArgs = { cwd: _config ? _config.localDir : wksPath, maxBuffer: maxBuffer };
         var child = CP.exec(cmdLine, cmdArgs, responseCallback);
 
         if (input != null) {
