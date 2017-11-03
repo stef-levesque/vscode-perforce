@@ -38,32 +38,35 @@ export namespace PerforceService {
     // todo: convert this to an object with local config and cached cmdpath
     // note that there are still some early commands that need static access
 
-    let _config: IPerforceConfig;
+    //let _config: IPerforceConfig;
+    let _configs: {[key: string]: IPerforceConfig} = {};
 
-    export function setConfig(inConfig: IPerforceConfig): void {
-        _config = inConfig;
+    export function setConfig(inConfig: IPerforceConfig, workspacePath: string): void {
+        _configs[workspacePath] = inConfig;
     }
-    export function getConfig(): IPerforceConfig {
-        return _config;
+    export function getConfig(workspacePath): IPerforceConfig {
+        return _configs[workspacePath];
     }
     export function convertToRel(path: string): string {
-        if (!_config
-            || !_config.stripLocalDir
-            || !_config.localDir || _config.localDir.length === 0
-            || !_config.p4Dir || _config.p4Dir.length === 0) {
+        const wksFolder = workspace.getWorkspaceFolder(Uri.file(path));
+        const config = wksFolder ? _configs[wksFolder.uri.fsPath] : null;
+        if (!config
+            || !config.stripLocalDir
+            || !config.localDir || config.localDir.length === 0
+            || !config.p4Dir || config.p4Dir.length === 0) {
 
             return path;
         }
 
         const pathN = Utils.normalize(path);
-        if (pathN.startsWith(_config.localDir)) {
-            path = pathN.slice(_config.localDir.length);
+        if (pathN.startsWith(config.localDir)) {
+            path = pathN.slice(config.localDir.length);
         }
         return path;
     }
 
     export function getPerforceCmdPath(resource: Uri): string {
-        var p4Path = workspace.getConfiguration('perforce', resource).get('command', 'none');
+        var p4Path = workspace.getConfiguration('perforce').get('command', 'none');
         var p4User = workspace.getConfiguration('perforce', resource).get('user', 'none');
         var p4Client = workspace.getConfiguration('perforce', resource).get('client', 'none');
         var p4Port = workspace.getConfiguration('perforce', resource).get('port', 'none');
@@ -102,12 +105,14 @@ export namespace PerforceService {
         p4Path += buildCmd(p4Dir, '-d');
 
         // later args override earlier args
-        if (_config) {
-            p4Path += buildCmd(_config.p4User, '-u');
-            p4Path += buildCmd(_config.p4Client, '-c');
-            p4Path += buildCmd(_config.p4Port, '-p');
-            p4Path += buildCmd(_config.p4Pass, '-P');
-            p4Path += buildCmd(_config.p4Dir, '-d');
+        const wksFolder = workspace.getWorkspaceFolder(resource);
+        const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
+        if (config) {
+            p4Path += buildCmd(config.p4User, '-u');
+            p4Path += buildCmd(config.p4Client, '-c');
+            p4Path += buildCmd(config.p4Port, '-p');
+            p4Path += buildCmd(config.p4Pass, '-P');
+            p4Path += buildCmd(config.p4Dir, '-d');
         }
 
         return p4Path;
@@ -133,6 +138,7 @@ export namespace PerforceService {
 
     function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
         const wksFolder = workspace.getWorkspaceFolder(resource);
+        const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
         const wksPath = wksFolder ? wksFolder.uri.fsPath : '';
         var cmdLine = getPerforceCmdPath(resource);
         const maxBuffer = workspace.getConfiguration('perforce').get('maxBuffer', 200 * 1024);
@@ -143,15 +149,15 @@ export namespace PerforceService {
         cmdLine += ' ' + command;
 
         if (args != null) {
-            if (_config && _config.stripLocalDir) {
-                args = args.replace(_config.localDir, '');
+            if (config && config.stripLocalDir) {
+                args = args.replace(config.localDir, '');
             }
 
             cmdLine += ' ' + args;
         }
 
         Display.channel.appendLine(cmdLine);
-        const cmdArgs = { cwd: _config ? _config.localDir : wksPath, maxBuffer: maxBuffer };
+        const cmdArgs = { cwd: config ? config.localDir : wksPath, maxBuffer: maxBuffer };
         var child = CP.exec(cmdLine, cmdArgs, responseCallback);
 
         if (input != null) {
@@ -173,7 +179,7 @@ export namespace PerforceService {
         } else {
             Display.channel.append(stdout.toString());
             Display.updateEditor();
-            PerforceSCMProvider.Refresh();
+            PerforceSCMProvider.RefreshAll();
         }
     }
 

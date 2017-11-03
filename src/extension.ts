@@ -45,7 +45,8 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
                 if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
             }
 
-            PerforceService.setConfig(config);
+        const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
+        PerforceService.setConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
             ctx.subscriptions.push(new PerforceContentProvider(compatibilityMode));
             ctx.subscriptions.push(new FileSystemListener());
             ctx.subscriptions.push(new PerforceSCMProvider(config, compatibilityMode));
