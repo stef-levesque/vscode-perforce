@@ -135,7 +135,7 @@ export namespace PerforceService {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const wksPath = wksFolder ? wksFolder.uri.fsPath : '';
         var cmdLine = getPerforceCmdPath(resource);
-        const maxBuffer = workspace.getConfiguration('perforce', resource).get('maxBuffer', 200 * 1024);
+        const maxBuffer = workspace.getConfiguration('perforce').get('maxBuffer', 200 * 1024);
 
         if (directoryOverride != null) {
             cmdLine += ' -d ' + directoryOverride;

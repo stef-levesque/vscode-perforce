@@ -20,7 +20,7 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
     if (!uri.fsPath) return;
 
     const CreateP4 = (config: IPerforceConfig): void => {
-        const compatibilityMode = vscode.workspace.getConfiguration('perforce', uri).get('compatibilityMode', 'perforce');
+        const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
         vscode.commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
 
         //TODO: move that
