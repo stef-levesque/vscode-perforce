@@ -23,53 +23,13 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
         commands.registerCommand('perforce.annotate', annotate);
-        commands.registerCommand('perforce.info', info);
         commands.registerCommand('perforce.opened', opened);
         commands.registerCommand('perforce.logout', logout);
         commands.registerCommand('perforce.login', login);
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
 
-        // SCM commands
-        commands.registerCommand('perforce.Sync', () => {
-            PerforceSCMProvider.Sync();
-        });
-        commands.registerCommand('perforce.Refresh', () => {
-            PerforceSCMProvider.Refresh();
-        });
-        commands.registerCommand('perforce.openFile', (e) => {
-            PerforceSCMProvider.OpenFile(e);
-        });
-        commands.registerCommand('perforce.openResource', (e) => {
-            PerforceSCMProvider.Open(e);
-        });
-        commands.registerCommand('perforce.submitDefault', () => {
-            PerforceSCMProvider.SubmitDefault();
-        });
-        commands.registerCommand('perforce.processChangelist', () => {
-            PerforceSCMProvider.ProcessChangelist();
-        });
-        commands.registerCommand('perforce.editChangelist', (e) => {
-            PerforceSCMProvider.EditChangelist(e);
-        });
-        commands.registerCommand('perforce.describe', (e) => {
-            PerforceSCMProvider.Describe(e);
-        });
-        commands.registerCommand('perforce.submitChangelist', (e) => {
-            PerforceSCMProvider.Submit(e);
-        });
-        commands.registerCommand('perforce.revertChangelist', (e) => {
-            PerforceSCMProvider.Revert(e);
-        });
-        commands.registerCommand('perforce.shelveunshelve', (e) => {
-            PerforceSCMProvider.ShelveOrUnshelve(e);
-        });
-        commands.registerCommand('perforce.revertFile', (e) => {
-            PerforceSCMProvider.Revert(e);
-        });
-        commands.registerCommand('perforce.reopenFile', (e) => {
-            PerforceSCMProvider.ReopenFile(e);
-        });
+
     }
 
     function addOpenFile() {
@@ -293,16 +253,6 @@ export namespace PerforceCommands
 
     }
 
-    export function info() {
-        if(!checkFolderOpened()) {
-            return false;
-        }
-        //TODO: find proper workspace
-        let resource = workspace.workspaceFolders[0].uri;
-        showOutput();
-        PerforceService.execute(resource, 'info', PerforceService.handleInfoServiceResponse);
-    }
-
     export function opened() {
         if(!checkFolderOpened()) {
             return false;
@@ -432,7 +382,7 @@ export namespace PerforceCommands
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({ label: "revert", description: "Discard changes from an opened file" });
-        items.push({ label: "submitDefault", description: "Submit or Save the default changelist" });
+        //items.push({ label: "submitDefault", description: "Submit or Save the default changelist" });
         items.push({ label: "diff", description: "Display diff of client file with depot file" });
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
         items.push({ label: "annotate", description: "Print file lines and their revisions" });
@@ -453,9 +403,9 @@ export namespace PerforceCommands
                 case "revert":
                     revert();
                     break;
-                case "submitDefault":
-                    PerforceSCMProvider.SubmitDefault();
-                    break;
+                // case "submitDefault":
+                //     PerforceSCMProvider.SubmitDefault();//TODO: valid?
+                //     break;
                 case "diff":
                     diff();
                     break;
@@ -464,9 +414,6 @@ export namespace PerforceCommands
                     break;
                 case "annotate":
                     annotate();
-                    break;
-                case "info":
-                    info();
                     break;
                 case "opened":
                     opened();

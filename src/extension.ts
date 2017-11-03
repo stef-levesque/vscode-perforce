@@ -23,36 +23,33 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
         const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
         vscode.commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
 
-        //TODO: move that
-        // Register all commands
-        if (!_isRegistered) {
-            _isRegistered = true;
+        // path fixups:
+        const trailingSlash = /^(.*)(\/)$/;
 
-            // todo: register multiple perforce scm for multiple valid roots
-            // by passing/storing/using 'config'
-            // for now, use a single config
+        if (config.localDir) {
+            config.localDir = Utils.normalize(config.localDir);
+            if (!trailingSlash.exec(config.localDir)) config.localDir += '/';
+        }
 
-            // path fixups:
-            const trailingSlash = /^(.*)(\/)$/;
-
-            if (config.localDir) {
-                config.localDir = Utils.normalize(config.localDir);
-                if (!trailingSlash.exec(config.localDir)) config.localDir += '/';
-            }
-
-            if (config.p4Dir) {
-                config.p4Dir = Utils.normalize(config.p4Dir);
-                if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
-            }
+        if (config.p4Dir) {
+            config.p4Dir = Utils.normalize(config.p4Dir);
+            if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
+        }
 
         const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
         PerforceService.setConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
+        ctx.subscriptions.push(new PerforceSCMProvider(config, compatibilityMode));
+
+        // Register only once
+        if (!_isRegistered) {
+            _isRegistered = true;
+
             ctx.subscriptions.push(new PerforceContentProvider(compatibilityMode));
             ctx.subscriptions.push(new FileSystemListener());
-            ctx.subscriptions.push(new PerforceSCMProvider(config, compatibilityMode));
 
             // todo: fix dependency / order of operations issues
             PerforceCommands.registerCommands();
+            PerforceSCMProvider.registerCommands();
             Display.initialize();
         }
     }

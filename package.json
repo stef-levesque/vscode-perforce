@@ -29,7 +29,8 @@
     "vscode",
     "scm",
     "perforce",
-    "sourcedepot"
+    "sourcedepot",
+    "multi-root ready"
   ],
   "main": "./out/src/extension",
   "activationEvents": [
@@ -516,10 +517,6 @@
         "key": "alt+p n",
         "command": "perforce.annotate",
         "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p i",
-        "command": "perforce.info"
       },
       {
         "key": "alt+p o",

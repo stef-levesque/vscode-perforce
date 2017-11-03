@@ -83,6 +83,12 @@ export class Model implements Disposable {
         }, () => this.updateStatus());
     }
 
+    public async Info(): Promise<void> {
+        let resource = this._sourceControl.rootUri;
+        Display.channel.show();
+        PerforceService.execute(resource, 'info', PerforceService.handleInfoServiceResponse);
+    }
+
     public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
         const args = `-o ${existingChangelist ? existingChangelist : ''}`;
 
@@ -224,7 +230,7 @@ export class Model implements Disposable {
     }
 
 
-    public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
+    public async Submit(input: SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';
 
@@ -400,7 +406,8 @@ export class Model implements Disposable {
     }
 
     private async syncUpdate(): Promise<void> {
-        const config: IPerforceConfig = PerforceService.getConfig();
+        //const config: IPerforceConfig = PerforceService.getConfig();
+        const config = this._config; //TODO: validate
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
         
         await Utils.getOutput('sync', Uri.parse(pathToSync), null, '-q').then(output => {
