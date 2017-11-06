@@ -385,7 +385,7 @@ export class Model implements Disposable {
             const file = Uri.file(input.uri.fsPath);
             const args = '-c ' + selection.id;
 
-            Utils.runCommand(this._wksFolder, 'reopen', file, null, args).then((output) => {
+            Utils.runCommand(_this._wksFolder, 'reopen', file, null, args).then((output) => {
                 Display.channel.append(output);
                 _this.Refresh();
             }).catch((reason) => {
@@ -409,7 +409,7 @@ export class Model implements Disposable {
 
     private async syncUpdate(): Promise<void> {
         //const config: IPerforceConfig = PerforceService.getConfig();
-        const config = this._config; //TODO: validate
+        const config = this._config;
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
         
         await Utils.runCommand(this._wksFolder, 'sync', Uri.parse(pathToSync), null, '-q').then(output => {
