@@ -207,7 +207,7 @@ export namespace PerforceCommands
         let colorIndex = 0;
         let lastNum = '';
 
-        const output: string = await Utils.getOutput('annotate', doc.uri, null, args);
+        const output: string = await Utils.runCommandForFile('annotate', doc.uri, null, args);
         const annotations = output.split(/\r?\n/);
 
         for (let i = 0, n = annotations.length; i < n; ++i) {

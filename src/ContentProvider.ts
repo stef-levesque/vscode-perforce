@@ -1,4 +1,4 @@
-import { workspace, Uri, Disposable, Event, EventEmitter } from 'vscode';
+import { window, workspace, Uri, Disposable, Event, EventEmitter } from 'vscode';
 import { Utils } from './Utils';
 import { Display } from './Display';
 
@@ -29,7 +29,20 @@ export class PerforceContentProvider {
             let revision: number = parseInt(uri.fragment);
             let args: string = decodeURIComponent(uri.query);
 
-            return Utils.getOutput(command, file, revision, args);
+            if (!file) {
+                //TODO: Try to guess the proper workspace to use
+                if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
+                    const resource = window.activeTextEditor.document.uri;
+                    return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args);
+                } else if (workspace.workspaceFolders) {
+                    const resource = workspace.workspaceFolders[0].uri;
+                    return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args);
+                } else {
+                    throw new Error(`Can't find proper workspace for command ${command} `);
+                }
+            } else {
+                return Utils.runCommandForFile(command, file, revision, args);
+            }
             
         }).catch(reason => {
             Display.showError(reason.toString());

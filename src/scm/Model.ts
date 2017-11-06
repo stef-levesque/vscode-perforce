@@ -93,8 +93,8 @@ export class Model implements Disposable {
 
     public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
         const args = `-o ${existingChangelist ? existingChangelist : ''}`;
-
-        const spec: string = await Utils.getOutput('change', null, null, args);
+        
+        const spec: string = await Utils.runCommand(this._wksFolder, 'change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
         for (let field of changeFields) {
@@ -110,7 +110,7 @@ export class Model implements Disposable {
 
         let newChangelistNumber;
         try {
-            const createdStr = await Utils.getOutput('change', null, null, '-i', null, newSpec);
+            const createdStr = await Utils.runCommand(this._wksFolder, 'change', null, null, '-i', null, newSpec);
             // Change #### created with ... 
             // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
             Display.channel.append(createdStr);
@@ -145,7 +145,7 @@ export class Model implements Disposable {
             args += chnum;
         }
 
-        const output: string = await Utils.getOutput('change', null, null, args);
+        const output: string = await Utils.runCommand(this._wksFolder, 'change', null, null, args);
         const changeFields = output.trim().split(/\n\r?\n/);
         for (let field of changeFields) {
             if (field.startsWith('Description:')) {
@@ -182,7 +182,7 @@ export class Model implements Disposable {
         const noFiles = 'File(s) not opened on this client.';
         let fileListStr;
         try {
-            fileListStr = await Utils.getOutput('opened', null, null, '-c default');
+            fileListStr = await Utils.runCommand(this._wksFolder, 'opened', null, null, '-c default');
             if (fileListStr === noFiles) {
                 Display.showError(noFiles);
                 return;
@@ -256,7 +256,7 @@ export class Model implements Disposable {
         }
 
 
-        Utils.getOutput(command, null, null, args).then((output) => {
+        Utils.runCommand(this._wksFolder, command, null, null, args).then((output) => {
             Display.channel.append(output);
             Display.showMessage("Changelist Submitted");
             this.Refresh();
@@ -297,7 +297,7 @@ export class Model implements Disposable {
             return;
         }
 
-        await Utils.getOutput(command, file, null, args).then((output) => {
+        await Utils.runCommand(this._wksFolder, command, file, null, args).then((output) => {
             Display.updateEditor();
             Display.channel.append(output);
             needRefresh = true;
@@ -313,7 +313,7 @@ export class Model implements Disposable {
             if (id.startsWith('pending')) {
                 args = '-d ' + chnum;
 
-                await Utils.getOutput(command, null, null, args).then((output) => {
+                await Utils.runCommand(this._wksFolder, command, null, null, args).then((output) => {
                     Display.updateEditor();
                     Display.channel.append(output);
                     needRefresh = true;
@@ -334,10 +334,10 @@ export class Model implements Disposable {
         if (input.status == Status.SHELVE) {
             let args = '-c ' + input.change + ' -s ' + input.change;
             const command = 'unshelve';
-            await Utils.getOutput(command, file, null, args).then((output) => {
+            await Utils.runCommand(this._wksFolder, command, file, null, args).then((output) => {
                 let args = '-d -c ' + input.change;
                 const command = 'shelve';
-                Utils.getOutput('shelve', file, null, args).then((output) => {
+                Utils.runCommand(this._wksFolder, 'shelve', file, null, args).then((output) => {
                     Display.updateEditor();
                     Display.channel.append(output);
 
@@ -354,7 +354,7 @@ export class Model implements Disposable {
         else {
             let args = '-f -c ' + input.change;
             const command = 'shelve';
-            await Utils.getOutput(command, file, null, args).then((output) => {
+            await Utils.runCommand(this._wksFolder, command, file, null, args).then((output) => {
                 this.Revert(input);
             }).catch((reason) => {
                 Display.showError(reason.toString());
@@ -385,7 +385,7 @@ export class Model implements Disposable {
             const file = Uri.file(input.uri.fsPath);
             const args = '-c ' + selection.id;
 
-            Utils.getOutput('reopen', file, null, args).then((output) => {
+            Utils.runCommand(this._wksFolder, 'reopen', file, null, args).then((output) => {
                 Display.channel.append(output);
                 _this.Refresh();
             }).catch((reason) => {
@@ -412,7 +412,7 @@ export class Model implements Disposable {
         const config = this._config; //TODO: validate
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
         
-        await Utils.getOutput('sync', Uri.parse(pathToSync), null, '-q').then(output => {
+        await Utils.runCommand(this._wksFolder, 'sync', Uri.parse(pathToSync), null, '-q').then(output => {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {
@@ -439,7 +439,7 @@ export class Model implements Disposable {
         this._pendingGroups.clear(); // dispose ?
 
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
-        let output: string = await Utils.getOutput('changes', null, null, pendingArgs);
+        let output: string = await Utils.runCommand(this._wksFolder, 'changes', null, null, pendingArgs);
         let changelists = output.trim().split('\n');
 
         const config = workspace.getConfiguration('perforce');

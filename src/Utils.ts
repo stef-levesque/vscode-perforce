@@ -91,25 +91,23 @@ export namespace Utils {
     }
 
     // Get a string containing the output of the command
-    export function getOutput(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
-        //TODO: find proper workspace
-        let resource = file;
+    export function runCommand(resource: Uri, command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
-
+    
             if (gOpts != null) {
                 command = gOpts + ' ' + command;
             }
-
+    
             var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
-
+    
             if (file) {
                 let path = (typeof file === 'string') ? file : file.fsPath;
                 path = expansePath(path);
                 
                 args += ' "' + path + revisionString + '"';
             }
-
+    
             PerforceService.execute(resource, command, (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
@@ -122,6 +120,13 @@ export namespace Utils {
                 }
             }, args, null, input);
         });
+    }
+
+    // Get a string containing the output of the command specific to a file
+    export function runCommandForFile(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+        //TODO: find proper workspace
+        let resource = file;
+        return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
     }
 
     // Get a path to a file containing the output of the command
