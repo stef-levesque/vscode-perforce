@@ -13,11 +13,20 @@ import * as Path from 'path';
 // for ini files
 import * as fs from 'fs';
 import * as Ini from 'ini';
+import { Disposable } from 'vscode';
 
 let _isRegistered: boolean = false;
+let _disposable: vscode.Disposable[] = [];
 
-function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
-    if (!uri.fsPath) return;
+function TryCreateP4(uri: vscode.Uri): void {
+    if (!uri.fsPath) {
+        return;
+    }
+
+    const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
+        return;
+    }
 
     const CreateP4 = (config: IPerforceConfig): void => {
         const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
@@ -36,16 +45,19 @@ function TryCreateP4(uri: vscode.Uri, ctx: vscode.ExtensionContext): void {
             if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
         }
 
-        const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
-        PerforceService.setConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
-        ctx.subscriptions.push(new PerforceSCMProvider(config, compatibilityMode));
+        if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
+            return;
+        }
+
+        PerforceService.addConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
+        _disposable.push(new PerforceSCMProvider(config, wksFolder.uri, compatibilityMode));
 
         // Register only once
         if (!_isRegistered) {
             _isRegistered = true;
 
-            ctx.subscriptions.push(new PerforceContentProvider(compatibilityMode));
-            ctx.subscriptions.push(new FileSystemListener());
+            _disposable.push(new PerforceContentProvider(compatibilityMode));
+            _disposable.push(new FileSystemListener());
 
             // todo: fix dependency / order of operations issues
             PerforceCommands.registerCommands();
@@ -144,14 +156,22 @@ export function activate(ctx: vscode.ExtensionContext): void {
     if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'off') {
         return;
     }
+    ctx.subscriptions.push(new vscode.Disposable(() => Disposable.from(..._disposable).dispose()));
 
-    if (vscode.workspace.workspaceFolders !== undefined) {
-        vscode.workspace.workspaceFolders.forEach((workspace) => {
-            TryCreateP4(workspace.uri, ctx);
+
+    vscode.workspace.onDidChangeWorkspaceFolders(onDidChangeWorkspaceFolders, null, ctx.subscriptions);
+    onDidChangeWorkspaceFolders({ added: vscode.workspace.workspaceFolders || [], removed: [] });
+}
+
+async function onDidChangeWorkspaceFolders({ added, removed }: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
+
+    if (added !== undefined) {
+        added.forEach((workspace) => {
+            TryCreateP4(workspace.uri);
         });
     } else {
         vscode.workspace.textDocuments.forEach((doc) => {
-            TryCreateP4(doc.uri, ctx);
+            TryCreateP4(doc.uri);
         });
     }
 }

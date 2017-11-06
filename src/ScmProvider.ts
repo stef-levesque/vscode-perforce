@@ -10,6 +10,7 @@ import { PerforceCommands } from './PerforceCommands';
 
 export class PerforceSCMProvider {
     private compatibilityMode: string;
+    private wksFolder: Uri;
     private config: IPerforceConfig;
 
     private disposables: Disposable[] = [];
@@ -53,8 +54,9 @@ export class PerforceSCMProvider {
         return 'idle'
     }
 
-    constructor(config: IPerforceConfig, compatibilityMode: string) {
+    constructor(config: IPerforceConfig, wksFolder: Uri, compatibilityMode: string) {
         this.compatibilityMode = compatibilityMode;
+        this.wksFolder = wksFolder;
         this.config = config;
         this.Initialize();
     }
@@ -63,7 +65,7 @@ export class PerforceSCMProvider {
     //TODO: track closed workspaceFolder
 
     public Initialize() {
-        this._model = new Model(this.config, this.compatibilityMode);
+        this._model = new Model(this.config, this.wksFolder, this.compatibilityMode);
 
         PerforceSCMProvider.instances.push(this);
         this._model._sourceControl = scm.createSourceControl(this.id, this.label, Uri.file(this.config.localDir));

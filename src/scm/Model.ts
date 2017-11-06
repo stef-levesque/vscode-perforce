@@ -34,6 +34,7 @@ export class Model implements Disposable {
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _compatibilityMode: string;
+    private _wksFolder: Uri;
     private _config: IPerforceConfig
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
@@ -49,8 +50,9 @@ export class Model implements Disposable {
         return result;
     }
 
-    public constructor(config: IPerforceConfig, compatibilityMode: string) {
+    public constructor(config: IPerforceConfig, wksFolder: Uri, compatibilityMode: string) {
         this._config = config;
+        this._wksFolder = wksFolder;
         this._compatibilityMode = compatibilityMode;
     }
 

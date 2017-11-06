@@ -35,14 +35,13 @@ export interface IPerforceConfig {
 
 export namespace PerforceService {
 
-    // todo: convert this to an object with local config and cached cmdpath
-    // note that there are still some early commands that need static access
-
-    //let _config: IPerforceConfig;
     let _configs: {[key: string]: IPerforceConfig} = {};
 
-    export function setConfig(inConfig: IPerforceConfig, workspacePath: string): void {
+    export function addConfig(inConfig: IPerforceConfig, workspacePath: string): void {
         _configs[workspacePath] = inConfig;
+    }
+    export function removeConfig(workspacePath: string): void {
+        _configs[workspacePath] = undefined;
     }
     export function getConfig(workspacePath): IPerforceConfig {
         return _configs[workspacePath];
