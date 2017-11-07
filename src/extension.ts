@@ -124,10 +124,9 @@ function TryCreateP4(uri: vscode.Uri): void {
 
             // workspace is not within client root.
             // look for config files to specify p4Dir association
-            PerforceService.getConfigFilename(uri)
-                .then((p4ConfigFileName) => {
-                    vscode.workspace.findFiles(`**/${p4ConfigFileName}`, '**/node_modules/**')
-                        .then((files: vscode.Uri[]) => {
+            PerforceService.getConfigFilename(uri).then((p4ConfigFileName) => {
+                let pattern = new vscode.RelativePattern(wksFolder, `**/${p4ConfigFileName}`);
+                vscode.workspace.findFiles(pattern, '**/node_modules/**').then((files: vscode.Uri[]) => {
 
                             if (!files || files.length === 0) {
                                 return CheckAlways();
