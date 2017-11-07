@@ -18,108 +18,110 @@ import { Disposable } from 'vscode';
 let _isRegistered: boolean = false;
 let _disposable: vscode.Disposable[] = [];
 
-function TryCreateP4(uri: vscode.Uri): void {
-    if (!uri.fsPath) {
-        return;
-    }
-
-    const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
-        return;
-    }
-
-    const CreateP4 = (config: IPerforceConfig): void => {
-        const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
-        vscode.commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
-
-        // path fixups:
-        const trailingSlash = /^(.*)(\/)$/;
-
-        if (config.localDir) {
-            config.localDir = Utils.normalize(config.localDir);
-            if (!trailingSlash.exec(config.localDir)) config.localDir += '/';
+function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+        if (!uri.fsPath) {
+            return resolve(false);
         }
 
-        if (config.p4Dir) {
-            config.p4Dir = Utils.normalize(config.p4Dir);
-            if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
-        }
-
+        const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
         if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
-            return;
+            return resolve(false);
         }
 
-        PerforceService.addConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
-        _disposable.push(new PerforceSCMProvider(config, wksFolder.uri, compatibilityMode));
+        const CreateP4 = (config: IPerforceConfig): boolean => {
+            const compatibilityMode = vscode.workspace.getConfiguration('perforce').get('compatibilityMode', 'perforce');
+            vscode.commands.executeCommand('setContext', 'perforce.compatibilityMode', compatibilityMode);
 
-        // Register only once
-        if (!_isRegistered) {
-            _isRegistered = true;
+            // path fixups:
+            const trailingSlash = /^(.*)(\/)$/;
 
-            _disposable.push(new PerforceContentProvider(compatibilityMode));
-            _disposable.push(new FileSystemListener());
+            if (config.localDir) {
+                config.localDir = Utils.normalize(config.localDir);
+                if (!trailingSlash.exec(config.localDir)) config.localDir += '/';
+            }
 
-            // todo: fix dependency / order of operations issues
-            PerforceCommands.registerCommands();
-            PerforceSCMProvider.registerCommands();
-            Display.initialize();
+            if (config.p4Dir) {
+                config.p4Dir = Utils.normalize(config.p4Dir);
+                if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
+            }
+
+            if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
+                return false;
+            }
+
+            PerforceService.addConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
+            _disposable.push(new PerforceSCMProvider(config, wksFolder.uri, compatibilityMode));
+
+            // Register only once
+            if (!_isRegistered) {
+                _isRegistered = true;
+
+                _disposable.push(new PerforceContentProvider(compatibilityMode));
+                _disposable.push(new FileSystemListener());
+
+                // todo: fix dependency / order of operations issues
+                PerforceCommands.registerCommands();
+                PerforceSCMProvider.registerCommands();
+                Display.initialize();
+            }
+
+            return true;
         }
-    }
 
-    const CreateP4FromConfig = (configFile: vscode.Uri): void => {
-        const configPath = Path.dirname(configFile.fsPath);
-        // todo: read config
-        const contents = fs.readFileSync(configFile.fsPath, 'utf-8');
-        const cfg = Ini.parse(contents);
+        const CreateP4FromConfig = (configFile: vscode.Uri): boolean => {
+            const configPath = Path.dirname(configFile.fsPath);
+            // todo: read config
+            const contents = fs.readFileSync(configFile.fsPath, 'utf-8');
+            const cfg = Ini.parse(contents);
 
-        const config: IPerforceConfig = {
-            localDir: configPath,
-            stripLocalDir: cfg.P4DIR ? true : false,
-            p4Dir: cfg.P4DIR ? Utils.normalize(cfg.P4DIR) : configPath,
+            const config: IPerforceConfig = {
+                localDir: configPath,
+                stripLocalDir: cfg.P4DIR ? true : false,
+                p4Dir: cfg.P4DIR ? Utils.normalize(cfg.P4DIR) : configPath,
 
-            p4Client: cfg.P4CLIENT,
-            p4Host: cfg.P4HOST,
-            p4Pass: cfg.P4PASS,
-            p4Port: cfg.P4PORT,
-            p4Tickets: cfg.P4TICKETS,
-            p4User: cfg.P4USER,
-        };
+                p4Client: cfg.P4CLIENT,
+                p4Host: cfg.P4HOST,
+                p4Pass: cfg.P4PASS,
+                p4Port: cfg.P4PORT,
+                p4Tickets: cfg.P4TICKETS,
+                p4User: cfg.P4USER,
+            };
 
-        CreateP4(config);
-    }
+            return CreateP4(config);
+        }
 
-    PerforceService.getClientRoot(uri)
-        .then((cliRoot) => {
+        PerforceService.getClientRoot(uri).then((cliRoot) => {
             cliRoot = Utils.normalize(cliRoot);
-
+        
             const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
-            if (!wksFolder) return CreateP4({ localDir: '' }); // see uses of directoryOverride per file
-
+            if (!wksFolder) return resolve( CreateP4({ localDir: '' }) ); // see uses of directoryOverride per file
+        
             // asRelativePath doesn't catch if cliRoot IS wksRoot, so using startsWith
             // const rel = Utils.normalize(workspace.asRelativePath(cliRoot));
-
+        
             // todo: per workspace folder for new interface
             const wksRootN = Utils.normalize(wksFolder.uri.fsPath);
-            if (wksRootN.startsWith(cliRoot)) return CreateP4({ localDir: wksRootN });
-
+            if (wksRootN.startsWith(cliRoot)) return resolve( CreateP4({ localDir: wksRootN }) );
+        
             // is p4dir specified in general settings?
             const p4Dir = vscode.workspace.getConfiguration('perforce', uri).get('dir', 'none');
             if (p4Dir !== 'none') {
-                return CreateP4({ localDir: wksRootN });
+                return resolve( CreateP4({ localDir: wksRootN }) );
             }
-
+        
             throw 'workspace is not within p4 clientRoot';
-        })
-        .catch((err) => {
-
-            const CheckAlways = () => {
+        }).catch((err) => {
+            const CheckAlways = (): boolean => {
                 // if autodetect fails, enable if settings dictate
                 if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'always') {
                     const wksFolder = vscode.workspace.getWorkspaceFolder(uri);
                     let localDir = wksFolder ? wksFolder.uri.fsPath : '';
                     const config: IPerforceConfig = { localDir };
-                    CreateP4(config);
+                    return CreateP4(config);
                 }
+        
+                return false;
             }
 
             // workspace is not within client root.
@@ -128,19 +130,24 @@ function TryCreateP4(uri: vscode.Uri): void {
                 let pattern = new vscode.RelativePattern(wksFolder, `**/${p4ConfigFileName}`);
                 vscode.workspace.findFiles(pattern, '**/node_modules/**').then((files: vscode.Uri[]) => {
 
-                            if (!files || files.length === 0) {
-                                return CheckAlways();
-                            }
+                        if (!files || files.length === 0) {
+                            return CheckAlways();
+                        }
 
-                            files.forEach((file) => {
-                                CreateP4FromConfig(file);
-                            });
-                        });
-                })
-                .catch((err) => {
-                    return CheckAlways();
-                });
+                        let anyCreated = false;
+                        for (let file of files) {
+                            let created = CreateP4FromConfig(file);
+                            anyCreated = anyCreated || created;
+                        };
+                        return resolve(anyCreated);
+                    });
+            }).catch((err) => {
+                return resolve( CheckAlways() );
+            });
+
         });
+
+    });
 }
 
 export function activate(ctx: vscode.ExtensionContext): void {
@@ -165,12 +172,12 @@ export function activate(ctx: vscode.ExtensionContext): void {
 async function onDidChangeWorkspaceFolders({ added, removed }: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
 
     if (added !== undefined) {
-        added.forEach((workspace) => {
-            TryCreateP4(workspace.uri);
-        });
+        for (let workspace of added) {
+            await TryCreateP4(workspace.uri);
+        };
     } else {
-        vscode.workspace.textDocuments.forEach((doc) => {
+        for (let doc of vscode.workspace.textDocuments) {
             TryCreateP4(doc.uri);
-        });
+        };
     }
 }
