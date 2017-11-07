@@ -4,7 +4,7 @@ import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
 import { mapEvent } from './Utils';
 import { FileType } from './scm/FileTypes';
-import { IPerforceConfig } from './PerforceService';
+import { IPerforceConfig, matchConfig } from './PerforceService';
 import * as Path from 'path';
 import { PerforceCommands } from './PerforceCommands';
 
@@ -103,13 +103,17 @@ export class PerforceSCMProvider {
         commands.executeCommand('setContext', 'perforceState', this.stateContextKey);
     }
 
-    //TODO: fix trailing slash
-    private static GetInstance(uri: Uri): PerforceSCMProvider {
-        const wksFolder = workspace.getWorkspaceFolder(uri);
-
-        for (let provider of PerforceSCMProvider.instances) {
-            if (provider.config.localDir === wksFolder.uri.fsPath + '/') {
-                return provider;
+    private static GetInstance(uri: Uri | null): PerforceSCMProvider {
+        if (!uri) {
+            return PerforceSCMProvider.instances ? PerforceSCMProvider.instances[0] : null;
+        } else {
+            const wksFolder = workspace.getWorkspaceFolder(uri);
+            if (wksFolder) {
+                for (let provider of PerforceSCMProvider.instances) {
+                    if ( matchConfig(provider.config, wksFolder.uri) ) {
+                        return provider;
+                    }
+                }
             }
         }
         return null;
@@ -126,12 +130,12 @@ export class PerforceSCMProvider {
     };
 
     public static Sync(sourceControl: SourceControl) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl.rootUri);
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
         perforceProvider._model.Sync();
     };
 
     public static Refresh(sourceControl: SourceControl) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl.rootUri);
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
         perforceProvider._model.Refresh();
     };
 
@@ -142,12 +146,12 @@ export class PerforceSCMProvider {
     };
 
     public static Info(sourceControl: SourceControl) {
-        let provider = PerforceSCMProvider.GetInstance(sourceControl.rootUri);
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
         provider._model.Info();
     };
 
     public static ProcessChangelist(sourceControl: SourceControl) {
-        let provider = PerforceSCMProvider.GetInstance(sourceControl.rootUri);
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
         provider._model.ProcessChangelist();
     };
 
@@ -164,7 +168,7 @@ export class PerforceSCMProvider {
     };
 
     public static async SubmitDefault(sourceControl: SourceControl) {
-        let provider = PerforceSCMProvider.GetInstance(sourceControl.rootUri);
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
         provider._model.SubmitDefault();
     };
     

@@ -33,6 +33,19 @@ export interface IPerforceConfig {
     stripLocalDir?: boolean;
 }
 
+export function matchConfig(config: IPerforceConfig, uri: Uri): boolean {
+    // path fixups:
+    const trailingSlash = /^(.*)(\/)$/;
+    let compareDir = Utils.normalize(uri.fsPath);
+    if (!trailingSlash.exec(compareDir)) compareDir += '/';
+    
+    if (config.localDir === compareDir) {
+        return true;
+    }
+
+    return false;
+}
+
 export namespace PerforceService {
 
     let _configs: {[key: string]: IPerforceConfig} = {};
