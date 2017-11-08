@@ -150,6 +150,10 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         var doc = editor.document;
 
         const args = '-s "' + Utils.expansePath(doc.uri.fsPath) + '"';
@@ -159,7 +163,8 @@ export namespace PerforceCommands
             } else if (stderr) {
                 Display.showError(stderr.toString());
             } else {
-                let revisions = stdout.split('\n'), revisionsData = [];
+                let revisions = stdout.split('\n');
+                let revisionsData: QuickPickItem[] = [];
                 revisions.shift();  // remove the first line - filename
                 revisions.forEach(revisionInfo => {
                     if (revisionInfo.indexOf('... #') === -1)
@@ -168,13 +173,16 @@ export namespace PerforceCommands
                     let splits = revisionInfo.split(' ');
                     let rev = splits[1].substring(1);    // splice 1st character '#'
                     let change = splits[3];
-                    let changedesc = revisionInfo.substring(revisionInfo.indexOf(splits[9]) + splits[9].length + 1);
-                    let label = '#' + rev + '  change: ' + change + '  Desc: ' + changedesc;
-                    revisionsData.push({ rev: rev, change: change, changedesc: changedesc, label: label })
+                    let label = `#${rev} change: ${change}`;
+                    let description = revisionInfo.substring(revisionInfo.indexOf(splits[9]) + splits[9].length + 1);
+
+                    revisionsData.push({ label, description });
                 });
 
                 window.showQuickPick(revisionsData).then( revision => {
-                    diff(parseInt(revision.rev));
+                    if (revision) {
+                        diff(parseInt(revision.label.substring(1)));
+                    }
                 })
 
             }
@@ -378,7 +386,7 @@ export namespace PerforceCommands
     }
 
     export function menuFunctions() {
-        var items = [];
+        var items: QuickPickItem[] = [];
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({ label: "revert", description: "Discard changes from an opened file" });
