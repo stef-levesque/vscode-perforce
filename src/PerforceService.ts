@@ -54,7 +54,7 @@ export namespace PerforceService {
         _configs[workspacePath] = inConfig;
     }
     export function removeConfig(workspacePath: string): void {
-        _configs[workspacePath] = undefined;
+        delete _configs[workspacePath];
     }
     export function getConfig(workspacePath): IPerforceConfig {
         return _configs[workspacePath];
