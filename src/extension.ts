@@ -127,7 +127,7 @@ function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
             // workspace is not within client root.
             // look for config files to specify p4Dir association
             PerforceService.getConfigFilename(uri).then((p4ConfigFileName) => {
-                let pattern = new vscode.RelativePattern(wksFolder, `**/${p4ConfigFileName}`);
+                let pattern = new vscode.RelativePattern(wksFolder ? wksFolder : '', `**/${p4ConfigFileName}`);
                 vscode.workspace.findFiles(pattern, '**/node_modules/**').then((files: vscode.Uri[]) => {
 
                         if (!files || files.length === 0) {
@@ -152,13 +152,6 @@ function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
 
 export function activate(ctx: vscode.ExtensionContext): void {
 
-    // todo: enableProposedApi; workspace.workspaceFolders[]
-
-    //workspace.onDidOpenTextDocument
-
-    // const editor = vscode.window.activeTextEditor;
-    // var filePath = Path.dirname(editor.document.uri.fsPath);
-
     if (vscode.workspace.getConfiguration('perforce').get('activationMode') === 'off') {
         return;
     }
@@ -167,6 +160,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
     vscode.workspace.onDidChangeWorkspaceFolders(onDidChangeWorkspaceFolders, null, ctx.subscriptions);
     onDidChangeWorkspaceFolders({ added: vscode.workspace.workspaceFolders || [], removed: [] });
+
 }
 
 async function onDidChangeWorkspaceFolders({ added, removed }: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
