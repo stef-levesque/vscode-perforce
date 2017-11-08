@@ -3,7 +3,7 @@
 import {
     commands, workspace, window, Uri,
     ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
-    OverviewRulerLane, Disposable, ExtensionContext, Range,
+    OverviewRulerLane, Disposable, ExtensionContext, Range, QuickPickItem,
     TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
 
 import * as Path from 'path';
