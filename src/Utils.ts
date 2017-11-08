@@ -152,7 +152,7 @@ export namespace Utils {
                 requirePipe = false;
             }
 
-            if (!file.fsPath) {
+            if (file.fsPath) {
                 args += ' "' + expansePath(file.fsPath) + revisionString + '"';
             }
 
