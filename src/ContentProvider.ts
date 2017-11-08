@@ -25,7 +25,7 @@ export class PerforceContentProvider {
             }
 
             let command: string = uri.authority;
-            let file: Uri = uri.fsPath ? Uri.file(uri.fsPath) : null;
+            let file = uri.fsPath ? Uri.file(uri.fsPath) : null;
             let revision: number = parseInt(uri.fragment);
             let args: string = decodeURIComponent(uri.query);
 
@@ -36,7 +36,7 @@ export class PerforceContentProvider {
                     return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args);
                 } else if (workspace.workspaceFolders) {
                     const resource = workspace.workspaceFolders[0].uri;
-                    return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args);
+                    return Utils.runCommand(resource, command, null, revision, args);
                 } else {
                     throw new Error(`Can't find proper workspace for command ${command} `);
                 }
