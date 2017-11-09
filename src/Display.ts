@@ -26,14 +26,16 @@ export namespace Display
     export function updateEditor() {
         var editor = window.activeTextEditor;
         if(!editor) {
-            _statusBarItem.hide();
+            if (_statusBarItem) {
+                _statusBarItem.hide();
+            }
             return;
         }
 
         var doc = editor.document;
 
         //If no folder is open, override the perforce directory to the files
-        var directoryOverride = null;
+        var directoryOverride;
         if (workspace.workspaceFolders === undefined) {
             directoryOverride = Path.dirname(doc.uri.fsPath);
         }
