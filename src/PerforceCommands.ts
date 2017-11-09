@@ -4,7 +4,7 @@ import {
     commands, workspace, window, Uri,
     ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
     OverviewRulerLane, Disposable, ExtensionContext, Range, QuickPickItem,
-    TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+    TextDocument, TextEditor, TextEditorSelectionChangeEvent, WorkspaceFolder } from 'vscode';
 
 import * as Path from 'path';
 import * as fs from 'fs';
@@ -265,8 +265,20 @@ export namespace PerforceCommands
         if(!checkFolderOpened()) {
             return false;
         }
-        //TODO: find proper workspace
+        if (!workspace.workspaceFolders) {
+            return false;
+        }
         let resource = workspace.workspaceFolders[0].uri;
+        if (workspace.workspaceFolders.length > 1 ) {
+            // try to find the proper workspace
+            if (window.activeTextEditor && window.activeTextEditor.document) {
+                let wksFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
+                if (wksFolder) {
+                    resource = wksFolder.uri;
+                }
+            }
+        }
+        
         PerforceService.execute(resource, 'opened', (err, stdout, stderr) => {
             if(err){
                 Display.showError(err.message);
@@ -317,7 +329,7 @@ export namespace PerforceCommands
                 reject();
                 return;
             }
-            //TODO: find proper workspace
+            
             let resource = Uri.file(file);
             const args = '"' + file + '"';
             PerforceService.execute(resource, 'where', (err, stdout, stderr) => {
@@ -334,9 +346,24 @@ export namespace PerforceCommands
         });
     }
 
+    // Try to guess the proper workspace to use
+    function guessWorkspaceUri(): Uri {
+        if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
+            let wksFolder = workspace.getWorkspaceFolder( window.activeTextEditor.document.uri )
+            if (wksFolder) {
+                return wksFolder.uri;
+            }
+        }
+
+        if (workspace.workspaceFolders) {
+            return workspace.workspaceFolders[0].uri;
+        } else {
+            return Uri.parse('');
+        }
+    }
+
     export function logout() {
-        //TODO: find proper workspace
-        let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+        let resource = guessWorkspaceUri();
         PerforceService.execute(resource, 'logout', (err, stdout, stderr) => {
             if(err) {
                 Display.showError(err.message);
@@ -353,8 +380,7 @@ export namespace PerforceCommands
     }
 
     export function login() {
-        //TODO: find proper workspace
-        let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+        let resource = guessWorkspaceUri();
         PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
             if(err || stderr) {
                 window.showInputBox({'prompt': 'Enter password', 'password': true}).then(passwd => {
