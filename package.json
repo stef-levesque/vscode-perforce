@@ -139,6 +139,7 @@
           "type": "string",
           "description": "Controls the badge counter for Perforce",
           "enum": [
+            "all-but-shelved",
             "all",
             "off"
           ],
@@ -146,7 +147,7 @@
             "Include all files in count (default)",
             "No badge counter"
           ],
-          "default": "all"
+          "default": "all-but-shelved"
         },
         "perforce.changelistOrder": {
           "type": "string",

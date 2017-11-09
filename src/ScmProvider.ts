@@ -31,14 +31,17 @@ export class PerforceSCMProvider {
     public get label(): string { return 'Perforce'; }
     public get count(): number {
         const countBadge = workspace.getConfiguration('perforce').get<string>('countBadge');
-        const total = this._model.ResourceGroups.reduce((r, g) => r + g.resourceStates.length, 0);
+        let statuses = this._model.ResourceGroups.reduce((a, b) => a.concat( b.resourceStates.reduce((c,d) => c.concat( (d as Resource).status ), [])), []);
 
+        // Don't count MOVE_DELETE as we already count MOVE_ADD
         switch (countBadge) {
             case 'off': 
                 return 0;
+            case 'all-but-shelved':
+                return statuses.filter(s => s != Status.SHELVE && s != Status.MOVE_DELETE).length;
             case 'all':
             default: 
-                return total;
+                return statuses.filter(s => s != Status.MOVE_DELETE).length; 
         }
     }
 
