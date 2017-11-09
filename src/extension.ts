@@ -46,19 +46,21 @@ function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
                 if (!trailingSlash.exec(config.p4Dir)) config.p4Dir += '/';
             }
 
-            if (PerforceService.getConfig(wksFolder ? wksFolder.uri.fsPath : '')) {
+            let wksUri = wksFolder && wksFolder.uri ? wksFolder.uri : vscode.Uri.parse('');
+
+            if (PerforceService.getConfig(wksUri.fsPath)) {
                 return false;
             }
 
-            PerforceService.addConfig(config, wksFolder ? wksFolder.uri.fsPath : ''); //TODO: valid default case ?
-            _disposable.push(new PerforceSCMProvider(config, wksFolder.uri, compatibilityMode));
+            PerforceService.addConfig(config, wksUri.fsPath);
+            _disposable.push(new PerforceSCMProvider(config, wksUri, compatibilityMode));
+            _disposable.push(new FileSystemListener(wksFolder));
 
             // Register only once
             if (!_isRegistered) {
                 _isRegistered = true;
 
                 _disposable.push(new PerforceContentProvider(compatibilityMode));
-                _disposable.push(new FileSystemListener());
 
                 // todo: fix dependency / order of operations issues
                 PerforceCommands.registerCommands();
@@ -99,8 +101,7 @@ function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
         
             // asRelativePath doesn't catch if cliRoot IS wksRoot, so using startsWith
             // const rel = Utils.normalize(workspace.asRelativePath(cliRoot));
-        
-            // todo: per workspace folder for new interface
+
             const wksRootN = Utils.normalize(wksFolder.uri.fsPath);
             if (wksRootN.startsWith(cliRoot)) return resolve( CreateP4({ localDir: wksRootN }) );
         
