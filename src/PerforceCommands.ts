@@ -51,7 +51,7 @@ export namespace PerforceCommands
         PerforceService.execute(fileUri, "add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file opened for add");
+                Display.showMessage("file opened for add");
             }
         }, args, directoryOverride);
     }    
@@ -78,9 +78,9 @@ export namespace PerforceCommands
             PerforceService.execute(fileUri, "edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
                 if(!err) {
-                    Display.showError("file opened for edit");
+                    Display.showMessage("file opened for edit");
                 }
-                reject(err);
+                resolve(!err);
             }, args, directoryOverride);
         });
     }
@@ -90,7 +90,7 @@ export namespace PerforceCommands
         PerforceService.execute(fileUri, "delete", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file marked for delete");
+                Display.showMessage("file marked for delete");
             }
         }, args);
     }
@@ -112,7 +112,7 @@ export namespace PerforceCommands
         PerforceService.execute(fileUri, "revert", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file reverted");
+                Display.showMessage("file reverted");
             }
         }, args, directoryOverride);
     }
