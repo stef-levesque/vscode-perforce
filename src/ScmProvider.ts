@@ -156,15 +156,17 @@ export class PerforceSCMProvider {
     };
 
     public static async EditChangelist(input: SourceControlResourceGroup) {
-        //TODO: fix
-        // let provider = PerforceSCMProvider.GetInstance(input.source);
-        // provider._model.EditChangelist(input);
+        let model: Model = input['model'];
+        if (model) {
+            model.EditChangelist(input);
+        }
     };
 
     public static async Describe(input: SourceControlResourceGroup) {
-        //TODO: fix
-        // let provider = PerforceSCMProvider.GetInstance(input.source);
-        // provider._model.Describe(input);
+        let model: Model = input['model'];
+        if (model) {
+            model.Describe(input);
+        }
     };
 
     public static async SubmitDefault(sourceControl: SourceControl) {
@@ -173,30 +175,26 @@ export class PerforceSCMProvider {
     };
     
     public static async Submit(input: SourceControlResourceGroup) {
-        //TODO: fix
-        // let provider = PerforceSCMProvider.GetInstance(input.source);
-        // provider._model.Submit(input);
+        let model: Model = input['model'];
+        if (model) {
+            model.Submit(input);
+        }
     };
 
     public static async Revert(input: Resource | SourceControlResourceGroup) {
-        let provider: PerforceSCMProvider = null;
-        if (input instanceof Resource) {
-            provider = PerforceSCMProvider.GetInstance(input.uri);
-        } else {
-            //provider = PerforceSCMProvider.GetInstance(input.source);
+        let model: Model = input['model'];
+        
+        if (model) {
+            model.Revert(input);
         }
-
-        provider._model.Revert(input);
     };
 
     public static async ShelveOrUnshelve(input: Resource): Promise<void> {
-        let provider = PerforceSCMProvider.GetInstance(input.uri);
-        provider._model.ShelveOrUnshelve(input);
+        input.model.ShelveOrUnshelve(input);
     };
 
     public static async ReopenFile(input: Resource): Promise<void> {
-        let provider = PerforceSCMProvider.GetInstance(input.uri);
-        provider._model.ReopenFile(input);
+        input.model.ReopenFile(input);
     };
 
     provideOriginalResource(uri: Uri): ProviderResult<Uri> {

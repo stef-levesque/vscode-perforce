@@ -436,6 +436,7 @@ export class Model implements Disposable {
         let shelved = new Map<number, Resource[]>();
 
         this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
+        this._defaultGroup['model'] = this;
         this._pendingGroups.clear(); // dispose ?
 
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
@@ -464,6 +465,7 @@ export class Model implements Disposable {
 
                 if (!this._pendingGroups.has(chnum)) {
                     const group = this._sourceControl.createResourceGroup('pending:' + chnum, '#' + chnum + ': ' + description);
+                    group['model'] = this;
                     group.resourceStates = [];
                     this._pendingGroups.set(chnum, { description: description, group: group });
                 } else {
@@ -475,7 +477,7 @@ export class Model implements Disposable {
                         pendings.set(chnum, []);
                     }
                     value.forEach(element => {
-                        const resource: Resource = new Resource(Uri.file(element), chnum.toString(), "shelve");
+                        const resource: Resource = new Resource(this, Uri.file(element), chnum.toString(), "shelve");
                         pendings.get(chnum).push(resource);
                     });
                 });
@@ -492,7 +494,7 @@ export class Model implements Disposable {
                 const action = info['action'];
                 const headType = info['headType'];
                 const uri = Uri.file(clientFile);
-                const resource: Resource = new Resource(uri, change, action, headType);
+                const resource: Resource = new Resource(this, uri, change, action, headType);
 
                 if (change.startsWith('default')) {
                     defaults.push(resource);
