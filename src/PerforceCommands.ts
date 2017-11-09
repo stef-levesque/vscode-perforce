@@ -3,8 +3,8 @@
 import {
     commands, workspace, window, Uri,
     ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
-    OverviewRulerLane, Disposable, ExtensionContext, Range,
-    TextDocument, TextEditor, TextEditorSelectionChangeEvent } from 'vscode';
+    OverviewRulerLane, Disposable, ExtensionContext, Range, QuickPickItem,
+    TextDocument, TextEditor, TextEditorSelectionChangeEvent, WorkspaceFolder } from 'vscode';
 
 import * as Path from 'path';
 import * as fs from 'fs';
@@ -23,53 +23,13 @@ export namespace PerforceCommands
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
         commands.registerCommand('perforce.annotate', annotate);
-        commands.registerCommand('perforce.info', info);
         commands.registerCommand('perforce.opened', opened);
         commands.registerCommand('perforce.logout', logout);
         commands.registerCommand('perforce.login', login);
         commands.registerCommand('perforce.showOutput', showOutput);
         commands.registerCommand('perforce.menuFunctions', menuFunctions);
 
-        // SCM commands
-        commands.registerCommand('perforce.Sync', () => {
-            PerforceSCMProvider.Sync();
-        });
-        commands.registerCommand('perforce.Refresh', () => {
-            PerforceSCMProvider.Refresh();
-        });
-        commands.registerCommand('perforce.openFile', (e) => {
-            PerforceSCMProvider.OpenFile(e);
-        });
-        commands.registerCommand('perforce.openResource', (e) => {
-            PerforceSCMProvider.Open(e);
-        });
-        commands.registerCommand('perforce.submitDefault', () => {
-            PerforceSCMProvider.SubmitDefault();
-        });
-        commands.registerCommand('perforce.processChangelist', () => {
-            PerforceSCMProvider.ProcessChangelist();
-        });
-        commands.registerCommand('perforce.editChangelist', (e) => {
-            PerforceSCMProvider.EditChangelist(e);
-        });
-        commands.registerCommand('perforce.describe', (e) => {
-            PerforceSCMProvider.Describe(e);
-        });
-        commands.registerCommand('perforce.submitChangelist', (e) => {
-            PerforceSCMProvider.Submit(e);
-        });
-        commands.registerCommand('perforce.revertChangelist', (e) => {
-            PerforceSCMProvider.Revert(e);
-        });
-        commands.registerCommand('perforce.shelveunshelve', (e) => {
-            PerforceSCMProvider.ShelveOrUnshelve(e);
-        });
-        commands.registerCommand('perforce.revertFile', (e) => {
-            PerforceSCMProvider.Revert(e);
-        });
-        commands.registerCommand('perforce.reopenFile', (e) => {
-            PerforceSCMProvider.ReopenFile(e);
-        });
+
     }
 
     function addOpenFile() {
@@ -78,20 +38,24 @@ export namespace PerforceCommands
             return false;
         }
 
-        var filePath = editor.document.uri.fsPath;
+        if(!editor || !editor.document) {
+            return false;
+        }
+
+        var fileUri = editor.document.uri;
         if(checkFolderOpened()) {
-            add(filePath);
+            add(fileUri);
         } else {
-            add(filePath, Path.dirname(filePath));
+            add(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function add(filePath: string, directoryOverride?: string) {
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("add", (err, stdout, stderr) => {
+    export function add(fileUri: Uri, directoryOverride?: string) {
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "add", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file opened for add");
+                Display.showMessage("file opened for add");
             }
         }, args, directoryOverride);
     }    
@@ -102,35 +66,39 @@ export namespace PerforceCommands
             return false;
         }
 
-        var filePath = editor.document.uri.fsPath; 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
+        var fileUri = editor.document.uri; 
 
         //If folder not opened, run p4 in files folder.
         if(checkFolderOpened()) {
-            edit(filePath);
+            edit(fileUri);
         } else {
-            edit(filePath, Path.dirname(filePath));
+            edit(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function edit(filePath: string, directoryOverride?: string): Promise<boolean> {
+    export function edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            const args = '"' + Utils.expansePath(filePath) + '"';
-            PerforceService.execute("edit", (err, stdout, stderr) => {
+            const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+            PerforceService.execute(fileUri, "edit", (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
                 if(!err) {
-                    Display.showError("file opened for edit");
+                    Display.showMessage("file opened for edit");
                 }
-                reject(err);
+                resolve(!err);
             }, args, directoryOverride);
         });
     }
 
-    export function p4delete(filePath: string) {
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("delete", (err, stdout, stderr) => {
+    export function p4delete(fileUri: Uri) {
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "delete", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file marked for delete");
+                Display.showMessage("file marked for delete");
             }
         }, args);
     }
@@ -141,18 +109,22 @@ export namespace PerforceCommands
             return false;
         }
 
-        //If folder not opened, overrided p4 directory
-        var filePath = editor.document.uri.fsPath;
-        var directoryOverride = null;
-        if(!checkFolderOpened()) {
-            directoryOverride = Path.dirname(filePath);
+        if (!editor || !editor.document) {
+            return false;
         }
 
-        const args = '"' + Utils.expansePath(filePath) + '"';
-        PerforceService.execute("revert", (err, stdout, stderr) => {
+        //If folder not opened, overrided p4 directory
+        var fileUri = editor.document.uri
+        var directoryOverride;
+        if(!checkFolderOpened()) {
+            directoryOverride = Path.dirname(fileUri.fsPath);
+        }
+
+        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        PerforceService.execute(fileUri, "revert", (err, stdout, stderr) => {
             PerforceService.handleCommonServiceResponse(err, stdout, stderr);
             if(!err) {
-                Display.showError("file reverted");
+                Display.showMessage("file reverted");
             }
         }, args, directoryOverride);
     }
@@ -167,12 +139,16 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         var doc = editor.document;
 
         if(!doc.isUntitled) {
-            Utils.getFile('print', doc.uri.fsPath, revision).then((tmpFile: string) => {
+            Utils.getFile('print', doc.uri, revision).then((tmpFile: string) => {
                 var tmpFileUri = Uri.file(tmpFile)
-                var revisionLabel = isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
+                var revisionLabel = !revision || isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
                 commands.executeCommand('vscode.diff', tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + ' - Diff Against ' + revisionLabel);
             }, (err) => {
                 Display.showError(err.toString());
@@ -190,16 +166,21 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         var doc = editor.document;
 
         const args = '-s "' + Utils.expansePath(doc.uri.fsPath) + '"';
-        PerforceService.execute('filelog', (err, stdout, stderr) => {
+        PerforceService.execute(doc.uri, 'filelog', (err, stdout, stderr) => {
             if (err) {
                 Display.showError(err.message);
             } else if (stderr) {
                 Display.showError(stderr.toString());
             } else {
-                let revisions = stdout.split('\n'), revisionsData = [];
+                let revisions = stdout.split('\n');
+                let revisionsData: QuickPickItem[] = [];
                 revisions.shift();  // remove the first line - filename
                 revisions.forEach(revisionInfo => {
                     if (revisionInfo.indexOf('... #') === -1)
@@ -208,13 +189,16 @@ export namespace PerforceCommands
                     let splits = revisionInfo.split(' ');
                     let rev = splits[1].substring(1);    // splice 1st character '#'
                     let change = splits[3];
-                    let changedesc = revisionInfo.substring(revisionInfo.indexOf(splits[9]) + splits[9].length + 1);
-                    let label = '#' + rev + '  change: ' + change + '  Desc: ' + changedesc;
-                    revisionsData.push({ rev: rev, change: change, changedesc: changedesc, label: label })
+                    let label = `#${rev} change: ${change}`;
+                    let description = revisionInfo.substring(revisionInfo.indexOf(splits[9]) + splits[9].length + 1);
+
+                    revisionsData.push({ label, description });
                 });
 
                 window.showQuickPick(revisionsData).then( revision => {
-                    diff(parseInt(revision.rev));
+                    if (revision) {
+                        diff(parseInt(revision.label.substring(1)));
+                    }
                 })
 
             }
@@ -225,6 +209,10 @@ export namespace PerforceCommands
     export async function annotate() {
         var editor = window.activeTextEditor;
         if (!checkFileSelected()) {
+            return false;
+        }
+
+        if (!editor || !editor.document) {
             return false;
         }
 
@@ -247,7 +235,7 @@ export namespace PerforceCommands
         let colorIndex = 0;
         let lastNum = '';
 
-        const output: string = await Utils.getOutput('annotate', doc.uri.fsPath, null, args);
+        const output: string = await Utils.runCommandForFile('annotate', doc.uri, undefined, args);
         const annotations = output.split(/\r?\n/);
 
         for (let i = 0, n = annotations.length; i < n; ++i) {
@@ -293,21 +281,25 @@ export namespace PerforceCommands
 
     }
 
-    export function info() {
-        if(!checkFolderOpened()) {
-            return false;
-        }
-
-        showOutput();
-        PerforceService.execute('info', PerforceService.handleInfoServiceResponse);
-    }
-
     export function opened() {
         if(!checkFolderOpened()) {
             return false;
         }
-
-        PerforceService.execute('opened', (err, stdout, stderr) => {
+        if (!workspace.workspaceFolders) {
+            return false;
+        }
+        let resource = workspace.workspaceFolders[0].uri;
+        if (workspace.workspaceFolders.length > 1 ) {
+            // try to find the proper workspace
+            if (window.activeTextEditor && window.activeTextEditor.document) {
+                let wksFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
+                if (wksFolder) {
+                    resource = wksFolder.uri;
+                }
+            }
+        }
+        
+        PerforceService.execute(resource, 'opened', (err, stdout, stderr) => {
             if(err){
                 Display.showError(err.message);
             } else if(stderr) {
@@ -357,8 +349,10 @@ export namespace PerforceCommands
                 reject();
                 return;
             }
+            
+            let resource = Uri.file(file);
             const args = '"' + file + '"';
-            PerforceService.execute('where', (err, stdout, stderr) => {
+            PerforceService.execute(resource, 'where', (err, stdout, stderr) => {
                 if(err){
                     Display.showError(err.message);
                     reject(err);
@@ -372,8 +366,25 @@ export namespace PerforceCommands
         });
     }
 
+    // Try to guess the proper workspace to use
+    function guessWorkspaceUri(): Uri {
+        if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
+            let wksFolder = workspace.getWorkspaceFolder( window.activeTextEditor.document.uri )
+            if (wksFolder) {
+                return wksFolder.uri;
+            }
+        }
+
+        if (workspace.workspaceFolders) {
+            return workspace.workspaceFolders[0].uri;
+        } else {
+            return Uri.parse('');
+        }
+    }
+
     export function logout() {
-        PerforceService.execute('logout', (err, stdout, stderr) => {
+        let resource = guessWorkspaceUri();
+        PerforceService.execute(resource, 'logout', (err, stdout, stderr) => {
             if(err) {
                 Display.showError(err.message);
                 return false;
@@ -389,10 +400,11 @@ export namespace PerforceCommands
     }
 
     export function login() {
-        PerforceService.execute('login', (err, stdout, stderr) => {
+        let resource = guessWorkspaceUri();
+        PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
             if(err || stderr) {
                 window.showInputBox({'prompt': 'Enter password', 'password': true}).then(passwd => {
-                    PerforceService.execute('login', (err, stdout, stderr) => {
+                    PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
                         if (err) {
                             Display.showError(err.message);
                             return false;
@@ -404,7 +416,7 @@ export namespace PerforceCommands
                             Display.updateEditor();
                             return true;
                         }
-                    }, null, null, passwd);
+                    }, undefined, undefined, passwd);
                 });
 
             } else {
@@ -420,11 +432,10 @@ export namespace PerforceCommands
     }
 
     export function menuFunctions() {
-        var items = [];
+        var items: QuickPickItem[] = [];
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({ label: "revert", description: "Discard changes from an opened file" });
-        items.push({ label: "submitDefault", description: "Submit or Save the default changelist" });
         items.push({ label: "diff", description: "Display diff of client file with depot file" });
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
         items.push({ label: "annotate", description: "Print file lines and their revisions" });
@@ -445,9 +456,6 @@ export namespace PerforceCommands
                 case "revert":
                     revert();
                     break;
-                case "submitDefault":
-                    PerforceSCMProvider.SubmitDefault();
-                    break;
                 case "diff":
                     diff();
                     break;
@@ -456,9 +464,6 @@ export namespace PerforceCommands
                     break;
                 case "annotate":
                     annotate();
-                    break;
-                case "info":
-                    info();
                     break;
                 case "opened":
                     opened();
@@ -485,7 +490,7 @@ export namespace PerforceCommands
     }
 
     export function checkFolderOpened() {
-        if (workspace.rootPath == undefined) {
+        if (workspace.workspaceFolders === undefined) {
             Display.showMessage("No folder selected\n");
             return false;
         }

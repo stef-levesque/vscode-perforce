@@ -1,4 +1,4 @@
-import { workspace, Uri, Disposable, Event, EventEmitter } from 'vscode';
+import { window, workspace, Uri, Disposable, Event, EventEmitter } from 'vscode';
 import { Utils } from './Utils';
 import { Display } from './Display';
 
@@ -19,21 +19,30 @@ export class PerforceContentProvider {
     }
 
     public provideTextDocumentContent(uri: Uri): Promise<string> {
-        return Utils.isLoggedIn(this.compatibilityMode).then(value => {
-            if (!value) {
-                return '';
-            }
-
+        return new Promise<string>((resolve) => {
             let command: string = uri.authority;
-            let file: Uri = uri.fsPath ? Uri.file(uri.fsPath) : null;
+            let file = uri.fsPath ? Uri.file(uri.fsPath) : null;
             let revision: number = parseInt(uri.fragment);
             let args: string = decodeURIComponent(uri.query);
 
-            return Utils.getOutput(command, file, revision, args);
+            if (!file) {
+                // Try to guess the proper workspace to use
+                if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
+                    const resource = window.activeTextEditor.document.uri;
+                    return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args).then(resolve);
+                } else if (workspace.workspaceFolders) {
+                    const resource = workspace.workspaceFolders[0].uri;
+                    return Utils.runCommand(resource, command, null, revision, args).then(resolve);
+                } else {
+                    throw new Error(`Can't find proper workspace for command ${command} `);
+                }
+            } else {
+                return Utils.runCommandForFile(command, file, revision, args).then(resolve);
+            }
             
         }).catch(reason => {
             Display.showError(reason.toString());
             return '';
-        })
+        });
     }
 }

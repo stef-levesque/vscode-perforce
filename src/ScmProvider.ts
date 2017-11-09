@@ -4,10 +4,14 @@ import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
 import { mapEvent } from './Utils';
 import { FileType } from './scm/FileTypes';
+import { IPerforceConfig, matchConfig } from './PerforceService';
 import * as Path from 'path';
+import { PerforceCommands } from './PerforceCommands';
 
 export class PerforceSCMProvider {
     private compatibilityMode: string;
+    private wksFolder: Uri;
+    private config: IPerforceConfig;
 
     private disposables: Disposable[] = [];
     dispose(): void {
@@ -15,7 +19,7 @@ export class PerforceSCMProvider {
         this.disposables = [];
     }
 
-    private static instance: PerforceSCMProvider = undefined;
+    private static instances: PerforceSCMProvider[] = [];
     private _model: Model;
 
     get onDidChange(): Event<this> {
@@ -46,25 +50,27 @@ export class PerforceSCMProvider {
     }
 
     get stateContextKey(): string {
-        if (workspace.rootPath == undefined) {
+        if (workspace.workspaceFolders == undefined) {
             return 'norepo';
         }
 
         return 'idle'
     }
 
-    constructor(compatibilityMode: string) {
+    constructor(config: IPerforceConfig, wksFolder: Uri, compatibilityMode: string) {
         this.compatibilityMode = compatibilityMode;
+        this.wksFolder = wksFolder;
+        this.config = config;
         this.Initialize();
     }
 
     public Initialize() {
-        this._model = new Model(this.compatibilityMode);
+        this._model = new Model(this.config, this.wksFolder, this.compatibilityMode);
 
-        PerforceSCMProvider.instance = this;
-        this._model._sourceControl = scm.createSourceControl(this.id, this.label);
+        PerforceSCMProvider.instances.push(this);
+        this._model._sourceControl = scm.createSourceControl(this.id, this.label, Uri.file(this.config.localDir));
         this._model._sourceControl.quickDiffProvider = this;
-        this._model._sourceControl.acceptInputCommand = { command: 'perforce.processChangelist', title: 'Process Changelist'};
+        this._model._sourceControl.acceptInputCommand = { command: 'perforce.processChangelist', title: 'Process Changelist', arguments: [this._model._sourceControl]};
 
         // Hook up the model change event to trigger our own event
         this._model.onDidChange(this.onDidModelChange, this, this.disposables);
@@ -73,89 +79,120 @@ export class PerforceSCMProvider {
         scm.inputBox.value = '';
     }
 
+    public static registerCommands() {
+        
+        // SCM commands
+        commands.registerCommand('perforce.Refresh', PerforceSCMProvider.Refresh);
+        commands.registerCommand('perforce.info', PerforceSCMProvider.Info);
+        commands.registerCommand('perforce.Sync', PerforceSCMProvider.Sync);
+        commands.registerCommand('perforce.openFile', PerforceSCMProvider.OpenFile);
+        commands.registerCommand('perforce.openResource', PerforceSCMProvider.Open);
+        commands.registerCommand('perforce.submitDefault', PerforceSCMProvider.SubmitDefault);
+        commands.registerCommand('perforce.processChangelist', PerforceSCMProvider.ProcessChangelist);
+        commands.registerCommand('perforce.editChangelist', PerforceSCMProvider.EditChangelist);
+        commands.registerCommand('perforce.describe', PerforceSCMProvider.Describe);
+        commands.registerCommand('perforce.submitChangelist', PerforceSCMProvider.Submit);
+        commands.registerCommand('perforce.revertChangelist', PerforceSCMProvider.Revert);
+        commands.registerCommand('perforce.shelveunshelve', PerforceSCMProvider.ShelveOrUnshelve);
+        commands.registerCommand('perforce.revertFile', PerforceSCMProvider.Revert);
+        commands.registerCommand('perforce.reopenFile', PerforceSCMProvider.ReopenFile);
+    }
+
     private onDidModelChange(): void {
         this._model._sourceControl.count = this.count;
         commands.executeCommand('setContext', 'perforceState', this.stateContextKey);
     }
 
-    private static GetInstance(): PerforceSCMProvider {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.instance;
-        if (!perforceProvider) {
-            console.log('perforceProvider instance undefined');
+    private static GetInstance(uri: Uri | null): PerforceSCMProvider {
+        if (!uri) {
+            return PerforceSCMProvider.instances ? PerforceSCMProvider.instances[0] : null;
+        } else {
+            const wksFolder = workspace.getWorkspaceFolder(uri);
+            if (wksFolder) {
+                for (let provider of PerforceSCMProvider.instances) {
+                    if ( matchConfig(provider.config, wksFolder.uri) ) {
+                        return provider;
+                    }
+                }
+            }
         }
-        return perforceProvider;
+        return null;
     }
 
-    public static async OpenFile(resource: Resource): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider.openFile(resource);
+    public static OpenFile(resource: Resource) {
+        commands.executeCommand<void>("vscode.open", resource.uri);
     };
 
-    public static async Open(resource: Resource): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider.open(resource);
+    public static Open(resource: Resource) {
+        PerforceSCMProvider.open(resource);
     };
 
-    public static async Sync(): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.Sync();
+    public static Sync(sourceControl: SourceControl) {
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
+        perforceProvider._model.Sync();
     };
 
-    public static async Refresh(): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.Refresh();
+    public static Refresh(sourceControl: SourceControl) {
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
+        perforceProvider._model.Refresh();
     };
 
-    public static async ProcessChangelist(): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.ProcessChangelist();
+    public static RefreshAll() {
+        for (let provider of PerforceSCMProvider.instances) {
+            provider._model.Refresh();
+        }
     };
 
-    public static async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.EditChangelist(input);
+    public static Info(sourceControl: SourceControl) {
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
+        provider._model.Info();
     };
 
-    public static async Describe(input: SourceControlResourceGroup): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.Describe(input);
+    public static ProcessChangelist(sourceControl: SourceControl) {
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
+        provider._model.ProcessChangelist();
     };
 
-    public static async SubmitDefault(): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
+    public static async EditChangelist(input: SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        if (model) {
+            model.EditChangelist(input);
+        }
+    };
 
-        await perforceProvider._model.SubmitDefault();
+    public static async Describe(input: SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        if (model) {
+            model.Describe(input);
+        }
+    };
+
+    public static async SubmitDefault(sourceControl: SourceControl) {
+        let provider = PerforceSCMProvider.GetInstance(sourceControl ? sourceControl.rootUri : null);
+        provider._model.SubmitDefault();
     };
     
-    public static async Submit(input?: Resource | SourceControlResourceGroup): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.Submit(input);
+    public static async Submit(input: SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        if (model) {
+            model.Submit(input);
+        }
     };
 
-    public static async Revert(input: Resource | SourceControlResourceGroup): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.Revert(input);
+    public static async Revert(input: Resource | SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        
+        if (model) {
+            model.Revert(input);
+        }
     };
 
     public static async ShelveOrUnshelve(input: Resource): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.ShelveOrUnshelve(input);
+        input.model.ShelveOrUnshelve(input);
     };
 
     public static async ReopenFile(input: Resource): Promise<void> {
-        const perforceProvider: PerforceSCMProvider = PerforceSCMProvider.GetInstance();
-
-        await perforceProvider._model.ReopenFile(input);
+        input.model.ReopenFile(input);
     };
 
     provideOriginalResource(uri: Uri): ProviderResult<Uri> {
@@ -174,7 +211,7 @@ export class PerforceSCMProvider {
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
 
-    private open(resource: Resource): void {
+    private static open(resource: Resource): void {
         if(resource.FileType.base === FileType.BINARY) {
             const uri = resource.uri.with({ scheme: 'perforce', authority: 'fstat' });
             workspace.openTextDocument(uri)
@@ -182,9 +219,9 @@ export class PerforceSCMProvider {
             return;
         }
 
-        const left: Uri = this.getLeftResource(resource);
-        const right: Uri = this.getRightResource(resource);
-        const title: string = this.getTitle(resource);
+        const left: Uri = PerforceSCMProvider.getLeftResource(resource);
+        const right: Uri = PerforceSCMProvider.getRightResource(resource);
+        const title: string = PerforceSCMProvider.getTitle(resource);
 
         if (!left) {
             if (!right) {
@@ -199,12 +236,8 @@ export class PerforceSCMProvider {
         return;
     }
 
-    private openFile(resource: Resource): void {
-        commands.executeCommand<void>("vscode.open", resource.uri);
-    }
-
     // Gets the uri for the previous version of the file.
-    private getLeftResource(resource: Resource): Uri | undefined {
+    private static getLeftResource(resource: Resource): Uri | undefined {
         switch (resource.status) {
             case Status.EDIT:
                 return resource.uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
@@ -212,7 +245,7 @@ export class PerforceSCMProvider {
     }
 
     // Gets the uri for the current version of the file (except for deleted files).
-    private getRightResource(resource: Resource): Uri | undefined {
+    private static getRightResource(resource: Resource): Uri | undefined {
         switch (resource.status) {
             case Status.ADD:
             case Status.EDIT:
@@ -225,7 +258,7 @@ export class PerforceSCMProvider {
         }
     }
 
-    private getTitle(resource: Resource): string {
+    private static getTitle(resource: Resource): string {
         const basename = Path.basename(resource.uri.fsPath);
 
         switch (resource.status) {

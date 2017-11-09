@@ -22,14 +22,15 @@
     "theme": "dark"
   },
   "engines": {
-    "vscode": "^1.12.1"
+    "vscode": "^1.18.0-insider"
   },
   "enableProposedApi": false,
   "keywords": [
     "vscode",
     "scm",
     "perforce",
-    "sourcedepot"
+    "sourcedepot",
+    "multi-root ready"
   ],
   "main": "./out/src/extension",
   "activationEvents": [
@@ -93,27 +94,32 @@
         "perforce.client": {
           "type": "string",
           "default": "none",
-          "description": "Overrides any P4CLIENT setting with the specified client name"
+          "description": "Overrides any P4CLIENT setting with the specified client name",
+          "scope": "resource"
         },
         "perforce.user": {
           "type": "string",
           "default": "none",
-          "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name"
+          "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name",
+          "scope": "resource"
         },
         "perforce.port": {
           "type": "string",
           "default": "none",
-          "description": "Overrides any P4PORT setting with the specified protocol:host:port"
+          "description": "Overrides any P4PORT setting with the specified protocol:host:port",
+          "scope": "resource"
         },
         "perforce.password": {
           "type": "string",
           "default": "none",
-          "description": "Overrides any P4PASSWD setting with the specified password"
+          "description": "Overrides any P4PASSWD setting with the specified password",
+          "scope": "resource"
         },
         "perforce.dir": {
           "type": "string",
           "default": "none",
-          "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory"
+          "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory",
+          "scope": "resource"
         },
         "perforce.command": {
           "type": "string",
@@ -514,10 +520,6 @@
         "when": "editorTextFocus"
       },
       {
-        "key": "alt+p i",
-        "command": "perforce.info"
-      },
-      {
         "key": "alt+p o",
         "command": "perforce.opened"
       },
@@ -528,15 +530,16 @@
     ]
   },
   "dependencies": {
-    "tmp": "^0.0.31",
+    "tmp": "^0.0.33",
     "ini": "^1.3.4",
     "micromatch": "^3.0.3",
     "parse-gitignore": "^0.4.0"
   },
   "devDependencies": {
-    "vscode": "^1.1.5",
     "@types/node": "^8.0.8",
-    "typescript": "^2.0.3"
+    "@types/tmp": "^0.0.33",
+    "typescript": "^2.0.3",
+    "vscode": "^1.1.6"
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",

@@ -52,14 +52,14 @@ export namespace Utils {
         return map;
     }
 
-    export function isLoggedIn(compatibilityMode: string): Promise<boolean> {
+    export function isLoggedIn(resource: Uri, compatibilityMode: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             if (compatibilityMode === 'sourcedepot') {
                 resolve(true);
                 return;
             }
-
-            PerforceService.execute('login', (err, stdout, stderr) => {
+            
+            PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
                 if (err) {
@@ -73,25 +73,41 @@ export namespace Utils {
         });
     }
 
+    export function getSimpleOutput(resource: Uri, command: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            PerforceService.execute(resource, command, (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                stderr && Display.showError(stderr.toString());
+                if (err) {
+                    reject(err);
+                } else if (stderr) {
+                    reject(stderr);
+                } else {
+                    resolve(stdout);
+                }
+            });
+        });
+    }
+
     // Get a string containing the output of the command
-    export function getOutput(command: string, file?: Uri | string, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function runCommand(resource: Uri, command: string, file?: Uri | null, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
-
+    
             if (gOpts != null) {
                 command = gOpts + ' ' + command;
             }
-
+    
             var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
-
+    
             if (file) {
                 let path = (typeof file === 'string') ? file : file.fsPath;
                 path = expansePath(path);
                 
                 args += ' "' + path + revisionString + '"';
             }
-
-            PerforceService.execute(command, (err, stdout, stderr) => {
+    
+            PerforceService.execute(resource, command, (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
                 if (err) {
@@ -105,19 +121,26 @@ export namespace Utils {
         });
     }
 
+    // Get a string containing the output of the command specific to a file
+    export function runCommandForFile(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+        let resource = file;
+        return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
+    }
+
     // Get a path to a file containing the output of the command
-    export function getFile(command: string, localFilePath?: string, revision?: number, prefixArgs?: string): Promise<string> {
+    export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
+        let resource = file;
         return new Promise((resolve, reject) => {
             var args = prefixArgs != null ? prefixArgs : '';
             var revisionString: string = isNaN(revision) ? '' : `#${revision}`;
 
-            var ext = Path.extname(localFilePath);
+            var ext = Path.extname(file.fsPath);
             var tmp = require("tmp");
             var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
 
             var requirePipe = true;
             if (command == "print") {
-                if (localFilePath == null) {
+                if (!file.fsPath) {
                     reject("P4 Print command require a file path");
                 }
 
@@ -126,8 +149,8 @@ export namespace Utils {
                 requirePipe = false;
             }
 
-            if (localFilePath != null) {
-                args += ' "' + expansePath(localFilePath) + revisionString + '"'
+            if (file.fsPath) {
+                args += ' "' + expansePath(file.fsPath) + revisionString + '"';
             }
 
             if (requirePipe) {
@@ -135,7 +158,7 @@ export namespace Utils {
                 args += ' > "' + tmpFilePath + '"';
             }
 
-            PerforceService.execute("print", (err, strdout, stderr) => {
+            PerforceService.execute(resource, "print", (err, strdout, stderr) => {
                 if (err) {
                     reject(err);
                 } else if (stderr) {

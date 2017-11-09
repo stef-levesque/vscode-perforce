@@ -7,7 +7,9 @@ import {
     FileSystemWatcher,
     TextDocument,
     TextDocumentChangeEvent,
-    Uri
+    RelativePattern,
+    Uri,
+    WorkspaceFolder
 } from 'vscode';
 
 import * as micromatch from 'micromatch';
@@ -19,31 +21,38 @@ import {PerforceService} from './PerforceService';
 
 export default class FileSystemListener
 {
+    private static _eventRegistered: boolean = false;
+    private static _lastCheckedFilePath: Uri;
+
     private _disposable: Disposable;
     private _watcher: FileSystemWatcher;
 
-    private _lastCheckedFilePath: string;
     private _p4ignore: string[];
 
-    constructor() {
+    constructor(workspaceFolder: WorkspaceFolder) {
         const subscriptions: Disposable[] = [];
         window.onDidChangeActiveTextEditor(Display.updateEditor, this, subscriptions);
 
         var config = workspace.getConfiguration('perforce');
 
         if(config && PerforceCommands.checkFolderOpened()) {
-            if(config['editOnFileSave']) {
-                workspace.onWillSaveTextDocument(e => {
-                    e.waitUntil(this.onWillSaveFile(e.document));
-                }, this, subscriptions);
-            }
-            
-            if(config['editOnFileModified']) {
-                workspace.onDidChangeTextDocument(this.onFileModified, this, subscriptions);
+
+            if (!FileSystemListener._eventRegistered) {
+                if(config['editOnFileSave']) {
+                    workspace.onWillSaveTextDocument(e => {
+                        e.waitUntil(FileSystemListener.onWillSaveFile(e.document));
+                    });
+                }
+                
+                if(config['editOnFileModified']) {
+                    workspace.onDidChangeTextDocument(FileSystemListener.onFileModified);
+                }
+                FileSystemListener._eventRegistered = true;
             }
 
             if(config['addOnFileCreate'] || config['deleteOnFileDelete']) {
-                this._watcher = workspace.createFileSystemWatcher('**/*', false, true, false);
+                let pattern = new RelativePattern(workspaceFolder ? workspaceFolder : '', '**/*');
+                this._watcher = workspace.createFileSystemWatcher(pattern, false, true, false);
 
                 if(config['addOnFileCreate']) {
                     this._watcher.onDidCreate(this.onFileCreated, this, subscriptions);
@@ -57,8 +66,12 @@ export default class FileSystemListener
 
         this._p4ignore = [];
 
-        const p4IgnoreFileName = process.env.P4IGNORE ? process.env.P4IGNORE : '.p4ignore';
-        workspace.findFiles(p4IgnoreFileName, null, 1).then((result) => {
+        let p4IgnoreFileName = process.env.P4IGNORE;
+        if (!p4IgnoreFileName) {
+            p4IgnoreFileName = '.p4ignore';
+        }
+        let pattern = new RelativePattern(workspaceFolder ? workspaceFolder : '', p4IgnoreFileName);
+        workspace.findFiles(pattern, undefined, 1).then((result) => {
             if (result && result.length > 0) {
                 this._p4ignore = parseignore(result[0].fsPath);
             }
@@ -71,66 +84,57 @@ export default class FileSystemListener
         this._disposable.dispose();
     }
 
-    private onWillSaveFile(doc: TextDocument): Promise<boolean> {
-        return this.tryEditFile(doc.uri.fsPath);
+    private static onWillSaveFile(doc: TextDocument): Promise<boolean> {
+        return FileSystemListener.tryEditFile(doc.uri);
     }
 
-    private onFileModified(docChange: TextDocumentChangeEvent) {
-        var docPath = docChange.document.uri.fsPath;
+    private static onFileModified(docChange: TextDocumentChangeEvent) {
+        var docUri = docChange.document.uri;
 
         //If this doc has already been checked, just returned
-        if(docPath == this._lastCheckedFilePath) {
+        if (docUri.toString() == this._lastCheckedFilePath.toString()) {
             return;
         }
 
         //Only try to open files open in the editor
         var editor = window.activeTextEditor;
-        if(!editor || !editor.document || editor.document.uri.fsPath != docPath) {
+        if (!editor || !editor.document || editor.document.uri.toString() != docUri.toString()) {
             return;
         }
 
-        this._lastCheckedFilePath = docPath;
-        this.tryEditFile(docPath);
+        FileSystemListener._lastCheckedFilePath = docUri;
+        FileSystemListener.tryEditFile(docUri);
     }
 
-    private tryEditFile(docPath: string): Promise<boolean> {
-        docPath = PerforceService.convertToRel(docPath);
-        
-        return new Promise((resolve, reject) => {
-            //Check if this file is in client root first
-            this.fileInClientRoot(docPath).then((inClientRoot) => {
-                if(inClientRoot) {
-                    return this.fileIsOpened(docPath);
+    private static async tryEditFile(uri: Uri): Promise<boolean> {
+        try {
+            if (await FileSystemListener.fileInClientRoot(uri)) {
+                if(await FileSystemListener.fileIsOpened(uri) == false) {
+                    //If not opened, open file for edit
+                    return PerforceCommands.edit(uri);
+                } else {
+                    return true;
                 }
-                resolve();
-            }).then((isOpened) => {
-                //If not opened, open file for edit
-                if(!isOpened) {
-                    return PerforceCommands.edit(docPath);
-                }
-                resolve();
-            }).then((openedForEdit) => {
-                resolve();
-            }).catch((reason) => {
-                if(reason) Display.showError(reason.toString());
-                reject(reason);
-            });
-        });
+            }
+        } catch (reason) {
+            if (reason) {
+                Display.showError(reason.toString());
+            }
+        }
+        return false;
     }
 
     private onFileDeleted(uri: Uri) {
-        let docPath = uri.fsPath;
-
         const fileExcludes = Object.keys(workspace.getConfiguration('files').exclude);
         const ignoredPatterns = this._p4ignore.concat(fileExcludes);
 
-        const shouldIgnore: boolean = micromatch.any(docPath, ignoredPatterns, { dot: true });
+        const shouldIgnore: boolean = micromatch.any(uri.fsPath, ignoredPatterns, { dot: true });
 
         // Only `p4 delete` files that are not marked as ignored either in:
         // .p4ignore
         // files.exclude setting
         if (!shouldIgnore) {
-            PerforceCommands.p4delete(docPath);
+            PerforceCommands.p4delete(uri);
         }
     }
 
@@ -138,13 +142,14 @@ export default class FileSystemListener
         //Only try to add files open in the editor
         var editor = window.activeTextEditor;
         if(editor && editor.document && editor.document.uri.fsPath == uri.fsPath) {
-            PerforceCommands.add(uri.fsPath);
+            PerforceCommands.add(uri);
         }
     }
 
-    private fileInClientRoot(docPath: string): Promise<boolean> {
+    private static fileInClientRoot(uri: Uri): Promise<boolean> {
+        let docPath = uri.fsPath;
         return new Promise((resolve, reject) => {
-            PerforceService.getClientRoot().then((clientRoot) => {
+            PerforceService.getClientRoot(uri).then((clientRoot) => {
                 //Convert to lower and Strip newlines from paths
                 clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
                 var filePath = docPath.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
@@ -161,10 +166,10 @@ export default class FileSystemListener
         });
     }
 
-    private fileIsOpened(filePath: string): Promise<boolean> {
+    private static fileIsOpened(fileUri: Uri): Promise<boolean> {
         return new Promise((resolve, reject) => {
             //opened stdout is set if file open, stderr set if not opened
-            PerforceService.executeAsPromise('opened', filePath).then((stdout) => {
+            PerforceService.executeAsPromise(fileUri, 'opened', fileUri.fsPath).then((stdout) => {
                 resolve(true);
             }).catch((stderr) => {
                 resolve(false);

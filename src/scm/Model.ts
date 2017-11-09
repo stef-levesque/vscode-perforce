@@ -34,6 +34,8 @@ export class Model implements Disposable {
     private _defaultGroup: SourceControlResourceGroup;
     private _pendingGroups = new Map<number, { description: string, group: SourceControlResourceGroup }>();
     private _compatibilityMode: string;
+    private _workspaceUri: Uri;
+    private _config: IPerforceConfig
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
         const result: SourceControlResourceGroup[] = [];
@@ -48,12 +50,14 @@ export class Model implements Disposable {
         return result;
     }
 
-    public constructor(compatibilityMode: string) {
+    public constructor(config: IPerforceConfig, workspaceUri: Uri, compatibilityMode: string) {
+        this._config = config;
+        this._workspaceUri = workspaceUri;
         this._compatibilityMode = compatibilityMode;
     }
 
     public async Sync(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -66,7 +70,7 @@ export class Model implements Disposable {
 
     public async Refresh(): Promise<void> {
         this.clean();
-        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -81,10 +85,16 @@ export class Model implements Disposable {
         }, () => this.updateStatus());
     }
 
+    public async Info(): Promise<void> {
+        let resource = this._sourceControl.rootUri;
+        Display.channel.show();
+        PerforceService.execute(resource, 'info', PerforceService.handleInfoServiceResponse);
+    }
+
     public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
         const args = `-o ${existingChangelist ? existingChangelist : ''}`;
-
-        const spec: string = await Utils.getOutput('change', null, null, args);
+        
+        const spec: string = await Utils.runCommand(this._workspaceUri, 'change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
         for (let field of changeFields) {
@@ -100,7 +110,7 @@ export class Model implements Disposable {
 
         let newChangelistNumber;
         try {
-            const createdStr = await Utils.getOutput('change', null, null, '-i', null, newSpec);
+            const createdStr = await Utils.runCommand(this._workspaceUri, 'change', null, null, '-i', null, newSpec);
             // Change #### created with ... 
             // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
             Display.channel.append(createdStr);
@@ -135,7 +145,7 @@ export class Model implements Disposable {
             args += chnum;
         }
 
-        const output: string = await Utils.getOutput('change', null, null, args);
+        const output: string = await Utils.runCommand(this._workspaceUri, 'change', null, null, args);
         const changeFields = output.trim().split(/\n\r?\n/);
         for (let field of changeFields) {
             if (field.startsWith('Description:')) {
@@ -153,18 +163,18 @@ export class Model implements Disposable {
         if (id.startsWith('default')) {
             const command = 'change';
             const args = '-o';
-            const uri: Uri = Uri.parse('perforce:').with({authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({ authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         } else if (id.startsWith('pending')) {
             const command = 'describe';
             const args = id.substr(id.indexOf(':') + 1);
-            const uri: Uri = Uri.parse('perforce:').with({ scheme: 'perforce', authority: command, query: args });
+            const uri: Uri = Uri.parse('perforce:').with({ authority: command, query: args });
             commands.executeCommand<void>("vscode.open", uri);
         }
     }
 
     public async SubmitDefault(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -172,7 +182,7 @@ export class Model implements Disposable {
         const noFiles = 'File(s) not opened on this client.';
         let fileListStr;
         try {
-            fileListStr = await Utils.getOutput('opened', null, null, '-c default');
+            fileListStr = await Utils.runCommand(this._workspaceUri, 'opened', null, null, '-c default');
             if (fileListStr === noFiles) {
                 Display.showError(noFiles);
                 return;
@@ -222,7 +232,7 @@ export class Model implements Disposable {
     }
 
 
-    public async Submit(input: Resource | SourceControlResourceGroup | string): Promise<void> {
+    public async Submit(input: SourceControlResourceGroup | string): Promise<void> {
         const command = 'submit';
         let args = '';
 
@@ -246,7 +256,7 @@ export class Model implements Disposable {
         }
 
 
-        Utils.getOutput(command, null, null, args).then((output) => {
+        Utils.runCommand(this._workspaceUri, command, null, null, args).then((output) => {
             Display.channel.append(output);
             Display.showMessage("Changelist Submitted");
             this.Refresh();
@@ -287,7 +297,7 @@ export class Model implements Disposable {
             return;
         }
 
-        await Utils.getOutput(command, file, null, args).then((output) => {
+        await Utils.runCommand(this._workspaceUri, command, file, null, args).then((output) => {
             Display.updateEditor();
             Display.channel.append(output);
             needRefresh = true;
@@ -303,7 +313,7 @@ export class Model implements Disposable {
             if (id.startsWith('pending')) {
                 args = '-d ' + chnum;
 
-                await Utils.getOutput(command, null, null, args).then((output) => {
+                await Utils.runCommand(this._workspaceUri, command, null, null, args).then((output) => {
                     Display.updateEditor();
                     Display.channel.append(output);
                     needRefresh = true;
@@ -324,10 +334,10 @@ export class Model implements Disposable {
         if (input.status == Status.SHELVE) {
             let args = '-c ' + input.change + ' -s ' + input.change;
             const command = 'unshelve';
-            await Utils.getOutput(command, file, null, args).then((output) => {
+            await Utils.runCommand(this._workspaceUri, command, file, null, args).then((output) => {
                 let args = '-d -c ' + input.change;
                 const command = 'shelve';
-                Utils.getOutput('shelve', file, null, args).then((output) => {
+                Utils.runCommand(this._workspaceUri, 'shelve', file, null, args).then((output) => {
                     Display.updateEditor();
                     Display.channel.append(output);
 
@@ -344,7 +354,7 @@ export class Model implements Disposable {
         else {
             let args = '-f -c ' + input.change;
             const command = 'shelve';
-            await Utils.getOutput(command, file, null, args).then((output) => {
+            await Utils.runCommand(this._workspaceUri, command, file, null, args).then((output) => {
                 this.Revert(input);
             }).catch((reason) => {
                 Display.showError(reason.toString());
@@ -353,7 +363,7 @@ export class Model implements Disposable {
     }
 
     public async ReopenFile(input: Resource): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -375,7 +385,7 @@ export class Model implements Disposable {
             const file = Uri.file(input.uri.fsPath);
             const args = '-c ' + selection.id;
 
-            Utils.getOutput('reopen', file, null, args).then((output) => {
+            Utils.runCommand(_this._workspaceUri, 'reopen', file, null, args).then((output) => {
                 Display.channel.append(output);
                 _this.Refresh();
             }).catch((reason) => {
@@ -398,10 +408,11 @@ export class Model implements Disposable {
     }
 
     private async syncUpdate(): Promise<void> {
-        const config: IPerforceConfig = PerforceService.getConfig();
+        //const config: IPerforceConfig = PerforceService.getConfig();
+        const config = this._config;
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
         
-        await Utils.getOutput('sync', pathToSync, null, '-q').then(output => {
+        await Utils.runCommand(this._workspaceUri, 'sync', Uri.parse(pathToSync), null, '-q').then(output => {
             Display.channel.append(output);
             this.Refresh();
         }).catch(reason => {
@@ -410,11 +421,12 @@ export class Model implements Disposable {
     }
 
     private async updateInfo(): Promise<void> {
-        this._infos = await Utils.processInfo(await Utils.getOutput('info'));
+        let resource = Uri.file(this._config.localDir);
+        this._infos = await Utils.processInfo(await Utils.getSimpleOutput(resource, 'info'));
     }
 
     private async updateStatus(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._compatibilityMode);
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
         }
@@ -424,10 +436,11 @@ export class Model implements Disposable {
         let shelved = new Map<number, Resource[]>();
 
         this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
+        this._defaultGroup['model'] = this;
         this._pendingGroups.clear(); // dispose ?
 
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
-        let output: string = await Utils.getOutput('changes', null, null, pendingArgs);
+        let output: string = await Utils.runCommand(this._workspaceUri, 'changes', null, null, pendingArgs);
         let changelists = output.trim().split('\n');
 
         const config = workspace.getConfiguration('perforce');
@@ -452,6 +465,7 @@ export class Model implements Disposable {
 
                 if (!this._pendingGroups.has(chnum)) {
                     const group = this._sourceControl.createResourceGroup('pending:' + chnum, '#' + chnum + ': ' + description);
+                    group['model'] = this;
                     group.resourceStates = [];
                     this._pendingGroups.set(chnum, { description: description, group: group });
                 } else {
@@ -463,7 +477,7 @@ export class Model implements Disposable {
                         pendings.set(chnum, []);
                     }
                     value.forEach(element => {
-                        const resource: Resource = new Resource(Uri.file(element), chnum.toString(), "shelve");
+                        const resource: Resource = new Resource(this, Uri.file(element), chnum.toString(), "shelve");
                         pendings.get(chnum).push(resource);
                     });
                 });
@@ -480,7 +494,7 @@ export class Model implements Disposable {
                 const action = info['action'];
                 const headType = info['headType'];
                 const uri = Uri.file(clientFile);
-                const resource: Resource = new Resource(uri, change, action, headType);
+                const resource: Resource = new Resource(this, uri, change, action, headType);
 
                 if (change.startsWith('default')) {
                     defaults.push(resource);
@@ -510,7 +524,8 @@ export class Model implements Disposable {
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
-        const output = await Utils.getOutput('opened');
+        let resource = Uri.file(this._config.localDir);
+        const output = await Utils.getSimpleOutput(resource, 'opened');
         const opened = output.trim().split('\n');
         if (opened.length === 0) {
             return;
@@ -528,7 +543,8 @@ export class Model implements Disposable {
     }
 
     private async getDepotShelvedFilePaths(chnum: number): Promise<string[]> {
-        const output = await Utils.getOutput('describe -Ss ' + chnum);
+        let resource = Uri.file(this._config.localDir);
+        const output = await Utils.getSimpleOutput(resource, 'describe -Ss ' + chnum);
         const shelved = output.trim().split('\n');
         if (shelved.length === 0) {
             return;
@@ -546,7 +562,8 @@ export class Model implements Disposable {
     }
 
     private async getFstatInfoForFiles(files: string[]): Promise<any> {
-        const fstatOutput: string = await Utils.getOutput(`fstat "${files.join('" "')}"`);
+        let resource = Uri.file(this._config.localDir);
+        const fstatOutput: string = await Utils.getSimpleOutput(resource, `fstat "${files.join('" "')}"`);
         // Windows will have lines end with \r\n.
         // Each file has multiple lines of output separated by a blank line.
         // Splitting on \n\r?\n will find newlines followed immediately by a newline

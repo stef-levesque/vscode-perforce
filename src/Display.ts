@@ -26,21 +26,23 @@ export namespace Display
     export function updateEditor() {
         var editor = window.activeTextEditor;
         if(!editor) {
-            _statusBarItem.hide();
+            if (_statusBarItem) {
+                _statusBarItem.hide();
+            }
             return;
         }
 
         var doc = editor.document;
 
         //If no folder is open, override the perforce directory to the files
-        var directoryOverride = null;
-        if (workspace.rootPath === undefined) {
+        var directoryOverride;
+        if (workspace.workspaceFolders === undefined) {
             directoryOverride = Path.dirname(doc.uri.fsPath);
         }
 
         if(!doc.isUntitled) {
             const args = '"' + Utils.expansePath(doc.uri.fsPath) + '"';
-            PerforceService.execute("opened", function(err, stdout, stderr) {
+            PerforceService.execute(doc.uri, "opened", function(err, stdout, stderr) {
                 if(err) {
                     // file not under client root
                     _statusBarItem.text = 'P4: $(circle-slash)';
