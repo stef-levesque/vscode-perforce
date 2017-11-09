@@ -52,14 +52,13 @@ export namespace Utils {
         return map;
     }
 
-    export function isLoggedIn(compatibilityMode: string): Promise<boolean> {
+    export function isLoggedIn(resource: Uri, compatibilityMode: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             if (compatibilityMode === 'sourcedepot') {
                 resolve(true);
                 return;
             }
-            //TODO: find proper workspace
-            let resource = workspace.workspaceFolders ? workspace.workspaceFolders[0].uri : Uri.file('');
+            
             PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
                 stderr && Display.showError(stderr.toString());
