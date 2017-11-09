@@ -90,7 +90,7 @@ export namespace Utils {
     }
 
     // Get a string containing the output of the command
-    export function runCommand(resource: Uri, command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function runCommand(resource: Uri, command: string, file?: Uri | null, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
     
@@ -123,14 +123,12 @@ export namespace Utils {
 
     // Get a string containing the output of the command specific to a file
     export function runCommandForFile(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
-        //TODO: find proper workspace
         let resource = file;
         return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
     }
 
     // Get a path to a file containing the output of the command
     export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
-        //TODO: find proper workspace
         let resource = file;
         return new Promise((resolve, reject) => {
             var args = prefixArgs != null ? prefixArgs : '';

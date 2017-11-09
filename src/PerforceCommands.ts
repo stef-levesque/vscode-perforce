@@ -38,6 +38,10 @@ export namespace PerforceCommands
             return false;
         }
 
+        if(!editor || !editor.document) {
+            return false;
+        }
+
         var fileUri = editor.document.uri;
         if(checkFolderOpened()) {
             add(fileUri);
@@ -59,6 +63,10 @@ export namespace PerforceCommands
     function editOpenFile() {
         var editor = window.activeTextEditor;
         if(!checkFileSelected()) {
+            return false;
+        }
+
+        if (!editor || !editor.document) {
             return false;
         }
 
@@ -101,9 +109,13 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         //If folder not opened, overrided p4 directory
         var fileUri = editor.document.uri
-        var directoryOverride = null;
+        var directoryOverride;
         if(!checkFolderOpened()) {
             directoryOverride = Path.dirname(fileUri.fsPath);
         }
@@ -127,12 +139,16 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         var doc = editor.document;
 
         if(!doc.isUntitled) {
             Utils.getFile('print', doc.uri, revision).then((tmpFile: string) => {
                 var tmpFileUri = Uri.file(tmpFile)
-                var revisionLabel = isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
+                var revisionLabel = !revision || isNaN(revision) ? 'Most Recent Revision' : `Revision #${revision}`;
                 commands.executeCommand('vscode.diff', tmpFileUri, doc.uri, Path.basename(doc.uri.fsPath) + ' - Diff Against ' + revisionLabel);
             }, (err) => {
                 Display.showError(err.toString());
@@ -196,6 +212,10 @@ export namespace PerforceCommands
             return false;
         }
 
+        if (!editor || !editor.document) {
+            return false;
+        }
+
         const doc = editor.document;
         const conf = workspace.getConfiguration('perforce')
         const cl = conf.get('annotate.changelist');
@@ -215,7 +235,7 @@ export namespace PerforceCommands
         let colorIndex = 0;
         let lastNum = '';
 
-        const output: string = await Utils.runCommandForFile('annotate', doc.uri, null, args);
+        const output: string = await Utils.runCommandForFile('annotate', doc.uri, undefined, args);
         const annotations = output.split(/\r?\n/);
 
         for (let i = 0, n = annotations.length; i < n; ++i) {
@@ -396,7 +416,7 @@ export namespace PerforceCommands
                             Display.updateEditor();
                             return true;
                         }
-                    }, null, null, passwd);
+                    }, undefined, undefined, passwd);
                 });
 
             } else {
@@ -416,7 +436,6 @@ export namespace PerforceCommands
         items.push({ label: "add", description: "Open a new file to add it to the depot" });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({ label: "revert", description: "Discard changes from an opened file" });
-        //items.push({ label: "submitDefault", description: "Submit or Save the default changelist" });
         items.push({ label: "diff", description: "Display diff of client file with depot file" });
         items.push({ label: "diffRevision", description: "Display diff of client file with depot file at a specific revision" });
         items.push({ label: "annotate", description: "Print file lines and their revisions" });
@@ -437,9 +456,6 @@ export namespace PerforceCommands
                 case "revert":
                     revert();
                     break;
-                // case "submitDefault":
-                //     PerforceSCMProvider.SubmitDefault();//TODO: valid?
-                //     break;
                 case "diff":
                     diff();
                     break;
