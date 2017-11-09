@@ -61,9 +61,6 @@ export class PerforceSCMProvider {
         this.Initialize();
     }
 
-    //TODO: track new workspaceFolder
-    //TODO: track closed workspaceFolder
-
     public Initialize() {
         this._model = new Model(this.config, this.wksFolder, this.compatibilityMode);
 
@@ -120,13 +117,11 @@ export class PerforceSCMProvider {
     }
 
     public static OpenFile(resource: Resource) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(resource.resourceUri);
-        perforceProvider.openFile(resource);
+        commands.executeCommand<void>("vscode.open", resource.uri);
     };
 
     public static Open(resource: Resource) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(resource.resourceUri);
-        perforceProvider.open(resource);
+        PerforceSCMProvider.open(resource);
     };
 
     public static Sync(sourceControl: SourceControl) {
@@ -213,7 +208,7 @@ export class PerforceSCMProvider {
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
 
-    private open(resource: Resource): void {
+    private static open(resource: Resource): void {
         if(resource.FileType.base === FileType.BINARY) {
             const uri = resource.uri.with({ scheme: 'perforce', authority: 'fstat' });
             workspace.openTextDocument(uri)
@@ -221,9 +216,9 @@ export class PerforceSCMProvider {
             return;
         }
 
-        const left: Uri = this.getLeftResource(resource);
-        const right: Uri = this.getRightResource(resource);
-        const title: string = this.getTitle(resource);
+        const left: Uri = PerforceSCMProvider.getLeftResource(resource);
+        const right: Uri = PerforceSCMProvider.getRightResource(resource);
+        const title: string = PerforceSCMProvider.getTitle(resource);
 
         if (!left) {
             if (!right) {
@@ -238,12 +233,8 @@ export class PerforceSCMProvider {
         return;
     }
 
-    private openFile(resource: Resource): void {
-        commands.executeCommand<void>("vscode.open", resource.uri);
-    }
-
     // Gets the uri for the previous version of the file.
-    private getLeftResource(resource: Resource): Uri | undefined {
+    private static getLeftResource(resource: Resource): Uri | undefined {
         switch (resource.status) {
             case Status.EDIT:
                 return resource.uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
@@ -251,7 +242,7 @@ export class PerforceSCMProvider {
     }
 
     // Gets the uri for the current version of the file (except for deleted files).
-    private getRightResource(resource: Resource): Uri | undefined {
+    private static getRightResource(resource: Resource): Uri | undefined {
         switch (resource.status) {
             case Status.ADD:
             case Status.EDIT:
@@ -264,7 +255,7 @@ export class PerforceSCMProvider {
         }
     }
 
-    private getTitle(resource: Resource): string {
+    private static getTitle(resource: Resource): string {
         const basename = Path.basename(resource.uri.fsPath);
 
         switch (resource.status) {
