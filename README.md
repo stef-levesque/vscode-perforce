@@ -75,6 +75,18 @@ P4PORT=example.com:1666
 ```
 More detail in [Perforce Documentation](https://www.perforce.com/perforce/r17.1/manuals/cmdref/index.html#CmdRef/P4CONFIG.html?Highlight=p4config)
 
+## Multi-root support
+
+You can now specify the following settings per workspace:
+* `perforce.client`
+* `perforce.user`
+* `perforce.port`
+* `perforce.password`
+* `perforce.dir`
+
+This allows you to work with different repository within the same editor.
+See [Multi-root Workspaces - Settings](https://code.visualstudio.com/docs/editor/multi-root-workspaces#_settings) for more details.
+
 ## Status bar icons
 
 * ![check](images/check.png) opened in add or edit
