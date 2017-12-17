@@ -22,7 +22,7 @@ import {PerforceService} from './PerforceService';
 export default class FileSystemListener
 {
     private static _eventRegistered: boolean = false;
-    private static _lastCheckedFilePath: Uri;
+    private static _lastCheckedFileUri?: Uri = null;
 
     private _disposable: Disposable;
     private _watcher: FileSystemWatcher;
@@ -92,7 +92,7 @@ export default class FileSystemListener
         var docUri = docChange.document.uri;
 
         //If this doc has already been checked, just returned
-        if (docUri.toString() == this._lastCheckedFilePath.toString()) {
+        if (FileSystemListener._lastCheckedFileUri != null && docUri.toString() == FileSystemListener._lastCheckedFileUri.toString()) {
             return;
         }
 
@@ -102,26 +102,38 @@ export default class FileSystemListener
             return;
         }
 
-        FileSystemListener._lastCheckedFilePath = docUri;
+        FileSystemListener._lastCheckedFileUri = docUri;
         FileSystemListener.tryEditFile(docUri);
     }
 
-    private static async tryEditFile(uri: Uri): Promise<boolean> {
-        try {
-            if (await FileSystemListener.fileInClientRoot(uri)) {
-                if(await FileSystemListener.fileIsOpened(uri) == false) {
-                    //If not opened, open file for edit
-                    return PerforceCommands.edit(uri);
-                } else {
-                    return true;
-                }
-            }
-        } catch (reason) {
-            if (reason) {
-                Display.showError(reason.toString());
-            }
-        }
-        return false;
+    // Had to streamline this, since `onWillSaveTextDocument` allows to delay
+    // the save operation only for a few seconds. The time limit should be
+    // configurable and/or the operation should be cancellable
+    // in future releases.
+    // https://github.com/stef-levesque/vscode-perforce/issues/110
+    private static tryEditFile(uri: Uri): Promise<boolean> {
+        return PerforceCommands.edit(uri);
+        // return new Promise((resolve) => {
+        //     //Check if this file is in client root first
+        //     FileSystemListener.fileInClientRoot(uri).then((inClientRoot) => {
+        //         if (inClientRoot) {
+        //             return FileSystemListener.fileIsOpened(uri);
+        //         }
+        //         resolve();
+        //     }).then((isOpened) => {
+        //         //If not opened, open file for edit
+        //         if (!isOpened) {
+        //             return PerforceCommands.edit(uri);
+        //         }
+        //         resolve();
+        //     }).then((openedForEdit) => {
+        //         resolve();
+        //     }).catch((reason) => {
+        //         if (reason) Display.showError(reason.toString());
+        //         //reject(reason);
+        //         resolve();
+        //     });
+        // });
     }
 
     private onFileDeleted(uri: Uri) {
