@@ -172,7 +172,7 @@
         "perforce.maxBuffer": {
           "type": "number",
           "minimum": 1024,
-          "default": 204800,
+          "default": 1048576,
           "description": "Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)"
         },
         "perforce.realpath": {
