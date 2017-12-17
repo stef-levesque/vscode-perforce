@@ -93,8 +93,10 @@ export class PerforceSCMProvider {
         commands.registerCommand('perforce.describe', PerforceSCMProvider.Describe);
         commands.registerCommand('perforce.submitChangelist', PerforceSCMProvider.Submit);
         commands.registerCommand('perforce.revertChangelist', PerforceSCMProvider.Revert);
+        commands.registerCommand('perforce.revertUnchangedChangelist', PerforceSCMProvider.RevertUnchanged);
         commands.registerCommand('perforce.shelveunshelve', PerforceSCMProvider.ShelveOrUnshelve);
         commands.registerCommand('perforce.revertFile', PerforceSCMProvider.Revert);
+        commands.registerCommand('perforce.revertUnchangedFile', PerforceSCMProvider.RevertUnchanged);
         commands.registerCommand('perforce.reopenFile', PerforceSCMProvider.ReopenFile);
     }
 
@@ -184,6 +186,14 @@ export class PerforceSCMProvider {
         
         if (model) {
             model.Revert(input);
+        }
+    };
+
+    public static async RevertUnchanged(input: Resource | SourceControlResourceGroup) {
+        let model: Model = input['model'];
+
+        if (model) {
+            model.Revert(input, true);
         }
     };
 

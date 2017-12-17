@@ -265,10 +265,10 @@ export class Model implements Disposable {
         });
     }
 
-    public async Revert(input: Resource | SourceControlResourceGroup): Promise<void> {
+    public async Revert(input: Resource | SourceControlResourceGroup, unchanged?: boolean): Promise<void> {
         const command = 'revert';
         let file = null;
-        let args = null;
+        let args = unchanged ? '-a ' : '';
         let needRefresh = false;
 
         let message = "Are you sure you want to revert the changes ";
@@ -278,11 +278,11 @@ export class Model implements Disposable {
         } else if (isResourceGroup(input)) {
             const id = input.id;
             if (id.startsWith('default')) {
-                args = '-c default //...';
+                args += '-c default //...';
                 message += "in the default changelist?";
             } else if (id.startsWith('pending')) {
                 const chnum = id.substr(id.indexOf(':') + 1);
-                args = '-c ' + chnum + ' //...';
+                args += '-c ' + chnum + ' //...';
                 message += "in the changelist " + chnum + "?";
             } else {
                 return;
@@ -291,10 +291,12 @@ export class Model implements Disposable {
             return;
         }
 
+        if (!unchanged) {
         const yes = "Revert Changes";
         const pick = await window.showWarningMessage(message, { modal: true }, yes);
         if (pick !== yes) {
             return;
+        }
         }
 
         await Utils.runCommand(this._workspaceUri, command, file, null, args).then((output) => {
