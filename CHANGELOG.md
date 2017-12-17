@@ -1,5 +1,15 @@
 # Change log
 
+## [3.1.0] - 2017-12-17
+
+* Add `Revert Unchanged` for file and changelist (#77)
+* Support scm commands when multiple files are selected (#92)
+* Better handling of changelist descriptions
+* Fix some issues with `editOnFileSave` and `editOnFileModified` (#61, #110)
+* Fix duplicate changelists (#62, #67, #79, #82, #115)
+* Increase the default value of `perforce.maxBuffer` to 1MB (#116)
+* Add a [Common Questions](https://github.com/stef-levesque/vscode-perforce#common-questions) section in the README.md
+
 ## [3.0.0] - 2017-11-09
 
 * Multi-root support (#103)
@@ -127,6 +137,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/1fca898f1bceacf1135f044bee87983c59cbc87e...4af0dc0242d2e05f447c75420e76768f30d89469
 [3.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/7cf9e068708d0ccadda7201e862c835826ca35bf...b9192e2fb31ad615dace4b035adc0cb8e08f78c9
 [2.2.2]: https://github.com/stef-levesque/vscode-perforce/compare/fc74e236c7c40525ad9101e1a9541b4963d36355...f953b90996f2420bb19b391708a624515d2b604f
 [2.2.1]: https://github.com/stef-levesque/vscode-perforce/compare/dc1a00baebbb17f8ad754a0b13bf5438c49b0319...89a12db65daead7a7eb74577762b9ebd21bfe12d

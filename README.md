@@ -38,7 +38,7 @@ Perforce integration for Visual Studio Code
 |`perforce.dir`                 |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
 |`perforce.command`             |`string`   |Configure a path to p4 or an alternate command if needed
 |`perforce.compatibilityMode`   |`string`   |Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`
-|`perforce.maxBuffer`           |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)
+|`perforce.maxBuffer`           |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 1048576 (1MB)
 |`perforce.realpath`            |`boolean`  |**Experimental** Try to resolve real file path before executing command
 |&nbsp;
 |`perforce.activationMode`      |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
