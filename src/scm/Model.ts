@@ -79,7 +79,7 @@ export class Model implements Disposable {
             location: ProgressLocation.SourceControl,
             title: 'Updating info...'
         }, () => this.updateInfo());
-        window.withProgress({
+        await window.withProgress({
             location: ProgressLocation.SourceControl,
             title: 'Updating status...'
         }, () => this.updateStatus());
@@ -292,11 +292,11 @@ export class Model implements Disposable {
         }
 
         if (!unchanged) {
-        const yes = "Revert Changes";
-        const pick = await window.showWarningMessage(message, { modal: true }, yes);
-        if (pick !== yes) {
-            return;
-        }
+            const yes = "Revert Changes";
+            const pick = await window.showWarningMessage(message, { modal: true }, yes);
+            if (pick !== yes) {
+                return;
+            }
         }
 
         await Utils.runCommand(this._workspaceUri, command, file, null, args).then((output) => {
@@ -437,9 +437,12 @@ export class Model implements Disposable {
         let pendings = new Map<number, Resource[]>();
         let shelved = new Map<number, Resource[]>();
 
+        if (this._defaultGroup) {
+            this._defaultGroup.dispose();
+            this._defaultGroup = null;
+        }
         this._defaultGroup = this._sourceControl.createResourceGroup('default', 'Default Changelist');
         this._defaultGroup['model'] = this;
-        this._pendingGroups.clear(); // dispose ?
 
         const pendingArgs = '-c ' + this._infos.get('Client name') + ' -s pending';
         let output: string = await Utils.runCommand(this._workspaceUri, 'changes', null, null, pendingArgs);
@@ -451,7 +454,11 @@ export class Model implements Disposable {
             changelists = changelists.reverse();
         }
 
-        changelists.forEach((value) => {
+        this._pendingGroups.forEach((value) => value.group.dispose());
+        this._pendingGroups.clear();
+
+        for (let i=0; i < changelists.length; ++i) {
+            let value = changelists[i];
             // Change num on date by user@client [status] description
             const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.+)\'/);
 
@@ -484,7 +491,7 @@ export class Model implements Disposable {
                     });
                 });
             }
-        });
+        }
 
         const depotOpenedFilePaths = await this.getDepotOpenedFilePaths();
         for (let i = 0; i < depotOpenedFilePaths.length; i += maxFilePerCommand) {
