@@ -93,6 +93,9 @@ export class Model implements Disposable {
 
     public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
         const args = `-o ${existingChangelist ? existingChangelist : ''}`;
+        if (!descStr) {
+            descStr = '<saved by VSCode>';
+        }
         
         const spec: string = await Utils.runCommand(this._workspaceUri, 'change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
@@ -459,7 +462,7 @@ export class Model implements Disposable {
         for (let i=0; i < changelists.length; ++i) {
             let value = changelists[i];
             // Change num on date by user@client [status] description
-            const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.+)\'/);
+            const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.*)\'/);
 
             if (matches) {
                 const num = matches[1];
