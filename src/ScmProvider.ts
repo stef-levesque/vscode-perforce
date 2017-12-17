@@ -122,12 +122,19 @@ export class PerforceSCMProvider {
         return null;
     }
 
-    public static OpenFile(resource: Resource) {
-        commands.executeCommand<void>("vscode.open", resource.uri);
+    public static OpenFile(...resourceStates: SourceControlResourceState[]) {
+        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const preview = selection.length == 1;
+        for (const resource of selection) {
+            commands.executeCommand<void>("vscode.open", resource.uri, {preview});
+        }
     };
 
-    public static Open(resource: Resource) {
-        PerforceSCMProvider.open(resource);
+    public static Open(...resourceStates: SourceControlResourceState[]) {
+        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        for (const resource of selection) {
+            PerforceSCMProvider.open(resource);
+        }
     };
 
     public static Sync(sourceControl: SourceControl) {
@@ -182,28 +189,70 @@ export class PerforceSCMProvider {
         }
     };
 
-    public static async Revert(input: Resource | SourceControlResourceGroup) {
-        let model: Model = input['model'];
-        
-        if (model) {
-            model.Revert(input);
+    public static async Revert(arg: Resource | SourceControlResourceGroup, ...resourceStates: SourceControlResourceState[]) {
+        if (arg instanceof Resource) {
+            let resources = [...resourceStates as Resource[], arg as Resource];
+            for (const resource of resources) {
+                resource.model.Revert(resource);
+            }
+        } else {
+            let group = arg as SourceControlResourceGroup;
+            let model: Model = group['model'];
+            model.Revert(group);
         }
     };
 
-    public static async RevertUnchanged(input: Resource | SourceControlResourceGroup) {
-        let model: Model = input['model'];
-
-        if (model) {
-            model.Revert(input, true);
+    public static async RevertUnchanged(arg: Resource | SourceControlResourceGroup, ...resourceStates: SourceControlResourceState[]) {
+        if (arg instanceof Resource) {
+            let resources = [...resourceStates as Resource[], arg as Resource];
+            for (const resource of resources) {
+                resource.model.Revert(resource, true);
+            }
+        } else {
+            let group = arg as SourceControlResourceGroup;
+            let model: Model = group['model'];
+            model.Revert(group, true);
         }
     };
 
-    public static async ShelveOrUnshelve(input: Resource): Promise<void> {
-        input.model.ShelveOrUnshelve(input);
+    public static async ShelveOrUnshelve(...resourceStates: SourceControlResourceState[]): Promise<void> {
+        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        for (const resource of selection) {
+            resource.model.ShelveOrUnshelve(resource);
+        }
     };
 
-    public static async ReopenFile(input: Resource): Promise<void> {
-        input.model.ReopenFile(input);
+    public static async ReopenFile(arg?: Resource | Uri, ...resourceStates: SourceControlResourceState[]): Promise<void> {
+        let resources: Resource[] | undefined = undefined;
+
+        if (arg instanceof Uri) {
+            // const resource = this.getSCMResource(arg);
+            // if (resource !== undefined) {
+            //     resources = [resource];
+            // }
+            console.log('ReopenFile: ' + arg.toString());
+            return;
+        } else {
+            let resource: Resource | undefined = undefined;
+
+            if (arg instanceof Resource) {
+                resource = arg;
+            } else {
+                //resource = this.getSCMResource();
+                console.log('ReopenFile: should never happen');
+                return;
+            }
+
+            if (resource) {
+                resources = [...resourceStates as Resource[], resource];
+            }
+        }
+
+        if (!resources || resources.length == 0) {
+            return;
+        }
+
+        await resources[0].model.ReopenFile(resources);
     };
 
     provideOriginalResource(uri: Uri): ProviderResult<Uri> {

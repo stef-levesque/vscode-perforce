@@ -366,7 +366,7 @@ export class Model implements Disposable {
         }
     }
 
-    public async ReopenFile(input: Resource): Promise<void> {
+    public async ReopenFile(resources: Resource[]): Promise<void> {
         const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
@@ -386,15 +386,18 @@ export class Model implements Disposable {
                 return;
             }
 
-            const file = Uri.file(input.uri.fsPath);
-            const args = '-c ' + selection.id;
+            for (const resource of resources) {
 
-            Utils.runCommand(_this._workspaceUri, 'reopen', file, null, args).then((output) => {
-                Display.channel.append(output);
-                _this.Refresh();
-            }).catch((reason) => {
-                Display.showError(reason.toString());
-            });
+                const file = Uri.file(resource.uri.fsPath);
+                const args = '-c ' + selection.id;
+                
+                Utils.runCommand(_this._workspaceUri, 'reopen', file, null, args).then((output) => {
+                    Display.channel.append(output);
+                    _this.Refresh();
+                }).catch((reason) => {
+                    Display.showError(reason.toString());
+                });
+            }
         });
 
     }
