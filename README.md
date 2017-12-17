@@ -105,9 +105,31 @@ Visual Studio Code now allow to choose which [Source Control Manager](https://co
 ![SCM Perforce](images/scm-perforce.png)  
 Keep in mind this is still in early beta! Explore and leave your comments on [GitHub](https://github.com/stef-levesque/vscode-hexdump/issues)
 
+## Common Questions
+
+#### **Q:** Something is not working
+**A:** Here are a few steps you should try first:
+1. Look at the logs with `Perforce: Show Output`
+1. Search the [existing issue on GitHub](https://github.com/stef-levesque/vscode-perforce/issues?utf8=✓&q=is%3Aissue)
+1. If you can't find your problem, [create an issue](https://github.com/stef-levesque/vscode-perforce/issues/new), and please include the logs when possible
+  
+  
+#### **Q:** Operations on a large files fail
+**A:** Increase `perforce.maxBuffer` in your user settings.  
+[more...](https://github.com/stef-levesque/vscode-perforce/issues/116)
+  
+  
+#### **Q:** There is a lot of duplicated changelists showing up in the `Source Control` viewlet
+**A:** Please provide your Perforce Output logs in [issue #62](https://github.com/stef-levesque/vscode-perforce/issues/62)
+  
+  
+#### **Q:** I'm using this old thing called *Source Depot*...
+**A:** Great :) Try to set the experimental setting `"perforce.compatibilityMode": "sourcedepot"`  
+[more...](https://github.com/stef-levesque/vscode-perforce/issues/47)
+
 ## Installation
 
-1. Install *Visual Studio Code* (1.12.1 or higher)
+1. Install *Visual Studio Code* (1.18 or higher)
 2. Launch *Code*
 3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
 4. Select `Install Extensions`
@@ -124,7 +146,7 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 
 ## Requirements
 
-Visual Studio Code v1.12.1
+Visual Studio Code v1.18
 
 ## Credits
 
