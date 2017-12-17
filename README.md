@@ -129,7 +129,7 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 
 ## Installation
 
-1. Install *Visual Studio Code* (1.18 or higher)
+1. Install *Visual Studio Code* (1.19 or higher)
 2. Launch *Code*
 3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
 4. Select `Install Extensions`
@@ -146,7 +146,7 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 
 ## Requirements
 
-Visual Studio Code v1.18
+Visual Studio Code v1.19
 
 ## Credits
 

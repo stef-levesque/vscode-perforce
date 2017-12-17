@@ -1,5 +1,5 @@
 import { PerforceService, IPerforceConfig } from './../PerforceService';
-import { scm, Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, ProgressLocation, window, workspace, commands } from 'vscode';
+import { Uri, EventEmitter, Event, SourceControl, SourceControlResourceGroup, Disposable, ProgressLocation, window, workspace, commands } from 'vscode';
 import { Utils } from '../Utils';
 import { Display } from '../Display';
 import { Resource } from './Resource';
@@ -121,12 +121,11 @@ export class Model implements Disposable {
     }
     
     public async ProcessChangelist(): Promise<void> {
-        const input = scm.inputBox.value;
-        scm.inputBox.value = '';
-        let description = input;
+        let description = this._sourceControl.inputBox.value;
+        this._sourceControl.inputBox.value = '';
 
         let existingChangelist = '';
-        const matches = input.match(/^#(\d+)\r?\n([^]+)/);
+        const matches = description.match(/^#(\d+)\r?\n([^]+)/);
         if (matches) {
             existingChangelist = matches[1];
             description = matches[2];
@@ -154,7 +153,7 @@ export class Model implements Disposable {
             }
         }
 
-        scm.inputBox.value = descStr;
+        this._sourceControl.inputBox.value = descStr;
     }
 
     public async Describe(input: SourceControlResourceGroup): Promise<void> {

@@ -1,4 +1,4 @@
-import { scm, commands, window, Uri, Disposable, SourceControl, SourceControlResourceState, SourceControlResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
+import { commands, scm, window, Uri, Disposable, SourceControl, SourceControlResourceState, SourceControlResourceGroup, Event, EventEmitter, ProviderResult, workspace } from 'vscode';
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
@@ -76,7 +76,8 @@ export class PerforceSCMProvider {
         this._model.onDidChange(this.onDidModelChange, this, this.disposables);
         this._model.Refresh();
 
-        scm.inputBox.value = '';
+        this._model._sourceControl.inputBox.value = '';
+        this._model._sourceControl.inputBox.placeholder = "Message (press {0} to create changelist)"
     }
 
     public static registerCommands() {
