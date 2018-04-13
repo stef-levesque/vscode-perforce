@@ -23,31 +23,32 @@ Perforce integration for Visual Studio Code
 
 ## Configuration
 
-|Name                           |Type       |Description
-|-------------------------------|-----------|-----------
-|`perforce.client`              |`string`   |Use the specified client
-|`perforce.user`                |`string`   |Use the specified user
-|`perforce.port`                |`string`   |Use the specified protocol:host:port
-|`perforce.password`            |`string`   |Use the specified password
-|&nbsp;
-|`perforce.editOnFileSave`      |`boolean`  |Automatically open a file for edit when saved
-|`perforce.editOnFileModified`  |`boolean`  |Automatically open a file for edit when Modified
-|`perforce.addOnFileCreate`     |`boolean`  |Automatically Add a file to depot when Created
-|`perforce.deleteOnFileDelete`  |`boolean`  |Automatically delete a file from depot when deleted
-|&nbsp;
-|`perforce.dir`                 |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
-|`perforce.command`             |`string`   |Configure a path to p4 or an alternate command if needed
-|`perforce.compatibilityMode`   |`string`   |Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`
-|`perforce.maxBuffer`           |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 1048576 (1MB)
-|`perforce.realpath`            |`boolean`  |**Experimental** Try to resolve real file path before executing command
-|&nbsp;
-|`perforce.activationMode`      |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
-|`perforce.countBadge`          |`string`   |Controls the badge counter for Perforce (`all`,`off`)
-|`perforce.annotate.enable`     |`boolean`  |Show annotation for every file
-|`perforce.annotate.changelist` |`boolean`  |Output changelist numbers rather than revision numbers for each line
-|`perforce.annotate.user`       |`boolean`  |Output the user who modified the line in the file and the date it was modified
-|`perforce.changelistOrder`     |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
-|`perforce.scmFileChanges`      |`boolean`  |Open file changes when selected in SCM Explorer
+|Name                               |Type       |Description
+|-----------------------------------|-----------|-----------
+|`perforce.client`                  |`string`   |Use the specified client
+|`perforce.user`                    |`string`   |Use the specified user
+|`perforce.port`                    |`string`   |Use the specified protocol:host:port
+|`perforce.password`                |`string`   |Use the specified password
+|&nbsp; 
+|`perforce.editOnFileSave`          |`boolean`  |Automatically open a file for edit when saved
+|`perforce.editOnFileModified`      |`boolean`  |Automatically open a file for edit when Modified
+|`perforce.addOnFileCreate`         |`boolean`  |Automatically Add a file to depot when Created
+|`perforce.deleteOnFileDelete`      |`boolean`  |Automatically delete a file from depot when deleted
+|&nbsp; 
+|`perforce.dir`                     |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
+|`perforce.command`                 |`string`   |Configure a path to p4 or an alternate command if needed
+|`perforce.compatibilityMode`       |`string`   |Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`
+|`perforce.maxBuffer`               |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 1048576 (1MB)
+|`perforce.realpath`                |`boolean`  |**Experimental** Try to resolve real file path before executing command
+|&nbsp; 
+|`perforce.activationMode`          |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
+|`perforce.countBadge`              |`string`   |Controls the badge counter for Perforce (`all`,`off`)
+|`perforce.annotate.enable`         |`boolean`  |Show annotation for every file
+|`perforce.annotate.changelist`     |`boolean`  |Output changelist numbers rather than revision numbers for each line
+|`perforce.annotate.user`           |`boolean`  |Output the user who modified the line in the file and the date it was modified
+|`perforce.changelistOrder`         |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
+|`perforce.scmFileChanges`          |`boolean`  |Open file changes when selected in SCM Explorer
+|`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the chnagelists to be ignored. Default: `#`
 
 
 ## Activation

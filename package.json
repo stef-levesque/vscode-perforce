@@ -1,577 +1,582 @@
 {
-  "name": "perforce",
-  "displayName": "Perforce for VS Code",
-  "description": "Perforce integration with VS Code's SCM features",
-  "version": "3.1.0",
-  "publisher": "slevesque",
-  "license": "LICENSE.md",
-  "categories": [
-    "SCM Providers"
-  ],
-  "icon": "icon.png",
-  "bugs": {
-    "url": "https://github.com/stef-levesque/vscode-perforce/issues"
-  },
-  "homepage": "https://github.com/stef-levesque/vscode-perforce/blob/master/README.md",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/stef-levesque/vscode-perforce.git"
-  },
-  "galleryBanner": {
-    "color": "#5c2d91",
-    "theme": "dark"
-  },
-  "engines": {
-    "vscode": "^1.19.0"
-  },
-  "enableProposedApi": false,
-  "keywords": [
-    "vscode",
-    "scm",
-    "perforce",
-    "sourcedepot",
-    "multi-root ready"
-  ],
-  "main": "./out/src/extension",
-  "activationEvents": [
-    "*"
-  ],
-  "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "VS Code Perforce Configuration",
-      "properties": {
-        "perforce.activationMode": {
-          "type": "string",
-          "description": "Controls when to activate the extension",
-          "enum": [
-            "always",
-            "autodetect",
-            "off"
-          ],
-          "enumDescription": [
-            "Always try to activate the extension (old behavior)",
-            "Only activate when detecting a valid depot (default)",
-            "Don't try to activate"
-          ],
-          "default": "autodetect"
-        },
-        "perforce.editOnFileSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically open a file for edit when saved"
-        },
-        "perforce.editOnFileModified": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically open a file for edit when Modified"
-        },
-        "perforce.addOnFileCreate": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically Add a file to depot when Created"
-        },
-        "perforce.deleteOnFileDelete": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically delete a file from depot when deleted"
-        },
-        "perforce.annotate.changelist": {
-          "type": "boolean",
-          "default": false,
-          "description": "Output changelist numbers rather than revision numbers for each line"
-        },
-        "perforce.annotate.user": {
-          "type": "boolean",
-          "default": false,
-          "description": "Output the user who modified the line in the file and the date it was modified"
-        },
-        "perforce.annotate.enable": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show annotation for every file"
-        },
-        "perforce.client": {
-          "type": "string",
-          "default": "none",
-          "description": "Overrides any P4CLIENT setting with the specified client name",
-          "scope": "resource"
-        },
-        "perforce.user": {
-          "type": "string",
-          "default": "none",
-          "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name",
-          "scope": "resource"
-        },
-        "perforce.port": {
-          "type": "string",
-          "default": "none",
-          "description": "Overrides any P4PORT setting with the specified protocol:host:port",
-          "scope": "resource"
-        },
-        "perforce.password": {
-          "type": "string",
-          "default": "none",
-          "description": "Overrides any P4PASSWD setting with the specified password",
-          "scope": "resource"
-        },
-        "perforce.dir": {
-          "type": "string",
-          "default": "none",
-          "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory",
-          "scope": "resource"
-        },
-        "perforce.command": {
-          "type": "string",
-          "default": "none",
-          "description": "Configure a path to p4 or an alternate command if needed"
-        },
-        "perforce.compatibilityMode": {
-          "type": "string",
-          "default": "perforce",
-          "enum": [
-            "perforce",
-            "sourcedepot"
-          ],
-          "description": "Specify if we should run in compatibility mode, currently support 'perforce' and 'sourcedepot'"
-        },
-        "perforce.countBadge": {
-          "type": "string",
-          "description": "Controls the badge counter for Perforce",
-          "enum": [
-            "all-but-shelved",
-            "all",
-            "off"
-          ],
-          "enumDescription": [
-            "Include all files in count (default)",
-            "No badge counter"
-          ],
-          "default": "all-but-shelved"
-        },
-        "perforce.changelistOrder": {
-          "type": "string",
-          "default": "descending",
-          "enum": [
-            "descending",
-            "ascending"
-          ],
-          "description": "Specifies the direction of the chnagelist sorting"
-        },
-        "perforce.scmFileChanges": {
-          "type": "boolean",
-          "default": true,
-          "description": "Open file changes when selected in SCM Explorer"
-        },
-        "perforce.maxFilePerCommand": {
-          "type": "number",
-          "minimum": 1,
-          "default": 32,
-          "description": "Specify the maximum number of file should be processed in a single command line (doesn't include changelist operations). Default is 32"
-        },
-        "perforce.maxBuffer": {
-          "type": "number",
-          "minimum": 1024,
-          "default": 1048576,
-          "description": "Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)"
-        },
-        "perforce.realpath": {
-          "type": "boolean",
-          "default": false,
-          "description": "Try to resolve real file path before executing command."
-        }
-      }
-    },
-    "commands": [
-      {
-        "command": "perforce.menuFunctions",
-        "title": "Show Perforce functions",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.showOutput",
-        "title": "Show Output",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.login",
-        "title": "Log in to Perforce",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.logout",
-        "title": "Log out from Perforce",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.add",
-        "title": "add - Open a new file to add it to the depot",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.edit",
-        "title": "edit - Open an existing file for edit",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.revert",
-        "title": "revert - Discard changes from an opened file",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.diff",
-        "title": "diff - Display diff of client file with depot file",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.diffRevision",
-        "title": "diff revision - Display diff of client file with depot file at a specific revision",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.annotate",
-        "title": "annotate - Print file lines and their revisions in the gutter",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.info",
-        "title": "Display client/server information",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/p4.svg",
-          "dark": "resources/icons/dark/p4.svg"
-        }
-      },
-      {
-        "command": "perforce.Sync",
-        "title": "Sync",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/sync.svg",
-          "dark": "resources/icons/dark/sync.svg"
-        }
-      },
-      {
-        "command": "perforce.Refresh",
-        "title": "Refresh",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/refresh.svg",
-          "dark": "resources/icons/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "perforce.submitDefault",
-        "title": "Submit Default Changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/submit.svg",
-          "dark": "resources/icons/dark/submit.svg"
-        }
-      },
-      {
-        "command": "perforce.submitChangelist",
-        "title": "Submit changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/submit.svg",
-          "dark": "resources/icons/dark/submit.svg"
-        }
-      },
-      {
-        "command": "perforce.openResource",
-        "title": "Open changes",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.openFile",
-        "title": "Open file",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.revertFile",
-        "title": "Revert file",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/revert.svg",
-          "dark": "resources/icons/dark/revert.svg"
-        }
-      },
-      {
-        "command": "perforce.revertUnchangedFile",
-        "title": "Revert file if unchanged",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/revert.svg",
-          "dark": "resources/icons/dark/revert.svg"
-        }
-      },
-      {
-        "command": "perforce.revertChangelist",
-        "title": "Revert files in changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/revert.svg",
-          "dark": "resources/icons/dark/revert.svg"
-        }
-      },
-      {
-        "command": "perforce.revertUnchangedChangelist",
-        "title": "Revert unchanged files in changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/revert.svg",
-          "dark": "resources/icons/dark/revert.svg"
-        }
-      },
-      {
-        "command": "perforce.shelveunshelve",
-        "title": "Shelve/Unshelve file",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/shelveunshelve.svg",
-          "dark": "resources/icons/dark/shelveunshelve.svg"
-        }
-      },
-      {
-        "command": "perforce.describe",
-        "title": "Describe changelist",
-        "category": "Perforce"
-      },
-      {
-        "command": "perforce.editChangelist",
-        "title": "Edit changelist description",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/edit.svg",
-          "dark": "resources/icons/dark/edit.svg"
-        }
-      },
-      {
-        "command": "perforce.reopenFile",
-        "title": "Move to changelist",
-        "category": "Perforce",
-        "icon": {
-          "light": "resources/icons/light/reopen.svg",
-          "dark": "resources/icons/dark/reopen.svg"
-        }
-      },
-      {
-        "command": "perforce.opened",
-        "title": "opened - Display 'open' files and open one in the editor",
-        "category": "Perforce"
-      }
+    "name": "perforce",
+    "displayName": "Perforce for VS Code",
+    "description": "Perforce integration with VS Code's SCM features",
+    "version": "3.1.0",
+    "publisher": "slevesque",
+    "license": "LICENSE.md",
+    "categories": [
+        "SCM Providers"
     ],
-    "menus": {
-      "scm/title": [
-        {
-          "command": "perforce.Sync",
-          "group": "navigation@1",
-          "when": "scmProvider == perforce"
-        },
-        {
-          "command": "perforce.Refresh",
-          "group": "navigation@2",
-          "when": "scmProvider == perforce"
-        },
-        {
-          "command": "perforce.Sync",
-          "group": "1_sync",
-          "when": "scmProvider == perforce"
-        },
-        {
-          "command": "perforce.Refresh",
-          "group": "1_sync",
-          "when": "scmProvider == perforce"
-        },
-        {
-          "command": "perforce.login",
-          "group": "2_login",
-          "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
-        },
-        {
-          "command": "perforce.logout",
-          "group": "2_login",
-          "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
-        },
-        {
-          "command": "perforce.info",
-          "group": "3_info",
-          "when": "scmProvider == perforce"
-        },
-        {
-          "command": "perforce.showOutput",
-          "group": "3_info",
-          "when": "scmProvider == perforce"
-        }
-      ],
-      "scm/resourceGroup/context": [
-        {
-          "command": "perforce.submitDefault",
-          "when": "scmProvider == perforce && scmResourceGroup == default",
-          "group": "inline@1"
-        },
-        {
-          "command": "perforce.submitChangelist",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "inline@1"
-        },
-        {
-          "command": "perforce.revertChangelist",
-          "when": "scmProvider == perforce",
-          "group": "inline@2"
-        },
-        {
-          "command": "perforce.editChangelist",
-          "when": "scmProvider == perforce",
-          "group": "inline@3"
-        },
-        {
-          "command": "perforce.submitDefault",
-          "when": "scmProvider == perforce && scmResourceGroup == default",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "perforce.submitChangelist",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "perforce.editChangelist",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "1_modification@2"
-        },
-        {
-          "command": "perforce.revertChangelist",
-          "when": "scmProvider == perforce",
-          "group": "1_modification@3"
-        },
-        {
-          "command": "perforce.revertUnchangedChangelist",
-          "when": "scmProvider == perforce",
-          "group": "1_modification@4"
-        },
-        {
-          "command": "perforce.describe",
-          "when": "scmProvider == perforce",
-          "group": "2_info"
-        }
-      ],
-      "scm/resourceState/context": [
-        {
-          "command": "perforce.revertFile",
-          "when": "scmProvider == perforce",
-          "group": "inline"
-        },
-        {
-          "command": "perforce.reopenFile",
-          "when": "scmProvider == perforce",
-          "group": "inline"
-        },
-        {
-          "command": "perforce.shelveunshelve",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "inline"
-        },
-        {
-          "command": "perforce.openResource",
-          "when": "scmProvider == perforce",
-          "group": "navigation"
-        },
-        {
-          "command": "perforce.openFile",
-          "when": "scmProvider == perforce",
-          "group": "navigation"
-        },
-        {
-          "command": "perforce.revertFile",
-          "when": "scmProvider == perforce",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "perforce.revertUnchangedFile",
-          "when": "scmProvider == perforce",
-          "group": "1_modification@2"
-        },
-        {
-          "command": "perforce.reopenFile",
-          "when": "scmProvider == perforce",
-          "group": "1_modification@3"
-        },
-        {
-          "command": "perforce.shelveunshelve",
-          "when": "scmProvider == perforce && scmResourceGroup != default",
-          "group": "1_modification@4"
-        }
-      ]
+    "icon": "icon.png",
+    "bugs": {
+        "url": "https://github.com/stef-levesque/vscode-perforce/issues"
     },
-    "keybindings": [
-      {
-        "key": "alt+p space",
-        "command": "perforce.menuFunctions"
-      },
-      {
-        "key": "alt+p l",
-        "command": "perforce.showOutput"
-      },
-      {
-        "key": "alt+p enter",
-        "command": "perforce.login"
-      },
-      {
-        "key": "alt+p q",
-        "command": "perforce.logout"
-      },
-      {
-        "key": "alt+p a",
-        "command": "perforce.add",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p e",
-        "command": "perforce.edit",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p r",
-        "command": "perforce.revert",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p d",
-        "command": "perforce.diff",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p n",
-        "command": "perforce.annotate",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "alt+p o",
-        "command": "perforce.opened"
-      },
-      {
-        "key": "alt+p s",
-        "command": "perforce.submitDefault"
-      }
-    ]
-  },
-  "dependencies": {
-    "tmp": "^0.0.33",
-    "ini": "^1.3.4",
-    "micromatch": "^3.0.3",
-    "parse-gitignore": "^0.4.0"
-  },
-  "devDependencies": {
-    "@types/node": "^8.0.8",
-    "@types/tmp": "^0.0.33",
-    "typescript": "^2.0.3",
-    "vscode": "^1.1.6"
-  },
-  "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
-  }
+    "homepage": "https://github.com/stef-levesque/vscode-perforce/blob/master/README.md",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/stef-levesque/vscode-perforce.git"
+    },
+    "galleryBanner": {
+        "color": "#5c2d91",
+        "theme": "dark"
+    },
+    "engines": {
+        "vscode": "^1.19.0"
+    },
+    "enableProposedApi": false,
+    "keywords": [
+        "vscode",
+        "scm",
+        "perforce",
+        "sourcedepot",
+        "multi-root ready"
+    ],
+    "main": "./out/src/extension",
+    "activationEvents": [
+        "*"
+    ],
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "VS Code Perforce Configuration",
+            "properties": {
+                "perforce.activationMode": {
+                    "type": "string",
+                    "description": "Controls when to activate the extension",
+                    "enum": [
+                        "always",
+                        "autodetect",
+                        "off"
+                    ],
+                    "enumDescription": [
+                        "Always try to activate the extension (old behavior)",
+                        "Only activate when detecting a valid depot (default)",
+                        "Don't try to activate"
+                    ],
+                    "default": "autodetect"
+                },
+                "perforce.editOnFileSave": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically open a file for edit when saved"
+                },
+                "perforce.editOnFileModified": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically open a file for edit when Modified"
+                },
+                "perforce.addOnFileCreate": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically Add a file to depot when Created"
+                },
+                "perforce.deleteOnFileDelete": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically delete a file from depot when deleted"
+                },
+                "perforce.annotate.changelist": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Output changelist numbers rather than revision numbers for each line"
+                },
+                "perforce.annotate.user": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Output the user who modified the line in the file and the date it was modified"
+                },
+                "perforce.annotate.enable": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show annotation for every file"
+                },
+                "perforce.client": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Overrides any P4CLIENT setting with the specified client name",
+                    "scope": "resource"
+                },
+                "perforce.user": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Overrides any P4USER, USER, or USERNAME setting with the specified user name",
+                    "scope": "resource"
+                },
+                "perforce.port": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Overrides any P4PORT setting with the specified protocol:host:port",
+                    "scope": "resource"
+                },
+                "perforce.password": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Overrides any P4PASSWD setting with the specified password",
+                    "scope": "resource"
+                },
+                "perforce.dir": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory",
+                    "scope": "resource"
+                },
+                "perforce.command": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Configure a path to p4 or an alternate command if needed"
+                },
+                "perforce.compatibilityMode": {
+                    "type": "string",
+                    "default": "perforce",
+                    "enum": [
+                        "perforce",
+                        "sourcedepot"
+                    ],
+                    "description": "Specify if we should run in compatibility mode, currently support 'perforce' and 'sourcedepot'"
+                },
+                "perforce.countBadge": {
+                    "type": "string",
+                    "description": "Controls the badge counter for Perforce",
+                    "enum": [
+                        "all-but-shelved",
+                        "all",
+                        "off"
+                    ],
+                    "enumDescription": [
+                        "Include all files in count (default)",
+                        "No badge counter"
+                    ],
+                    "default": "all-but-shelved"
+                },
+                "perforce.changelistOrder": {
+                    "type": "string",
+                    "default": "descending",
+                    "enum": [
+                        "descending",
+                        "ascending"
+                    ],
+                    "description": "Specifies the direction of the chnagelist sorting"
+                },
+                "perforce.scmFileChanges": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Open file changes when selected in SCM Explorer"
+                },
+                "perforce.maxFilePerCommand": {
+                    "type": "number",
+                    "minimum": 1,
+                    "default": 32,
+                    "description": "Specify the maximum number of file should be processed in a single command line (doesn't include changelist operations). Default is 32"
+                },
+                "perforce.maxBuffer": {
+                    "type": "number",
+                    "minimum": 1024,
+                    "default": 1048576,
+                    "description": "Specify the largest amount of data allowed for commands, including file comparison. Default is 204800 (200KB)"
+                },
+                "perforce.realpath": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Try to resolve real file path before executing command."
+                },
+                "perforce.ignoredChangelistPrefix": {
+                    "type": "string",
+                    "default": "#",
+                    "description": "Specifies the prefix of the chnagelists to be ignored."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "perforce.menuFunctions",
+                "title": "Show Perforce functions",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.showOutput",
+                "title": "Show Output",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.login",
+                "title": "Log in to Perforce",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.logout",
+                "title": "Log out from Perforce",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.add",
+                "title": "add - Open a new file to add it to the depot",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.edit",
+                "title": "edit - Open an existing file for edit",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.revert",
+                "title": "revert - Discard changes from an opened file",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.diff",
+                "title": "diff - Display diff of client file with depot file",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.diffRevision",
+                "title": "diff revision - Display diff of client file with depot file at a specific revision",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.annotate",
+                "title": "annotate - Print file lines and their revisions in the gutter",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.info",
+                "title": "Display client/server information",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/p4.svg",
+                    "dark": "resources/icons/dark/p4.svg"
+                }
+            },
+            {
+                "command": "perforce.Sync",
+                "title": "Sync",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/sync.svg",
+                    "dark": "resources/icons/dark/sync.svg"
+                }
+            },
+            {
+                "command": "perforce.Refresh",
+                "title": "Refresh",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/refresh.svg",
+                    "dark": "resources/icons/dark/refresh.svg"
+                }
+            },
+            {
+                "command": "perforce.submitDefault",
+                "title": "Submit Default Changelist",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/submit.svg",
+                    "dark": "resources/icons/dark/submit.svg"
+                }
+            },
+            {
+                "command": "perforce.submitChangelist",
+                "title": "Submit changelist",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/submit.svg",
+                    "dark": "resources/icons/dark/submit.svg"
+                }
+            },
+            {
+                "command": "perforce.openResource",
+                "title": "Open changes",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.openFile",
+                "title": "Open file",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.revertFile",
+                "title": "Revert file",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/revert.svg",
+                    "dark": "resources/icons/dark/revert.svg"
+                }
+            },
+            {
+                "command": "perforce.revertUnchangedFile",
+                "title": "Revert file if unchanged",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/revert.svg",
+                    "dark": "resources/icons/dark/revert.svg"
+                }
+            },
+            {
+                "command": "perforce.revertChangelist",
+                "title": "Revert files in changelist",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/revert.svg",
+                    "dark": "resources/icons/dark/revert.svg"
+                }
+            },
+            {
+                "command": "perforce.revertUnchangedChangelist",
+                "title": "Revert unchanged files in changelist",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/revert.svg",
+                    "dark": "resources/icons/dark/revert.svg"
+                }
+            },
+            {
+                "command": "perforce.shelveunshelve",
+                "title": "Shelve/Unshelve file",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/shelveunshelve.svg",
+                    "dark": "resources/icons/dark/shelveunshelve.svg"
+                }
+            },
+            {
+                "command": "perforce.describe",
+                "title": "Describe changelist",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.editChangelist",
+                "title": "Edit changelist description",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/edit.svg",
+                    "dark": "resources/icons/dark/edit.svg"
+                }
+            },
+            {
+                "command": "perforce.reopenFile",
+                "title": "Move to changelist",
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/reopen.svg",
+                    "dark": "resources/icons/dark/reopen.svg"
+                }
+            },
+            {
+                "command": "perforce.opened",
+                "title": "opened - Display 'open' files and open one in the editor",
+                "category": "Perforce"
+            }
+        ],
+        "menus": {
+            "scm/title": [
+                {
+                    "command": "perforce.Sync",
+                    "group": "navigation@1",
+                    "when": "scmProvider == perforce"
+                },
+                {
+                    "command": "perforce.Refresh",
+                    "group": "navigation@2",
+                    "when": "scmProvider == perforce"
+                },
+                {
+                    "command": "perforce.Sync",
+                    "group": "1_sync",
+                    "when": "scmProvider == perforce"
+                },
+                {
+                    "command": "perforce.Refresh",
+                    "group": "1_sync",
+                    "when": "scmProvider == perforce"
+                },
+                {
+                    "command": "perforce.login",
+                    "group": "2_login",
+                    "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
+                },
+                {
+                    "command": "perforce.logout",
+                    "group": "2_login",
+                    "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
+                },
+                {
+                    "command": "perforce.info",
+                    "group": "3_info",
+                    "when": "scmProvider == perforce"
+                },
+                {
+                    "command": "perforce.showOutput",
+                    "group": "3_info",
+                    "when": "scmProvider == perforce"
+                }
+            ],
+            "scm/resourceGroup/context": [
+                {
+                    "command": "perforce.submitDefault",
+                    "when": "scmProvider == perforce && scmResourceGroup == default",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "perforce.submitChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "perforce.revertChangelist",
+                    "when": "scmProvider == perforce",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "perforce.editChangelist",
+                    "when": "scmProvider == perforce",
+                    "group": "inline@3"
+                },
+                {
+                    "command": "perforce.submitDefault",
+                    "when": "scmProvider == perforce && scmResourceGroup == default",
+                    "group": "1_modification@1"
+                },
+                {
+                    "command": "perforce.submitChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@1"
+                },
+                {
+                    "command": "perforce.editChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@2"
+                },
+                {
+                    "command": "perforce.revertChangelist",
+                    "when": "scmProvider == perforce",
+                    "group": "1_modification@3"
+                },
+                {
+                    "command": "perforce.revertUnchangedChangelist",
+                    "when": "scmProvider == perforce",
+                    "group": "1_modification@4"
+                },
+                {
+                    "command": "perforce.describe",
+                    "when": "scmProvider == perforce",
+                    "group": "2_info"
+                }
+            ],
+            "scm/resourceState/context": [
+                {
+                    "command": "perforce.revertFile",
+                    "when": "scmProvider == perforce",
+                    "group": "inline"
+                },
+                {
+                    "command": "perforce.reopenFile",
+                    "when": "scmProvider == perforce",
+                    "group": "inline"
+                },
+                {
+                    "command": "perforce.shelveunshelve",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "inline"
+                },
+                {
+                    "command": "perforce.openResource",
+                    "when": "scmProvider == perforce",
+                    "group": "navigation"
+                },
+                {
+                    "command": "perforce.openFile",
+                    "when": "scmProvider == perforce",
+                    "group": "navigation"
+                },
+                {
+                    "command": "perforce.revertFile",
+                    "when": "scmProvider == perforce",
+                    "group": "1_modification@1"
+                },
+                {
+                    "command": "perforce.revertUnchangedFile",
+                    "when": "scmProvider == perforce",
+                    "group": "1_modification@2"
+                },
+                {
+                    "command": "perforce.reopenFile",
+                    "when": "scmProvider == perforce",
+                    "group": "1_modification@3"
+                },
+                {
+                    "command": "perforce.shelveunshelve",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@4"
+                }
+            ]
+        },
+        "keybindings": [
+            {
+                "key": "alt+p space",
+                "command": "perforce.menuFunctions"
+            },
+            {
+                "key": "alt+p l",
+                "command": "perforce.showOutput"
+            },
+            {
+                "key": "alt+p enter",
+                "command": "perforce.login"
+            },
+            {
+                "key": "alt+p q",
+                "command": "perforce.logout"
+            },
+            {
+                "key": "alt+p a",
+                "command": "perforce.add",
+                "when": "editorTextFocus"
+            },
+            {
+                "key": "alt+p e",
+                "command": "perforce.edit",
+                "when": "editorTextFocus"
+            },
+            {
+                "key": "alt+p r",
+                "command": "perforce.revert",
+                "when": "editorTextFocus"
+            },
+            {
+                "key": "alt+p d",
+                "command": "perforce.diff",
+                "when": "editorTextFocus"
+            },
+            {
+                "key": "alt+p n",
+                "command": "perforce.annotate",
+                "when": "editorTextFocus"
+            },
+            {
+                "key": "alt+p o",
+                "command": "perforce.opened"
+            },
+            {
+                "key": "alt+p s",
+                "command": "perforce.submitDefault"
+            }
+        ]
+    },
+    "dependencies": {
+        "tmp": "^0.0.33",
+        "ini": "^1.3.4",
+        "micromatch": "^3.0.3",
+        "parse-gitignore": "^0.4.0"
+    },
+    "devDependencies": {
+        "@types/node": "^8.0.8",
+        "@types/tmp": "^0.0.33",
+        "typescript": "^2.0.3",
+        "vscode": "^1.1.6"
+    },
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "compile": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    }
 }
