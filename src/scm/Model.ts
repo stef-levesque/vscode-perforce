@@ -96,7 +96,7 @@ export class Model implements Disposable {
         if (!descStr) {
             descStr = '<saved by VSCode>';
         }
-        
+
         const spec: string = await Utils.runCommand(this._workspaceUri, 'change', null, null, args);
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
@@ -118,11 +118,11 @@ export class Model implements Disposable {
             // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
             Display.channel.append(createdStr);
             this.Refresh();
-        } catch(err) {
+        } catch (err) {
             Display.showError(err.toString());
         }
     }
-    
+
     public async ProcessChangelist(): Promise<void> {
         let description = this._sourceControl.inputBox.value;
         this._sourceControl.inputBox.value = '';
@@ -225,7 +225,7 @@ export class Model implements Disposable {
             return;
         }
 
-        if(pick === "Submit") {
+        if (pick === "Submit") {
             this.Submit(descStr);
             return;
         }
@@ -390,7 +390,7 @@ export class Model implements Disposable {
 
                 const file = Uri.file(resource.uri.fsPath);
                 const args = '-c ' + selection.id;
-                
+
                 Utils.runCommand(_this._workspaceUri, 'reopen', file, null, args).then((output) => {
                     Display.channel.append(output);
                     _this.Refresh();
@@ -418,7 +418,7 @@ export class Model implements Disposable {
         //const config: IPerforceConfig = PerforceService.getConfig();
         const config = this._config;
         const pathToSync = config.p4Dir ? config.p4Dir + '...' : null;
-        
+
         await Utils.runCommand(this._workspaceUri, 'sync', Uri.parse(pathToSync), null, '-q').then(output => {
             Display.channel.append(output);
             this.Refresh();
@@ -462,7 +462,9 @@ export class Model implements Disposable {
         this._pendingGroups.forEach((value) => value.group.dispose());
         this._pendingGroups.clear();
 
-        for (let i=0; i < changelists.length; ++i) {
+        let ignoredChangelists: number[] = [];
+
+        for (let i = 0; i < changelists.length; ++i) {
             let value = changelists[i];
             // Change num on date by user@client [status] description
             const matches = value.match(/Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.*)\'/);
@@ -476,6 +478,12 @@ export class Model implements Disposable {
                 const description = matches[6];
 
                 const chnum: number = parseInt(num.toString());
+
+                const prefix = config.get<string>('ignoredChangelistPrefix');
+                if (prefix && description.startsWith(prefix)) {
+                    ignoredChangelists.push(chnum);
+                    continue;
+                }
 
                 if (!this._pendingGroups.has(chnum)) {
                     const group = this._sourceControl.createResourceGroup('pending:' + chnum, '#' + chnum + ': ' + description);
@@ -529,7 +537,7 @@ export class Model implements Disposable {
             const chnum = key.toString();
             if (this._pendingGroups.has(key)) {
                 this._pendingGroups.get(key).group.resourceStates = value;
-            } else {
+            } else if (ignoredChangelists.indexOf(key) === -1) {
                 console.log('ERROR: pending changelist not found: ' + key.toString());
             }
         });
