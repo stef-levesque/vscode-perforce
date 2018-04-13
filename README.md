@@ -48,7 +48,7 @@ Perforce integration for Visual Studio Code
 |`perforce.annotate.user`           |`boolean`  |Output the user who modified the line in the file and the date it was modified
 |`perforce.changelistOrder`         |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
 |`perforce.scmFileChanges`          |`boolean`  |Open file changes when selected in SCM Explorer
-|`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the chnagelists to be ignored. Default: `#`
+|`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the changelists to be ignored.
 
 
 ## Activation

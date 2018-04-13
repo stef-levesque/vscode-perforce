@@ -480,7 +480,7 @@ export class Model implements Disposable {
                 const chnum: number = parseInt(num.toString());
 
                 const prefix = config.get<string>('ignoredChangelistPrefix');
-                if (description.startsWith(prefix)) {
+                if (prefix && description.startsWith(prefix)) {
                     ignoredChangelists.push(chnum);
                     continue;
                 }

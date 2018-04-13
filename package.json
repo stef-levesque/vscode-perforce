@@ -182,8 +182,7 @@
                 },
                 "perforce.ignoredChangelistPrefix": {
                     "type": "string",
-                    "default": "#",
-                    "description": "Specifies the prefix of the chnagelists to be ignored."
+                    "description": "Specifies the prefix of the changelists to be ignored."
                 }
             }
         },
