@@ -7,6 +7,7 @@ import { Status } from './Status';
 
 import * as Path from 'path';
 import * as vscode from 'vscode';
+import { fileSync } from 'tmp';
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
@@ -91,7 +92,11 @@ export class Model implements Disposable {
         PerforceService.execute(resource, 'info', PerforceService.handleInfoServiceResponse);
     }
 
-    public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<void> {
+    public async SaveToChangelist(descStr: string, existingChangelist?: string): Promise<any> {
+        const config = workspace.getConfiguration('perforce');
+        const hideNonWorksSpaceFiles = config.get<boolean>('hideNonWorkspaceFiles');
+        const maxFilePerCommand: number = config.get<number>('maxFilePerCommand');
+
         const args = `-o ${existingChangelist ? existingChangelist : ''}`;
         if (!descStr) {
             descStr = '<saved by VSCode>';
@@ -101,7 +106,31 @@ export class Model implements Disposable {
         const changeFields = spec.trim().split(/\n\r?\n/);
         let newSpec = '';
         for (let field of changeFields) {
-            if (field.startsWith('Description:')) {
+            if (hideNonWorksSpaceFiles && field.startsWith("Files:")) {
+                newSpec += 'Files:\n\t';
+                const fileListStr = field.substring(8); // remove prefix Files:\n\t
+
+                const depotFiles = fileListStr.split("\n").map(file => {
+                    const endOfFileStr = file.indexOf('#'); 
+                    return file.substring(0, endOfFileStr).trim();;
+                });
+
+                var fstatInfo = [];
+
+                for (let i = 0; i < depotFiles.length; i += maxFilePerCommand) {
+                    fstatInfo = fstatInfo.concat(await this.getFstatInfoForFiles(depotFiles.slice(i, i + maxFilePerCommand)));
+                }
+
+                newSpec += fstatInfo.filter(info => {
+                    const uri = Uri.file(info['clientFile'])
+                    const workspaceFolder = workspace.getWorkspaceFolder(uri);
+                    return !!workspaceFolder;
+                }).map(info => {
+                    return info['depotFile'] + '\t# ' + info['action'];
+                }).join('\n\t')
+                newSpec += '\n\n'
+            } 
+            else if (field.startsWith('Description:')) {
                 newSpec += 'Description:\n\t';
                 newSpec += descStr.trim().split('\n').join('\n\t');
                 newSpec += '\n\n';
@@ -115,12 +144,17 @@ export class Model implements Disposable {
         try {
             const createdStr = await Utils.runCommand(this._workspaceUri, 'change', null, null, '-i', null, newSpec);
             // Change #### created with ... 
-            // newChangelistNumber = createdStr.match(/Change\s(\d+)\screated with/);
+            const matches = createdStr.match(/Change\s(\d+)\screated with/);
+            if (matches) {
+                newChangelistNumber = matches[1];
+            }
             Display.channel.append(createdStr);
             this.Refresh();
         } catch (err) {
             Display.showError(err.toString());
         }
+
+        return newChangelistNumber;
     }
 
     public async ProcessChangelist(): Promise<void> {
@@ -176,6 +210,9 @@ export class Model implements Disposable {
     }
 
     public async SubmitDefault(): Promise<void> {
+        const config = workspace.getConfiguration('perforce');
+        const hideNonWorksSpaceFiles = config.get<boolean>('hideNonWorkspaceFiles');
+
         const loggedin = await Utils.isLoggedIn(this._workspaceUri, this._compatibilityMode);
         if (!loggedin) {
             return;
@@ -226,7 +263,12 @@ export class Model implements Disposable {
         }
 
         if (pick === "Submit") {
-            this.Submit(descStr);
+            if (hideNonWorksSpaceFiles) {
+                const changeListNr = await this.SaveToChangelist(descStr);
+                this.Submit(parseInt(changeListNr, 10));
+            } else {
+                this.Submit(descStr);
+            }
             return;
         }
 
@@ -234,12 +276,14 @@ export class Model implements Disposable {
     }
 
 
-    public async Submit(input: SourceControlResourceGroup | string): Promise<void> {
+    public async Submit(input: SourceControlResourceGroup | string | number): Promise<void> {
         const command = 'submit';
         let args = '';
 
         if (typeof input === 'string') {
             args = `-d "${input}"`;
+        } else if (typeof input == 'number') {
+            args = `-c ${input}`;
         } else {
             const group = input as SourceControlResourceGroup;
             const id = group.id;
@@ -256,8 +300,8 @@ export class Model implements Disposable {
                 return;
             }
         }
-
-
+       
+        
         Utils.runCommand(this._workspaceUri, command, null, null, args).then((output) => {
             Display.channel.append(output);
             Display.showMessage("Changelist Submitted");
