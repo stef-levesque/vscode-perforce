@@ -183,6 +183,11 @@
                 "perforce.ignoredChangelistPrefix": {
                     "type": "string",
                     "description": "Specifies the prefix of the changelists to be ignored."
+                },
+                "perforce.hideNonWorkspaceFiles": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Don't show files that are not in the current opened workspace."
                 }
             }
         },

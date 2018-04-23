@@ -506,6 +506,8 @@ export class Model implements Disposable {
             }
         }
 
+        const hideNonWorksSpaceFiles = config.get<boolean>('hideNonWorkspaceFiles');
+
         const depotOpenedFilePaths = await this.getDepotOpenedFilePaths();
         for (let i = 0; i < depotOpenedFilePaths.length; i += maxFilePerCommand) {
             const fstatInfo = await this.getFstatInfoForFiles(depotOpenedFilePaths.slice(i, i + maxFilePerCommand));
@@ -516,6 +518,12 @@ export class Model implements Disposable {
                 const action = info['action'];
                 const headType = info['headType'];
                 const uri = Uri.file(clientFile);
+                if (hideNonWorksSpaceFiles) {
+                    const workspaceFolder = workspace.getWorkspaceFolder(uri);
+                    if (!workspaceFolder) {
+                        return
+                    }
+                }
                 const resource: Resource = new Resource(this, uri, change, action, headType);
 
                 if (change.startsWith('default')) {
