@@ -45,7 +45,12 @@ export class Model implements Disposable {
             result.push(this._defaultGroup);
 
         this._pendingGroups.forEach((value) => {
-            result.push(value.group);
+            const config = workspace.getConfiguration('perforce');
+            if (config.get<boolean>('hideEmptyChangelists') && value.group.resourceStates.length == 0) {
+                value.group.dispose();
+            } else {
+                result.push(value.group);
+            }
         });
 
         return result;

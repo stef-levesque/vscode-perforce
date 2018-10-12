@@ -193,6 +193,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Don't show the shelved files in the Source Control section."
+                },
+                "perforce.hideEmptyChangelists": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Don't show changelists without any file in the Source Control section."
                 }
             }
         },
