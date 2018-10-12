@@ -49,6 +49,7 @@ Perforce integration for Visual Studio Code
 |`perforce.changelistOrder`         |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
 |`perforce.scmFileChanges`          |`boolean`  |Open file changes when selected in SCM Explorer
 |`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the changelists to be ignored.
+|`perforce.hideNonWorkspaceFiles`   |`boolean`  |Hide non workspace files in the SCM Explorer. Default changelist only submits files that are opened in current workspace. Warning: If you submit other changelists than the default it will submit files that are not visible.
 
 
 ## Activation
