@@ -537,16 +537,17 @@ export class Model implements Disposable {
                 } else {
                     console.log('ERROR: pending changelist already exist: ' + chnum.toString());
                 }
-
-                this.getDepotShelvedFilePaths(chnum).then((value) => {
-                    if (!pendings.has(chnum)) {
-                        pendings.set(chnum, []);
-                    }
-                    value.forEach(element => {
-                        const resource: Resource = new Resource(this, Uri.file(element), chnum.toString(), "shelve");
-                        pendings.get(chnum).push(resource);
+                if( !config.get<boolean>('hideShelvedFiles') ) {
+                    this.getDepotShelvedFilePaths(chnum).then((value) => {
+                        if (!pendings.has(chnum)) {
+                            pendings.set(chnum, []);
+                        }
+                        value.forEach(element => {
+                            const resource: Resource = new Resource(this, Uri.file(element), chnum.toString(), "shelve");
+                            pendings.get(chnum).push(resource);
+                        });
                     });
-                });
+                }
             }
         }
 

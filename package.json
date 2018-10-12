@@ -188,6 +188,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Don't show files that are not in the current opened workspace. Default changelist only submits files that are opened in current workspace.  Warning: If you submit other changelists than the default it will submit files that are not visible."
+                },
+                "perforce.hideShelvedFiles": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Don't show the shelved files in the Source Control section."
                 }
             }
         },
