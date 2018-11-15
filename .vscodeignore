@@ -1,4 +1,4 @@
-./temp/**
+.temp/**
 .vscode/**
 typings/**
 out/test/**
