@@ -464,8 +464,17 @@ export class Model implements Disposable {
     }
 
     private async syncUpdate(): Promise<void> {
-        const p4Dir = vscode.workspace.getConfiguration('perforce', this._workspaceUri).get('dir');
-        const pathToSync = p4Dir ? vscode.Uri.file(p4Dir + '...') : null;
+        const trailingSlash = /^(.*)(\/)$/;
+        const config = this._config;
+        let pathToSync = null;
+        let p4Dir = config.p4Dir ? config.p4Dir 
+                    : vscode.workspace.getConfiguration('perforce', this._workspaceUri).get<string>('dir');
+        if (p4Dir && p4Dir !== 'none') {
+            p4Dir = Utils.normalize(p4Dir);
+            if (!trailingSlash.exec(p4Dir)) p4Dir += '/';
+            pathToSync = vscode.Uri.file(p4Dir + '...');
+        }
+        
         Utils.runCommand(this._workspaceUri, 'sync', pathToSync, null, '').then(output => {
             Display.channel.append(output);
             this.Refresh();
