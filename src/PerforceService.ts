@@ -5,6 +5,7 @@ import {
     TextDocument,
     Uri
 } from 'vscode';
+import Bottleneck from 'bottleneck';
 
 import { Utils } from './Utils';
 import { Display } from './Display';
@@ -47,6 +48,14 @@ export function matchConfig(config: IPerforceConfig, uri: Uri): boolean {
 }
 
 export namespace PerforceService {
+
+    const limiter: Bottleneck = new Bottleneck({
+        highWater: 50
+    });
+
+    const debugModeActive: boolean = workspace.getConfiguration('perforce').get('debugModeActive');
+
+    let debugModeSetup: boolean = false;
 
     let _configs: {[key: string]: IPerforceConfig} = {};
 
@@ -131,12 +140,18 @@ export namespace PerforceService {
     }
 
     export function execute(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
-        execCommand(resource, command, responseCallback, args, directoryOverride, input);
+        if (debugModeActive && !debugModeSetup) {
+            limiter.on('debug', (message, data) => {
+                console.log('Bottleneck Debug:', message, data);
+            });
+            debugModeSetup = true;
+        }
+        limiter.submit({ id: `<JOB_ID:${Date.now()}:${command}>`}, execCommand, resource, command, responseCallback, args, directoryOverride, input, null);
     }
 
     export function executeAsPromise(resource: Uri, command: string, args?: string, directoryOverride?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            execCommand(resource, command, (err, stdout, stderr) => {
+            execute(resource, command, (err, stdout, stderr) => {
                 if (err) {
                     reject(err.message);
                 } else if (stderr) {
@@ -148,7 +163,7 @@ export namespace PerforceService {
         });
     }
 
-    function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string) {
+    function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
         const wksPath = wksFolder ? wksFolder.uri.fsPath : '';
