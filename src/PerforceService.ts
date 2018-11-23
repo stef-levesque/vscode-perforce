@@ -146,12 +146,6 @@ export namespace PerforceService {
     }
 
     export function execute(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
-        if (debugModeActive && !debugModeSetup) {
-            limiter.on('debug', (message, data) => {
-                console.log('Bottleneck Debug:', message, data);
-            });
-            debugModeSetup = true;
-        }
         limiter.submit({ id: `<JOB_ID:${Date.now()}:${command}>`}, execCommand, resource, command, responseCallback, args, directoryOverride, input, null);
     }
 
