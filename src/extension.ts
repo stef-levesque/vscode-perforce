@@ -53,6 +53,7 @@ function TryCreateP4(uri: vscode.Uri):  Promise<boolean> {
             }
 
             PerforceService.addConfig(config, wksUri.fsPath);
+            PerforceService.setupThrottling(vscode.workspace.getConfiguration('perforce').get('debugModeActive'));
             _disposable.push(new PerforceSCMProvider(config, wksUri, compatibilityMode));
             _disposable.push(new FileSystemListener(wksFolder));
 

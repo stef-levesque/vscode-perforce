@@ -1,8 +1,6 @@
 import { IPerforceConfig } from './PerforceService';
 import {
     workspace,
-    window,
-    TextDocument,
     Uri
 } from 'vscode';
 import Bottleneck from 'bottleneck';
@@ -59,10 +57,6 @@ export namespace PerforceService {
         penalty:        workspace.getConfiguration('perforce').get<number>('bottleneck.penalty'),
     });
 
-    const debugModeActive: boolean = workspace.getConfiguration('perforce').get('debugModeActive');
-
-    let debugModeSetup: boolean = false;
-
     let _configs: {[key: string]: IPerforceConfig} = {};
 
     export function addConfig(inConfig: IPerforceConfig, workspacePath: string): void {
@@ -71,8 +65,14 @@ export namespace PerforceService {
     export function removeConfig(workspacePath: string): void {
         delete _configs[workspacePath];
     }
-    export function getConfig(workspacePath): IPerforceConfig {
+    export function getConfig(workspacePath: string): IPerforceConfig {
         return _configs[workspacePath];
+    }
+    export function setupThrottling(debugModeActive: boolean): void {
+        if (debugModeActive) {
+            limiter.on('dropped', onCommandDropped);
+            limiter.on('debug', onBottleneckDebug);
+        }
     }
     export function convertToRel(path: string): string {
         const wksFolder = workspace.getWorkspaceFolder(Uri.file(path));
@@ -263,5 +263,13 @@ export namespace PerforceService {
                 reject(err);
             });
         });
+    }
+
+    function onCommandDropped(dropped: object): void {
+        console.log('Command Dropped:', dropped);
+    }
+
+    function onBottleneckDebug(message: string, data: object) {
+        console.log('Bottleneck Debug:', message, data);
     }
 }
