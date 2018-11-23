@@ -50,7 +50,13 @@ export function matchConfig(config: IPerforceConfig, uri: Uri): boolean {
 export namespace PerforceService {
 
     const limiter: Bottleneck = new Bottleneck({
-        highWater: 50
+        maxConcurrent:  workspace.getConfiguration('perforce').get<number>('bottleneck.maxConcurrent'),
+        minTime:        workspace.getConfiguration('perforce').get<number>('bottleneck.minTime'),
+        highWater:      workspace.getConfiguration('perforce').get<number>('bottleneck.highWater'),
+        strategy:       Bottleneck.strategy[
+                            workspace.getConfiguration('perforce').get<string>('bottleneck.strategy')
+                        ],
+        penalty:        workspace.getConfiguration('perforce').get<number>('bottleneck.penalty'),
     });
 
     const debugModeActive: boolean = workspace.getConfiguration('perforce').get('debugModeActive');

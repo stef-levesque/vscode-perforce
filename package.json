@@ -41,6 +41,44 @@
             "type": "object",
             "title": "VS Code Perforce Configuration",
             "properties": {
+                "perforce.bottleneck.maxConcurrent": {
+                    "scope": "application",
+                    "type": "number",
+                    "description": "How many jobs can be executing at the same time",
+                    "minimum": 0,
+                    "default": null
+                },
+                "perforce.bottleneck.minTime": {
+                    "scope": "application",
+                    "type": "number",
+                    "description": "How long to wait after launching a job before launching another one",
+                    "minimum": 0
+                },
+                "perforce.bottleneck.highWater": {
+                    "scope": "application",
+                    "type": "number",
+                    "description": "How long can the queue be? When the queue length exceeds that value, the selected strategy is executed to shed the load",
+                    "minimum": 0,
+                    "default": 50
+                },
+                "perforce.bottleneck.strategy": {
+                    "scope": "application",
+                    "type": "string",
+                    "description": "Which strategy to use when the queue gets longer than the high water mark",
+                    "enum": [
+                        "LEAK",
+                        "OVERFLOW_PRIORITY",
+                        "OVERFLOW",
+                        "BLOCK"
+                    ]
+                },
+                "perforce.bottleneck.penalty": {
+                    "scope": "application",
+                    "type": "number",
+                    "description": "The penalty value used by the BLOCK strategy",
+                    "minimum": 0,
+                    "default": null
+                },
                 "perforce.debugModeActive": {
                     "type": "boolean",
                     "default": false,
