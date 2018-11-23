@@ -146,7 +146,7 @@ export namespace PerforceService {
     }
 
     export function execute(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
-        limiter.submit({ id: `<JOB_ID:${Date.now()}:${command}>`}, execCommand, resource, command, responseCallback, args, directoryOverride, input, null);
+        limiter.submit({ id: `<JOB_ID:${Date.now()}:${command}>` }, execCommand, resource, command, responseCallback, args, directoryOverride, input, null);
     }
 
     export function executeAsPromise(resource: Uri, command: string, args?: string, directoryOverride?: string, input?: string): Promise<string> {
