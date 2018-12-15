@@ -18,8 +18,8 @@ export namespace PerforceCommands
 {
     export function registerCommands() {
         commands.registerCommand('perforce.add', addOpenFile);
-		commands.registerCommand('perforce.edit', editOpenFile);
-		commands.registerCommand('perforce.delete', deleteOpenFile);
+        commands.registerCommand('perforce.edit', editOpenFile);
+        commands.registerCommand('perforce.delete', deleteOpenFile);
         commands.registerCommand('perforce.revert', revert);
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
