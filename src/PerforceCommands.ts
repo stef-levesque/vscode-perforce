@@ -18,7 +18,8 @@ export namespace PerforceCommands
 {
     export function registerCommands() {
         commands.registerCommand('perforce.add', addOpenFile);
-        commands.registerCommand('perforce.edit', editOpenFile);
+		commands.registerCommand('perforce.edit', editOpenFile);
+		commands.registerCommand('perforce.delete', deleteOpenFile);
         commands.registerCommand('perforce.revert', revert);
         commands.registerCommand('perforce.diff', diff);
         commands.registerCommand('perforce.diffRevision', diffRevision);
@@ -93,6 +94,21 @@ export namespace PerforceCommands
         });
     }
 
+    function deleteOpenFile() {
+        var editor = window.activeTextEditor;
+        if(!checkFileSelected()) {
+            return false;
+        }
+
+        if(!editor || !editor.document) {
+            return false;
+        }
+
+        revert();
+        var fileUri = editor.document.uri;
+        p4delete(fileUri);
+    }
+
     export function p4delete(fileUri: Uri) {
         const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
         PerforceService.execute(fileUri, "delete", (err, stdout, stderr) => {
@@ -100,6 +116,7 @@ export namespace PerforceCommands
             if(!err) {
                 Display.showMessage("file marked for delete");
             }
+            Display.showMessage(fileUri + stdout + stderr);
         }, args);
     }
 

@@ -276,6 +276,11 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.delete",
+                "title": "delete - Delete an existing file",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.revert",
                 "title": "revert - Discard changes from an opened file",
                 "category": "Perforce"
