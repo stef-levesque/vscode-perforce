@@ -116,7 +116,6 @@ export namespace PerforceCommands
             if(!err) {
                 Display.showMessage("file marked for delete");
             }
-            Display.showMessage(fileUri + stdout + stderr);
         }, args);
     }
 
