@@ -2,7 +2,7 @@
     "name": "perforce",
     "displayName": "Perforce for VS Code",
     "description": "Perforce integration with VS Code's SCM features",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "publisher": "slevesque",
     "license": "LICENSE.md",
     "categories": [
@@ -635,7 +635,7 @@
         "@types/node": "^8.0.8",
         "@types/tmp": "^0.0.33",
         "typescript": "^2.0.3",
-        "vscode": "^1.1.6"
+        "vscode": "^1.1.33"
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",

@@ -1,5 +1,13 @@
 # Change log
 
+## [3.2.0] - 2019-04-17
+
+* Add command `delete` (#106, thanks @howardcvalve)
+* Ignore changelist with prefix (#131, thanks @forgottenski)
+* Hide non workspace files (#134, thanks @tw1nk)
+* Option to hide shelved files and empty changelists
+* Throttle all perforce commands via bottleneck (#137, #147, thanks @pjdanfor)
+
 ## [3.1.0] - 2017-12-17
 
 * Add `Revert Unchanged` for file and changelist (#77)

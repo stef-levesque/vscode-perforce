@@ -50,7 +50,10 @@ Perforce integration for Visual Studio Code
 |`perforce.scmFileChanges`          |`boolean`  |Open file changes when selected in SCM Explorer
 |`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the changelists to be ignored.
 |`perforce.hideNonWorkspaceFiles`   |`boolean`  |Hide non workspace files in the SCM Explorer. Default changelist only submits files that are opened in current workspace. Warning: If you submit other changelists than the default it will submit files that are not visible.
-
+|`perforce.hideShelvedFiles`        |`boolean`  |Hide shelved files in the SCM Explorer.
+|`perforce.hideEmptyChangelists`    |`boolean`  |Hide changelists with no file in the SCM Explorer.
+|&nbsp;
+|`perforce.bottleneck`              |`object`   |**Experimental** Throttle all perforce commands via bottleneck.
 
 ## Activation
 
