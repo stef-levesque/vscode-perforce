@@ -4,7 +4,7 @@ import {
     commands, workspace, window, Uri,
     ThemableDecorationAttachmentRenderOptions, DecorationInstanceRenderOptions, DecorationOptions,
     OverviewRulerLane, Disposable, ExtensionContext, Range, QuickPickItem,
-    TextDocument, TextEditor, TextEditorSelectionChangeEvent, WorkspaceFolder } from 'vscode';
+    TextDocument, TextEditor, TextEditorSelectionChangeEvent, WorkspaceFolder, MarkdownString } from 'vscode';
 
 import * as Path from 'path';
 import * as fs from 'fs';
@@ -236,6 +236,7 @@ export namespace PerforceCommands
         const conf = workspace.getConfiguration('perforce')
         const cl = conf.get('annotate.changelist');
         const usr = conf.get('annotate.user');
+        const swarmHost = conf.get('swarmHost');
         let args = '-q';
         if (cl) args += 'c';
         if (usr) args += 'u';
@@ -258,7 +259,7 @@ export namespace PerforceCommands
             const matches = annotations[i].match(usr ? /^(\d+): (\S+ \S+)/ : /^(\d+): /);
             if(matches) {
                 const num = matches[1];
-                const hoverMessage = matches[2];
+                const hoverMessage = swarmHost ? new MarkdownString(`[${num + ' ' + matches[2]}](${swarmHost}/changes/${num})`) : matches[2];
 
                 if (num !== lastNum) {
                     lastNum = num;

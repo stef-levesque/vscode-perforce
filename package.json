@@ -241,6 +241,10 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Don't show changelists without any file in the Source Control section."
+                },
+                "perforce.swarmHost": {
+                    "type": "string",
+                    "description": "Specifies the host of the Swarm server for annotation links"
                 }
             }
         },
