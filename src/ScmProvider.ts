@@ -300,6 +300,7 @@ export class PerforceSCMProvider {
     private static getLeftResource(resource: Resource): Uri | undefined {
         switch (resource.status) {
             case Status.EDIT:
+            case Status.INTEGRATE:
                 return resource.uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
         }
     }
@@ -310,6 +311,8 @@ export class PerforceSCMProvider {
             case Status.ADD:
             case Status.EDIT:
             case Status.MOVE_ADD:
+            case Status.INTEGRATE:
+            case Status.BRANCH:
                 return resource.uri;
             case Status.MOVE_DELETE:
             case Status.DELETE:
@@ -323,6 +326,7 @@ export class PerforceSCMProvider {
 
         switch (resource.status) {
             case Status.EDIT:
+            case Status.INTEGRATE:
                 return `${basename} - Diff Against Most Recent Revision`;
         }
 
