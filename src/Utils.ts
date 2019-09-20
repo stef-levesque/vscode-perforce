@@ -4,6 +4,7 @@ import { PerforceService } from './PerforceService';
 import { Display } from './Display';
 
 import * as fs from 'fs';
+import * as os from 'os';
 
 export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
     return (listener, thisArgs = null, disposables?) => event(i => listener.call(thisArgs, map(i)), null, disposables);
@@ -37,7 +38,7 @@ export namespace Utils {
 
     export function processInfo(output): Map<string, string> {
         const map = new Map<string, string>();
-        const lines = output.trim().split('\n');
+        const lines = output.trim().split(os.EOL);
 
         for (let i = 0, n = lines.length; i < n; ++i) {
             // Property Name: Property Value
