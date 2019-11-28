@@ -96,6 +96,8 @@ export class PerforceSCMProvider {
         commands.registerCommand('perforce.revertChangelist', PerforceSCMProvider.Revert);
         commands.registerCommand('perforce.revertUnchangedChangelist', PerforceSCMProvider.RevertUnchanged);
         commands.registerCommand('perforce.shelveChangelist', PerforceSCMProvider.ShelveChangelist);
+        commands.registerCommand('perforce.shelveRevertChangelist', PerforceSCMProvider.ShelveRevertChangelist);
+        commands.registerCommand('perforce.unshelveChangelist', PerforceSCMProvider.UnshelveChangelist);
         commands.registerCommand('perforce.shelveunshelve', PerforceSCMProvider.ShelveOrUnshelve);
         commands.registerCommand('perforce.revertFile', PerforceSCMProvider.Revert);
         commands.registerCommand('perforce.revertUnchangedFile', PerforceSCMProvider.RevertUnchanged);
@@ -220,6 +222,20 @@ export class PerforceSCMProvider {
         let model: Model = input['model'];
         if (model) {
             await model.ShelveChangelist(input);
+        }
+    }
+
+    public static async ShelveRevertChangelist(input: SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        if (model) {
+            await model.ShelveChangelist(input, true);
+        }
+    }
+
+    public static async UnshelveChangelist(input: SourceControlResourceGroup) {
+        let model: Model = input['model'];
+        if (model) {
+            await model.UnshelveChangelist(input);
         }
     }
 

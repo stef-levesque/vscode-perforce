@@ -410,6 +410,16 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.shelveRevertChangelist",
+                "title": "Shelve and revert changelist",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.unshelveChangelist",
+                "title": "Unshelve changelist",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.describe",
                 "title": "Describe changelist",
                 "category": "Perforce"
@@ -531,6 +541,16 @@
                     "command": "perforce.shelveChangelist",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
                     "group": "1_modification@5"
+                },
+                {
+                    "command": "perforce.shelveRevertChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@6"
+                },
+                {
+                    "command": "perforce.unshelveChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@7"
                 },
                 {
                     "command": "perforce.describe",

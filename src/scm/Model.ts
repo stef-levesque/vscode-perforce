@@ -381,7 +381,7 @@ export class Model implements Disposable {
         }
     }
 
-    public async ShelveChangelist(input: SourceControlResourceGroup) : Promise<void> {
+    public async ShelveChangelist(input: SourceControlResourceGroup, revert?: boolean) : Promise<void> {
         const id = input.id;
         const chnum = id.substr(id.indexOf(':') + 1);
 
@@ -389,7 +389,25 @@ export class Model implements Disposable {
         let args = '-f -c ' + chnum;
 
         try {
-            const output = await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            if (revert) {
+                await this.Revert(input);
+            }
+        } catch (err) {
+            Display.showError(err.toString());
+        }
+        this.Refresh();
+    }
+
+    public async UnshelveChangelist(input: SourceControlResourceGroup) : Promise<void> {
+        const id = input.id;
+        const chnum = id.substr(id.indexOf(':') + 1);
+
+        const command = 'unshelve';
+        let args = '-f -s ' + chnum + ' -c ' + chnum;
+
+        try {
+            await Utils.runCommand(this._workspaceUri, command, null, null, args);
         } catch (err) {
             Display.showError(err.toString());
         }
