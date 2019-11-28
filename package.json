@@ -540,22 +540,22 @@
                 {
                     "command": "perforce.shelveChangelist",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
-                    "group": "1_modification@5"
+                    "group": "2_shelving@1"
                 },
                 {
                     "command": "perforce.shelveRevertChangelist",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
-                    "group": "1_modification@6"
+                    "group": "2_shelving@2"
                 },
                 {
                     "command": "perforce.unshelveChangelist",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
-                    "group": "1_modification@7"
+                    "group": "2_shelving@3"
                 },
                 {
                     "command": "perforce.describe",
                     "when": "scmProvider == perforce",
-                    "group": "2_info"
+                    "group": "3_info"
                 }
             ],
             "scm/resourceState/context": [
