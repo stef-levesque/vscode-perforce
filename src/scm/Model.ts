@@ -385,7 +385,7 @@ export class Model implements Disposable {
         const chnum = id.substr(id.indexOf(':') + 1);
 
         const command = 'shelve';
-        let args = '-f -c ' + chnum;
+        const args = '-f -c ' + chnum;
 
         try {
             await Utils.runCommand(this._workspaceUri, command, null, null, args);
