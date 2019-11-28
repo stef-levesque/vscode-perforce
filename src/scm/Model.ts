@@ -7,7 +7,6 @@ import { Status } from './Status';
 
 import * as Path from 'path';
 import * as vscode from 'vscode';
-import { fileSync } from 'tmp';
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
@@ -404,14 +403,37 @@ export class Model implements Disposable {
         const chnum = id.substr(id.indexOf(':') + 1);
 
         const command = 'unshelve';
-        let args = '-f -s ' + chnum + ' -c ' + chnum;
+        const args = '-f -s ' + chnum + ' -c ' + chnum;
 
         try {
             await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            this.Refresh();
         } catch (err) {
             Display.showError(err.toString());
         }
-        this.Refresh();
+    }
+
+    public async DeleteShelvedChangelist(input: SourceControlResourceGroup) : Promise<void> {
+        const id = input.id;
+        const chnum = id.substr(id.indexOf(':') + 1);
+
+        let message = "Are you sure you want to delete the shelved files from changelist " + chnum + "?";
+
+        const yes = "Delete Shelved Files";
+        const pick = await window.showWarningMessage(message, { modal: true }, yes);
+        if (pick !== yes) {
+            return;
+        }
+
+        const command = 'shelve';
+        let args = '-d -c '+chnum;
+
+        try {
+            await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            this.Refresh();
+        } catch (err) {
+            Display.showError(err.toString());
+        }
     }
 
     public async ShelveOrUnshelve(input: Resource): Promise<void> {

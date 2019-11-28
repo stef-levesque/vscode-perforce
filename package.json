@@ -420,6 +420,11 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.deleteShelvedChangelist",
+                "title": "Delete shelved files",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.describe",
                 "title": "Describe changelist",
                 "category": "Perforce"
@@ -551,6 +556,11 @@
                     "command": "perforce.unshelveChangelist",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
                     "group": "2_shelving@3"
+                },
+                {
+                    "command": "perforce.deleteShelvedChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "2_shelving@4"
                 },
                 {
                     "command": "perforce.describe",
