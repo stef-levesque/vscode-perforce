@@ -35,6 +35,45 @@ export namespace Utils {
         return relativeToRoot;        
     }
 
+    export function getDepotPathFromDepotUri(uri : Uri) : string {
+        return "//"+uri.authority+uri.path;
+    }
+
+    function encodeParam(param : string , value?: any) {
+        if (value !== undefined && typeof value === 'string') {
+            return encodeURIComponent(param) + "=" + encodeURIComponent(value);
+        } else if (value === undefined || value) {
+            return encodeURIComponent(param)
+        }
+    }
+
+    export function makePerforceDocUri(uri : Uri, command: string, p4Args?: string, otherArgs?: {[key: string]: string | boolean}) {
+        return uri.with({scheme: 'perforce', query: makePerforceUriQuery(command, p4Args ?? '', otherArgs)});
+    }
+
+    export function makePerforceUriQuery(command: string, p4Args: string, otherArgs?: {[key: string]: string | boolean}) {
+        let allArgs = [encodeParam('p4args', p4Args), encodeParam('command', command)];
+        if (otherArgs) {
+            allArgs.push(...
+                Object.keys(otherArgs).filter(key => otherArgs[key] !== false).map((key) => encodeParam(key, otherArgs[key]))
+            )
+        }
+        return allArgs.join("&");
+    }
+
+    export function decodeUriQuery(query: string) {
+        let argArr = query?.split("&") ?? [];
+        const allArgs = {};
+        argArr.forEach(arg => {
+            const parts = arg.split("=");
+            const name = decodeURIComponent(parts[0]);
+            const value = parts[1] ? decodeURIComponent(parts[1]) : true;
+            allArgs[name] = value;
+        });
+
+        return allArgs;
+    }
+
     export function processInfo(output): Map<string, string> {
         const map = new Map<string, string>();
         const lines = output.trim().split('\n');
@@ -89,8 +128,20 @@ export namespace Utils {
         });
     }
 
+    export function getOutputs(resource: Uri, command: string): Promise<[string, string]> {
+        return new Promise((resolve, reject) => {
+            PerforceService.execute(resource, command, (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                if (err) {
+                    reject(err);
+                }
+                resolve([stdout, stderr]);
+            });
+        });
+    }
+
     // Get a string containing the output of the command
-    export function runCommand(resource: Uri, command: string, file?: Uri | null, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function runCommand(resource: Uri, command: string, file?: Uri | string | null, revision?: number | string, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : '';
     
@@ -98,7 +149,12 @@ export namespace Utils {
                 command = gOpts + ' ' + command;
             }
     
-            var revisionString: string = revision == null || isNaN(revision) ? '' : `#${revision}`;
+            let revisionString: string = '';
+            if (typeof revision === 'string') {
+                revisionString = revision;
+            } else if (revision != null && !isNaN(revision)) {
+                revisionString = `#${revision}`;
+            }
     
             if (file) {
                 let path = (typeof file === 'string') ? file : file.fsPath;
@@ -122,12 +178,13 @@ export namespace Utils {
     }
 
     // Get a string containing the output of the command specific to a file
-    export function runCommandForFile(command: string, file: Uri, revision?: number, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function runCommandForFile(command: string, file: Uri, revision?: number | string, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
         let resource = file;
         return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
     }
 
     // Get a path to a file containing the output of the command
+    // TODO this is only used for print - seems unecessary when we have a perforce content provider
     export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
         let resource = file;
         return new Promise((resolve, reject) => {

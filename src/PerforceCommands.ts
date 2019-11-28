@@ -281,14 +281,7 @@ export namespace PerforceCommands
             }
         }
 
-        let p4Uri = doc.uri;
-        let query = encodeURIComponent('-q');
-        p4Uri = p4Uri.with({
-            scheme: 'perforce',
-            authority: 'print',
-            path: doc.uri.path,
-            query: query
-        });
+        let p4Uri = Utils.makePerforceDocUri(doc.uri, 'print', '-q');
 
         workspace.openTextDocument(p4Uri).then(d => {
             window.showTextDocument(d).then(e => {

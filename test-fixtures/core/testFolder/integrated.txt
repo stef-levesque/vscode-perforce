@@ -1,0 +1,2 @@
+a file with some integrated content
+that may have been manually merged.
