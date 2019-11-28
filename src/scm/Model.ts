@@ -381,6 +381,21 @@ export class Model implements Disposable {
         }
     }
 
+    public async ShelveChangelist(input: SourceControlResourceGroup) : Promise<void> {
+        const id = input.id;
+        const chnum = id.substr(id.indexOf(':') + 1);
+
+        const command = 'shelve';
+        let args = '-f -c ' + chnum;
+
+        try {
+            const output = await Utils.runCommand(this._workspaceUri, command, null, null, args);
+        } catch (err) {
+            Display.showError(err.toString());
+        }
+        this.Refresh();
+    }
+
     public async ShelveOrUnshelve(input: Resource): Promise<void> {
         const file = input.uri;
 

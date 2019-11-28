@@ -405,6 +405,11 @@
                 }
             },
             {
+                "command": "perforce.shelveChangelist",
+                "title": "Shelve changelist",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.describe",
                 "title": "Describe changelist",
                 "category": "Perforce"
@@ -521,6 +526,11 @@
                     "command": "perforce.revertUnchangedChangelist",
                     "when": "scmProvider == perforce",
                     "group": "1_modification@4"
+                },
+                {
+                    "command": "perforce.shelveChangelist",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "1_modification@5"
                 },
                 {
                     "command": "perforce.describe",
