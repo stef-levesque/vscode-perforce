@@ -380,6 +380,15 @@ export class Model implements Disposable {
         }
     }
 
+    public async QuietlyRevertChangelist(chnum: string) : Promise<void> {
+        const command = 'revert';
+        const args = '-c ' + chnum + ' //...';
+
+        const output = await Utils.runCommand(this._workspaceUri, command, null, null, args);
+        Display.updateEditor();
+        Display.channel.append(output);
+    }
+
     public async ShelveChangelist(input: SourceControlResourceGroup, revert?: boolean) : Promise<void> {
         const id = input.id;
         const chnum = id.substr(id.indexOf(':') + 1);
@@ -390,7 +399,7 @@ export class Model implements Disposable {
         try {
             await Utils.runCommand(this._workspaceUri, command, null, null, args);
             if (revert) {
-                await this.Revert(input);
+                await this.QuietlyRevertChangelist(chnum);
             }
         } catch (err) {
             Display.showError(err.toString());
