@@ -676,10 +676,13 @@ export class Model implements Disposable {
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
         let resource = Uri.file(this._config.localDir);
-        const output = await Utils.getSimpleOutput(resource, 'opened');
-        const opened = output.trim().split('\n');
-        if (opened.length === 0) {
-            return;
+        let opened = [];
+        try {
+            const output = await Utils.getSimpleOutput(resource, 'opened');
+            opened = output.trim().split('\n');
+        } catch (err) {
+            // perforce writes to stderr if no files are opened.
+            console.log('ERROR: '+err);
         }
 
         const files = [];
@@ -691,6 +694,7 @@ export class Model implements Disposable {
         });
 
         return files;
+
     }
 
     private async getDepotShelvedFilePaths(chnum: number): Promise<string[]> {
