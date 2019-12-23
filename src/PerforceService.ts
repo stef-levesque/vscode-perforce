@@ -1,4 +1,3 @@
-import { IPerforceConfig } from './PerforceService';
 import {
     workspace,
     window,

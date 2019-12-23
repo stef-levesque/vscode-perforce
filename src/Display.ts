@@ -73,4 +73,9 @@ export namespace Display
         window.setStatusBarMessage("Perforce: " + error, 3000);
         channel.appendLine(`ERROR: ${JSON.stringify(error)}`);
     }
+
+    export function showImportantError(error: string) {
+        window.showErrorMessage(error);
+        channel.appendLine(`ERROR: ${JSON.stringify(error)}`);
+    }
 }

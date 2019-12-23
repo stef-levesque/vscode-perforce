@@ -20,15 +20,29 @@ export class PerforceContentProvider {
 
     public provideTextDocumentContent(uri: Uri): Promise<string> {
         return new Promise<string>((resolve) => {
-            let command: string = uri.authority;
+
+            if (uri.path === "EMPTY") { resolve(''); return; }
+
+            let revision: number | string = uri.fragment;
+            if (!revision.startsWith("@")) {
+                revision = parseInt(uri.fragment);
+            }
+
+            const allArgs = Utils.decodeUriQuery(uri.query ?? "");
+
+            const args = allArgs['p4args'] ?? '-q';
+            const command = allArgs['command'] ?? 'print';
+
+            if (allArgs['depot']) {
+                const resource = allArgs['workspace'] ? Uri.file(allArgs['workspace']) : workspace.workspaceFolders[0].uri;
+                return Utils.runCommand(resource, command, Utils.getDepotPathFromDepotUri(uri), revision, args).then(resolve);
+            }
+
             let file = uri.fsPath ? Uri.file(uri.fsPath) : null;
-            let revision: number = parseInt(uri.fragment);
-            let args: string = decodeURIComponent(uri.query);
 
             if (!file) {
                 // Try to guess the proper workspace to use
                 if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
-                    const resource = window.activeTextEditor.document.uri;
                     return Utils.runCommand(window.activeTextEditor.document.uri, command, null, revision, args).then(resolve);
                 } else if (workspace.workspaceFolders) {
                     const resource = workspace.workspaceFolders[0].uri;

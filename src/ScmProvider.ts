@@ -2,11 +2,18 @@ import { commands, scm, window, Uri, Disposable, SourceControl, SourceControlRes
 import { Model } from './scm/Model';
 import { Resource } from './scm/Resource';
 import { Status } from './scm/Status';
-import { mapEvent } from './Utils';
+import { mapEvent, Utils } from './Utils';
 import { FileType } from './scm/FileTypes';
 import { IPerforceConfig, matchConfig } from './PerforceService';
 import * as Path from 'path';
+import * as fs from 'fs';
 import { PerforceCommands } from './PerforceCommands';
+
+enum DiffType {
+    WORKSPACE_V_DEPOT,
+    SHELVE_V_DEPOT,
+    WORKSPACE_V_SHELVE
+}
 
 export class PerforceSCMProvider {
     private compatibilityMode: string;
@@ -31,17 +38,17 @@ export class PerforceSCMProvider {
     public get label(): string { return 'Perforce'; }
     public get count(): number {
         const countBadge = workspace.getConfiguration('perforce').get<string>('countBadge');
-        let statuses = this._model.ResourceGroups.reduce((a, b) => a.concat( b.resourceStates.reduce((c,d) => c.concat( (d as Resource).status ), [])), []);
+        let statuses = this._model.ResourceGroups.reduce((a, b) => a.concat( b.resourceStates.reduce((c,d) => c.concat( [[(d as Resource).status, (d as Resource).isShelved]] ), [])), []);
 
         // Don't count MOVE_DELETE as we already count MOVE_ADD
         switch (countBadge) {
             case 'off': 
                 return 0;
             case 'all-but-shelved':
-                return statuses.filter(s => s != Status.SHELVE && s != Status.MOVE_DELETE).length;
+                return statuses.filter(s => s[0] !== Status.MOVE_DELETE && !s[1]).length;
             case 'all':
             default: 
-                return statuses.filter(s => s != Status.MOVE_DELETE).length; 
+                return statuses.filter(s => s[0] !== Status.MOVE_DELETE).length; 
         }
     }
 
@@ -88,6 +95,7 @@ export class PerforceSCMProvider {
         commands.registerCommand('perforce.Sync', PerforceSCMProvider.Sync);
         commands.registerCommand('perforce.openFile', PerforceSCMProvider.OpenFile);
         commands.registerCommand('perforce.openResource', PerforceSCMProvider.Open);
+        commands.registerCommand('perforce.openResourcevShelved', PerforceSCMProvider.OpenvShelved);
         commands.registerCommand('perforce.submitDefault', PerforceSCMProvider.SubmitDefault);
         commands.registerCommand('perforce.processChangelist', PerforceSCMProvider.ProcessChangelist);
         commands.registerCommand('perforce.editChangelist', PerforceSCMProvider.EditChangelist);
@@ -130,7 +138,7 @@ export class PerforceSCMProvider {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
         const preview = selection.length == 1;
         for (const resource of selection) {
-            commands.executeCommand<void>("vscode.open", resource.uri, {preview});
+            commands.executeCommand<void>("vscode.open", resource.underlyingUri, {preview});
         }
     };
 
@@ -138,6 +146,13 @@ export class PerforceSCMProvider {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
         for (const resource of selection) {
             PerforceSCMProvider.open(resource);
+        }
+    };
+
+    public static OpenvShelved(...resourceStates: SourceControlResourceState[]) {
+        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        for (const resource of selection) {
+            PerforceSCMProvider.open(resource, DiffType.WORKSPACE_V_SHELVE);
         }
     };
 
@@ -292,7 +307,7 @@ export class PerforceSCMProvider {
             return;
         }
 
-        return uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
+        return Utils.makePerforceDocUri(uri, 'print', '-q');
     }
 
 
@@ -303,17 +318,21 @@ export class PerforceSCMProvider {
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
 
-    private static open(resource: Resource): void {
+    private static open(resource: Resource, diffType?: DiffType): void {
         if(resource.FileType.base === FileType.BINARY) {
-            const uri = resource.uri.with({ scheme: 'perforce', authority: 'fstat' });
+            const uri = Utils.makePerforceDocUri(resource.resourceUri, 'fstat', '');
             workspace.openTextDocument(uri)
                 .then(doc => window.showTextDocument(doc));
             return;
         }
 
-        const left: Uri = PerforceSCMProvider.getLeftResource(resource);
-        const right: Uri = PerforceSCMProvider.getRightResource(resource);
-        const title: string = PerforceSCMProvider.getTitle(resource);
+        if (diffType === undefined) {
+            diffType = resource.isShelved ? DiffType.SHELVE_V_DEPOT : DiffType.WORKSPACE_V_DEPOT;
+        }
+
+        const left: Uri = PerforceSCMProvider.getLeftResource(resource, diffType);
+        const right: Uri = PerforceSCMProvider.getRightResource(resource, diffType);
+        const title: string = PerforceSCMProvider.getTitle(resource, diffType);
 
         if (!left) {
             if (!right) {
@@ -324,41 +343,100 @@ export class PerforceSCMProvider {
             commands.executeCommand<void>("vscode.open", right);
             return;
         }
+        if (!right) {
+            commands.executeCommand<void>("vscode.open", left);
+            return;
+        }
         commands.executeCommand<void>("vscode.diff", left, right, title);
         return;
     }
 
     // Gets the uri for the previous version of the file.
-    private static getLeftResource(resource: Resource): Uri | undefined {
-        switch (resource.status) {
-            case Status.EDIT:
-                return resource.uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
+    private static getLeftResource(resource: Resource, diffType : DiffType): Uri | undefined {
+        const nonce = Math.random().toString();
+        const args = {
+            depot: resource.isShelved,
+            nonce,
+            workspace: resource.model.workspaceUri.fsPath
+        };
+    
+        if (diffType === DiffType.WORKSPACE_V_SHELVE) {
+            // left hand side is the shelve
+            switch(resource.status) {
+                case Status.ADD:
+                case Status.EDIT:
+                case Status.INTEGRATE:
+                case Status.MOVE_ADD:
+                case Status.BRANCH:
+                    return resource.resourceUri.with({ scheme: 'perforce', query: Utils.makePerforceUriQuery('print', '-q', args), fragment: "@=" + resource.change });
+                case Status.DELETE:
+                case Status.MOVE_DELETE:
+            }
+        } else {
+            const emptyDoc = Uri.parse('perforce:EMPTY');
+            // left hand side is the depot version
+            switch (resource.status) {
+                case Status.ADD:
+                    return emptyDoc;
+                case Status.MOVE_ADD:
+                case Status.BRANCH:
+                case Status.INTEGRATE:
+                    // diff against the old file if it is known (always a depot path)
+                    return resource.fromFile ? Utils.makePerforceDocUri(resource.fromFile, 'print', '-q', {depot: true, nonce, workspace: resource.model.workspaceUri.fsPath}) : emptyDoc;
+                case Status.EDIT:
+                case Status.DELETE:
+                case Status.MOVE_DELETE:
+                    return Utils.makePerforceDocUri(resource.resourceUri, 'print', '-q', args);
+            }
         }
     }
 
-    // Gets the uri for the current version of the file (except for deleted files).
-    private static getRightResource(resource: Resource): Uri | undefined {
-        switch (resource.status) {
-            case Status.ADD:
-            case Status.EDIT:
-            case Status.MOVE_ADD:
-                return resource.uri;
-            case Status.MOVE_DELETE:
-            case Status.DELETE:
-                return resource.uri.with({ scheme: 'perforce', authority: 'print', query: '-q' });
+    // Gets the uri for the current version of the file (or the shelved version depending on the diff type).
+    private static getRightResource(resource: Resource, diffType : DiffType): Uri | undefined {
+        const emptyDoc = Uri.parse('perforce:EMPTY');
+        if (diffType === DiffType.SHELVE_V_DEPOT) {
+            const args = {
+                depot: resource.isShelved,
+                nonce: Math.random().toString(),
+                workspace: resource.model.workspaceUri.fsPath
+            }
 
+            switch(resource.status) {
+                case Status.ADD:
+                case Status.EDIT:
+                case Status.MOVE_ADD:
+                case Status.INTEGRATE:
+                case Status.BRANCH:
+                    return resource.resourceUri.with({ scheme: 'perforce', query: Utils.makePerforceUriQuery('print', '-q', args), fragment: "@=" + resource.change });
+            }
+        } else {
+            const exists = !resource.isShelved || (resource.underlyingUri && fs.existsSync(resource.underlyingUri.fsPath));
+            switch (resource.status) {
+                case Status.ADD:
+                case Status.EDIT:
+                case Status.MOVE_ADD:
+                case Status.INTEGRATE:
+                case Status.BRANCH:
+                    return exists ? resource.underlyingUri ?? emptyDoc :emptyDoc;
+            }
         }
     }
 
-    private static getTitle(resource: Resource): string {
-        const basename = Path.basename(resource.uri.fsPath);
+    private static getTitle(resource: Resource, diffType : DiffType): string {
+        const basename = Path.basename(resource.resourceUri.fsPath);
 
-        switch (resource.status) {
-            case Status.EDIT:
-                return `${basename} - Diff Against Most Recent Revision`;
+        let text = '';
+        switch (diffType) {
+            case DiffType.SHELVE_V_DEPOT:
+                text = 'Diff Shelve (right) Against Depot Version (left)';
+                break;
+            case DiffType.WORKSPACE_V_SHELVE:
+                text = 'Diff Workspace (right) Against Shelved Version (left)'
+                break;
+            case DiffType.WORKSPACE_V_DEPOT:
+                text = 'Diff Workspace (right) Against Most Recent Revision (left)'
         }
-
-        return '';
+        return `${basename} - ${text}`
     }
 
 }

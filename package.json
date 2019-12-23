@@ -355,6 +355,11 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.openResourcevShelved",
+                "title": "Open workspace vs shelved changes",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.openFile",
                 "title": "Open file",
                 "category": "Perforce"
@@ -590,6 +595,11 @@
                     "group": "navigation"
                 },
                 {
+                    "command": "perforce.openResourcevShelved",
+                    "when": "scmProvider == perforce",
+                    "group": "navigation"
+                },
+                {
                     "command": "perforce.openFile",
                     "when": "scmProvider == perforce",
                     "group": "navigation"
@@ -678,8 +688,8 @@
     "devDependencies": {
         "@types/node": "^8.0.8",
         "@types/tmp": "^0.0.33",
-        "typescript": "^2.0.3",
-        "vscode": "^1.1.33"
+        "typescript": "^3.7.3",
+        "vscode": "^1.1.36"
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
