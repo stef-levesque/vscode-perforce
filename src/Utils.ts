@@ -153,7 +153,7 @@ export namespace Utils {
             if (typeof revision === 'string') {
                 revisionString = revision;
             } else if (revision != null && !isNaN(revision)) {
-                revision = `#${revision}`;
+                revisionString = `#${revision}`;
             }
     
             if (file) {
