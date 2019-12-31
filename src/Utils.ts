@@ -55,7 +55,7 @@ export namespace Utils {
         let allArgs = [encodeParam('p4args', p4Args), encodeParam('command', command)];
         if (otherArgs) {
             allArgs.push(...
-                Object.keys(otherArgs).map((key) => encodeParam(key, otherArgs[key]))
+                Object.keys(otherArgs).filter(key => otherArgs[key] !== false).map((key) => encodeParam(key, otherArgs[key]))
             )
         }
         return allArgs.join("&");
@@ -184,6 +184,7 @@ export namespace Utils {
     }
 
     // Get a path to a file containing the output of the command
+    // TODO this is only used for print - seems unecessary when we have a perforce content provider
     export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
         let resource = file;
         return new Promise((resolve, reject) => {

@@ -396,6 +396,10 @@ export class Model implements Disposable {
         const id = input.id;
         const chnum = id.substr(id.indexOf(':') + 1);
 
+        if (chnum === 'default') {
+            throw new Error("Cannot shelve the default changelist");
+        }
+
         const command = 'shelve';
         const args = '-f -c ' + chnum;
 
@@ -415,6 +419,10 @@ export class Model implements Disposable {
         const id = input.id;
         const chnum = id.substr(id.indexOf(':') + 1);
 
+        if (chnum === 'default') {
+            throw new Error("Cannot unshelve the default changelist");
+        }
+
         const command = 'unshelve';
         const args = '-f -s ' + chnum + ' -c ' + chnum;
 
@@ -430,6 +438,10 @@ export class Model implements Disposable {
     public async DeleteShelvedChangelist(input: SourceControlResourceGroup) : Promise<void> {
         const id = input.id;
         const chnum = id.substr(id.indexOf(':') + 1);
+
+        if (chnum === 'default') {
+            throw new Error("Cannot delete shelved files from the default changelist");
+        }
 
         let message = "Are you sure you want to delete the shelved files from changelist " + chnum + "?";
 

@@ -3,7 +3,7 @@ import { Status } from './Status';
 import * as path from 'path';
 
 export class DecorationProvider {
-    private static _iconsRootPath: string = path.join(path.dirname(__dirname), '..', '..', 'resources', 'icons');
+    private static _iconsRootPath: string = path.join(path.dirname(__dirname), '..', 'resources', 'icons');
 
     public static getDecorations(statuses: Status[], isShelved: boolean): SourceControlResourceDecorations {
         const status: Status = this.getDominantStatus(statuses);

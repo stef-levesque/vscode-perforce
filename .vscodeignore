@@ -3,6 +3,7 @@
 typings/**
 out/test/**
 test/**
+test-fixtures/**
 src/**
 **/*.map
 .gitignore

@@ -142,18 +142,22 @@ export class PerforceSCMProvider {
         }
     };
 
-    public static Open(...resourceStates: SourceControlResourceState[]) {
+    public static async Open(...resourceStates: SourceControlResourceState[]) {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const promises = [];
         for (const resource of selection) {
-            PerforceSCMProvider.open(resource);
+            promises.push(PerforceSCMProvider.open(resource));
         }
+        await Promise.all(promises);
     };
 
-    public static OpenvShelved(...resourceStates: SourceControlResourceState[]) {
+    public static async OpenvShelved(...resourceStates: SourceControlResourceState[]) {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const promises = [];
         for (const resource of selection) {
-            PerforceSCMProvider.open(resource, DiffType.WORKSPACE_V_SHELVE);
+            promises.push(PerforceSCMProvider.open(resource, DiffType.WORKSPACE_V_SHELVE));
         }
+        await Promise.all(promises);
     };
 
     public static Sync(sourceControl: SourceControl) {
@@ -318,10 +322,10 @@ export class PerforceSCMProvider {
      * For EDIT AND RENAME show the diff window (server on left, local on right).
      */
 
-    private static open(resource: Resource, diffType?: DiffType): void {
+    private static async open(resource: Resource, diffType?: DiffType): Promise<void> {
         if(resource.FileType.base === FileType.BINARY) {
             const uri = Utils.makePerforceDocUri(resource.resourceUri, 'fstat', '');
-            workspace.openTextDocument(uri)
+            await workspace.openTextDocument(uri)
                 .then(doc => window.showTextDocument(doc));
             return;
         }
@@ -340,24 +344,27 @@ export class PerforceSCMProvider {
                 console.error("Status not supported: "+ resource.status.toString() );
                 return;
             }
-            commands.executeCommand<void>("vscode.open", right);
+            await commands.executeCommand<void>("vscode.open", right);
             return;
         }
         if (!right) {
-            commands.executeCommand<void>("vscode.open", left);
+            await commands.executeCommand<void>("vscode.open", left);
             return;
         }
-        commands.executeCommand<void>("vscode.diff", left, right, title);
+        await commands.executeCommand<void>("vscode.diff", left, right, title);
         return;
     }
 
     // Gets the uri for the previous version of the file.
     private static getLeftResource(resource: Resource, diffType : DiffType): Uri | undefined {
+        // the nonce should not be necessary, but sometimes the request seems to continue indefinitely and the promise
+        // is never resolved. Subsequently it is impossible to view the diff until the window is closed and re-opened.
+        // ideally would find out why the promise doesn't resolve
         const nonce = Math.random().toString();
         const args = {
             depot: resource.isShelved,
-            nonce,
-            workspace: resource.model.workspaceUri.fsPath
+            workspace: resource.model.workspaceUri.fsPath,
+            nonce
         };
     
         if (diffType === DiffType.WORKSPACE_V_SHELVE) {
@@ -377,12 +384,12 @@ export class PerforceSCMProvider {
             // left hand side is the depot version
             switch (resource.status) {
                 case Status.ADD:
+                case Status.BRANCH:
                     return emptyDoc;
                 case Status.MOVE_ADD:
-                case Status.BRANCH:
-                case Status.INTEGRATE:
                     // diff against the old file if it is known (always a depot path)
-                    return resource.fromFile ? Utils.makePerforceDocUri(resource.fromFile, 'print', '-q', {depot: true, nonce, workspace: resource.model.workspaceUri.fsPath}) : emptyDoc;
+                    return resource.fromFile ? Utils.makePerforceDocUri(resource.fromFile, 'print', '-q', {depot: true, workspace: resource.model.workspaceUri.fsPath, nonce}) : emptyDoc;
+                case Status.INTEGRATE:
                 case Status.EDIT:
                 case Status.DELETE:
                 case Status.MOVE_DELETE:
@@ -397,8 +404,8 @@ export class PerforceSCMProvider {
         if (diffType === DiffType.SHELVE_V_DEPOT) {
             const args = {
                 depot: resource.isShelved,
-                nonce: Math.random().toString(),
-                workspace: resource.model.workspaceUri.fsPath
+                workspace: resource.model.workspaceUri.fsPath,
+                nonce: Math.random().toString()
             }
 
             switch(resource.status) {
