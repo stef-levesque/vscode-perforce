@@ -169,7 +169,7 @@ export namespace PerforceService {
         });
     }
 
-    function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string): void {
+    function execCommand(resource: Uri, command: string, responseCallback: (err: Error, stdout: string, stderr: string) => void, args?: string, directoryOverride?: string, input?: string, onDone?: () => void): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
         const wksPath = wksFolder ? wksFolder.uri.fsPath : '';
@@ -196,6 +196,7 @@ export namespace PerforceService {
         if (input != null) {
             child.stdin.end(input, 'utf8');
         }
+        if(onDone) child.on('close', onDone);
     }
 
     export function handleInfoServiceResponse(err: Error, stdout: string, stderr: string) {
