@@ -698,7 +698,7 @@
         "chai-as-promised": "^7.1.1",
         "glob": "^7.1.6",
         "mocha": "^6.2.2",
-        "sinon": "^8.0.1",
+        "sinon": "^8.1.0",
         "sinon-chai": "^3.4.0",
         "typescript": "^3.7.3",
         "vscode": "^1.1.36",

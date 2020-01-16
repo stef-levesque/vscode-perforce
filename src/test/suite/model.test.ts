@@ -332,10 +332,6 @@ describe('Model & ScmProvider modules', () => {
             execCommand = sinon.spy(vscode.commands, "executeCommand");
         });
 
-        function getCall(command: sinon.SinonSpy, index: number) {
-            return command.getCalls()[index >= 0 ? index : command.getCalls().length+index];
-        }
-
         describe('When opening a file', () => {
             it('Opens the underlying workspace file', () => {
                 const file = items.stubService.changelists[0].files[0];
@@ -353,7 +349,7 @@ describe('Model & ScmProvider modules', () => {
                 const resource2 = findResourceForFile(items.instance.resources[1], file2);
 
                 PerforceSCMProvider.OpenFile(resource1, resource2);
-                expect(getCall(execCommand, -2)).to.be.vscodeOpenCall(file1.localFile);
+                expect(execCommand.getCall(-2)).to.be.vscodeOpenCall(file1.localFile);
                 expect(execCommand.lastCall).to.be.vscodeOpenCall(file2.localFile);
             });
         });
@@ -375,7 +371,7 @@ describe('Model & ScmProvider modules', () => {
                 const resource2 = findResourceForFile(items.instance.resources[1], file2);
 
                 await PerforceSCMProvider.Open(resource1, resource2);
-                expect(getCall(execCommand, -2)).to.be.vscodeDiffCall(perforceLocalUriMatcher(file1), file1.localFile, path.basename(file1.localFile.path) + " - Diff Workspace (right) Against Most Recent Revision (left)");
+                expect(execCommand.getCall(-2)).to.be.vscodeDiffCall(perforceLocalUriMatcher(file1), file1.localFile, path.basename(file1.localFile.path) + " - Diff Workspace (right) Against Most Recent Revision (left)");
                 expect(items.execute).to.be.calledWithMatch(file1.localFile, 'print', sinon.match.any, '-q "'+file1.localFile.fsPath+'"');
                 expect(execCommand.lastCall).to.be.vscodeOpenCall(perforceLocalUriMatcher(file2));
             });
