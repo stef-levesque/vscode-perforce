@@ -1,9 +1,15 @@
-import { Command, SourceControlResourceState, SourceControlResourceGroup, SourceControlResourceDecorations, Uri, workspace } from 'vscode';
-import { DecorationProvider } from './DecorationProvider';
-import { GetStatuses, Status } from './Status';
-import { IFileType, GetFileType, FileType } from './FileTypes';
-import { Model } from './Model';
-import { Utils } from '../Utils';
+import {
+    Command,
+    SourceControlResourceState,
+    SourceControlResourceDecorations,
+    Uri,
+    workspace
+} from "vscode";
+import { DecorationProvider } from "./DecorationProvider";
+import { GetStatuses, Status } from "./Status";
+import { IFileType, GetFileType } from "./FileTypes";
+import { Model } from "./Model";
+import { Utils } from "../Utils";
 
 /**
  * An SCM resource represents a state of an underlying workspace resource
@@ -26,29 +32,39 @@ export class Resource implements SourceControlResourceState {
      * You **must not** use fsPath on this URI to get a depot path - this does not work on windows.
      * Use the `depotPath` property instead.
      */
-    get uri(): Uri { return this._uri; }
+    get uri(): Uri {
+        return this._uri;
+    }
     /**
      * Resource URI *should* be the underlying file, but for shelved files, a depot path is used
      * this keeps them together in the workspace tree, and for some operations there may not be a matching file in the workspace
      */
-    get resourceUri(): Uri { return this._resourceUri; }
+    get resourceUri(): Uri {
+        return this._resourceUri;
+    }
     get decorations(): SourceControlResourceDecorations {
         return DecorationProvider.getDecorations(this._statuses, this._isShelved);
     }
     /**
      * The underlying URI is always the workspace path, where it is known, or undefined otherwise
      */
-    get underlyingUri(): Uri | undefined { return this._underlyingUri; }
+    get underlyingUri(): Uri | undefined {
+        return this._underlyingUri;
+    }
     /**
      * A string representation of the depot path - this is needed because, on windows, the fsPath turns into backslashes
      */
-    get depotPath(): string { return Utils.getDepotPathFromDepotUri(this._uri); }
+    get depotPath(): string {
+        return Utils.getDepotPathFromDepotUri(this._uri);
+    }
     /**
      * The file that this file is pending integration from - a depot path as a URI
      * You **must not** use fsPath on this URI to get a depot path - this does not work on windows.
      * Use `Utils.getDepotPathFromDepotUri` instead
      */
-    get fromFile() : Uri | undefined { return this._fromFile; }
+    get fromFile(): Uri | undefined {
+        return this._fromFile;
+    }
 
     get status(): Status {
         if (this._statuses.length > 0) {
@@ -58,11 +74,11 @@ export class Resource implements SourceControlResourceState {
     }
 
     get command(): Command {
-        const command = workspace.getConfiguration('perforce').get('scmFileChanges') ?
-                        'perforce.openResource' :
-                        'perforce.openFile';
+        const command = workspace.getConfiguration("perforce").get("scmFileChanges")
+            ? "perforce.openResource"
+            : "perforce.openFile";
         return {
-            title: 'Open',
+            title: "Open",
             command,
             arguments: [this]
         };
@@ -88,13 +104,15 @@ export class Resource implements SourceControlResourceState {
             this._resourceUri = _uri;
         } else {
             if (!_underlyingUri) {
-                throw new Error("Files in the local workspace must have an underlying URI")
+                throw new Error(
+                    "Files in the local workspace must have an underlying URI"
+                );
             }
             this._resourceUri = _underlyingUri;
         }
         this._headType = GetFileType(headType);
     }
-    
+
     get isShelved(): boolean {
         return this._isShelved;
     }

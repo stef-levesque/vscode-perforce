@@ -1,0 +1,53 @@
+trigger:
+  branches:
+    include: ['*']
+  tags:
+    include: ['*']
+
+pr:
+- master
+
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-16.04'
+    mac:
+      imageName: 'macos-10.13'
+    windows:
+      imageName: 'vs2017-win2016'
+
+pool:
+  vmImage: $(imageName)
+
+steps:
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '8.x'
+  displayName: 'Install Node.js'
+
+- bash: |
+    npm ci
+  displayName: Install dependencies
+
+- bash: |
+    npm run webpack
+  displayName: Webpack and lint
+
+- bash: |
+    /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+    echo ">>> Started xvfb"
+  displayName: Start xvfb
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+
+- bash: |
+    npm test
+  displayName: Compile and Run Tests
+  env:
+    DISPLAY: ':99.0'
+
+- bash: |
+    echo ">>> Publish"
+    npm run deploy -p $(VSCODE_MARKETPLACE_TOKEN)
+  displayName: Publish
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), eq(variables['Agent.OS'], 'Linux'))

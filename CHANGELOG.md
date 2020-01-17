@@ -1,5 +1,15 @@
 # Change log
 
+## [3.3.0] - 2020-TBD-
+
+### **Note** This is the first release following the fork to mjcrouch.perforce
+
+* Ability to shelve and unshelve whole changelists, and delete all shelved files for a changelist
+* Ability to diff shelved files against either the depot or the workspace file
+* Ability to diff files open for branch / integrate / move
+* Updated diff behaviour for files open for add, to show that they originated from an empty file
+* The extension is now packaged with webpack which should potentially improve loading times
+
 ## [3.2.0] - 2019-04-17
 
 * Add command `delete` (#106, thanks @howardcvalve)

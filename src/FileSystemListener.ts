@@ -1,4 +1,4 @@
-'use strict'
+"use strict";
 
 import {
     window,
@@ -10,17 +10,16 @@ import {
     RelativePattern,
     Uri,
     WorkspaceFolder
-} from 'vscode';
+} from "vscode";
 
-import * as micromatch from 'micromatch';
-import * as parseignore from 'parse-gitignore';
+import * as micromatch from "micromatch";
+import * as parseignore from "parse-gitignore";
 
-import {Display} from './Display';
-import {PerforceCommands} from './PerforceCommands';
-import {PerforceService} from './PerforceService';
+import { Display } from "./Display";
+import { PerforceCommands } from "./PerforceCommands";
+import { PerforceService } from "./PerforceService";
 
-export default class FileSystemListener
-{
+export default class FileSystemListener {
     private static _eventRegistered: boolean = false;
     private static _lastCheckedFileUri?: Uri = null;
 
@@ -33,33 +32,50 @@ export default class FileSystemListener
         const subscriptions: Disposable[] = [];
         window.onDidChangeActiveTextEditor(Display.updateEditor, this, subscriptions);
 
-        var config = workspace.getConfiguration('perforce');
+        const config = workspace.getConfiguration("perforce");
 
-        if(config && PerforceCommands.checkFolderOpened()) {
-
+        if (config && PerforceCommands.checkFolderOpened()) {
             if (!FileSystemListener._eventRegistered) {
-                if(config['editOnFileSave']) {
+                if (config["editOnFileSave"]) {
                     workspace.onWillSaveTextDocument(e => {
                         e.waitUntil(FileSystemListener.onWillSaveFile(e.document));
                     });
                 }
-                
-                if(config['editOnFileModified']) {
-                    workspace.onDidChangeTextDocument(FileSystemListener.onFileModified);
+
+                if (config["editOnFileModified"]) {
+                    workspace.onDidChangeTextDocument(
+                        FileSystemListener.onFileModified.bind(this)
+                    );
                 }
                 FileSystemListener._eventRegistered = true;
             }
 
-            if(config['addOnFileCreate'] || config['deleteOnFileDelete']) {
-                let pattern = new RelativePattern(workspaceFolder ? workspaceFolder : '', '**/*');
-                this._watcher = workspace.createFileSystemWatcher(pattern, false, true, false);
+            if (config["addOnFileCreate"] || config["deleteOnFileDelete"]) {
+                const pattern = new RelativePattern(
+                    workspaceFolder ? workspaceFolder : "",
+                    "**/*"
+                );
+                this._watcher = workspace.createFileSystemWatcher(
+                    pattern,
+                    false,
+                    true,
+                    false
+                );
 
-                if(config['addOnFileCreate']) {
-                    this._watcher.onDidCreate(this.onFileCreated, this, subscriptions);
+                if (config["addOnFileCreate"]) {
+                    this._watcher.onDidCreate(
+                        this.onFileCreated.bind(this),
+                        this,
+                        subscriptions
+                    );
                 }
 
-                if(config['deleteOnFileDelete']) {
-                    this._watcher.onDidDelete(this.onFileDeleted, this, subscriptions);
+                if (config["deleteOnFileDelete"]) {
+                    this._watcher.onDidDelete(
+                        this.onFileDeleted.bind(this),
+                        this,
+                        subscriptions
+                    );
                 }
             }
         }
@@ -68,10 +84,13 @@ export default class FileSystemListener
 
         let p4IgnoreFileName = process.env.P4IGNORE;
         if (!p4IgnoreFileName) {
-            p4IgnoreFileName = '.p4ignore';
+            p4IgnoreFileName = ".p4ignore";
         }
-        let pattern = new RelativePattern(workspaceFolder ? workspaceFolder : '', p4IgnoreFileName);
-        workspace.findFiles(pattern, undefined, 1).then((result) => {
+        const pattern = new RelativePattern(
+            workspaceFolder ? workspaceFolder : "",
+            p4IgnoreFileName
+        );
+        workspace.findFiles(pattern, undefined, 1).then(result => {
             if (result && result.length > 0) {
                 this._p4ignore = parseignore(result[0].fsPath);
             }
@@ -89,16 +108,23 @@ export default class FileSystemListener
     }
 
     private static onFileModified(docChange: TextDocumentChangeEvent) {
-        var docUri = docChange.document.uri;
+        const docUri = docChange.document.uri;
 
         //If this doc has already been checked, just returned
-        if (FileSystemListener._lastCheckedFileUri != null && docUri.toString() == FileSystemListener._lastCheckedFileUri.toString()) {
+        if (
+            FileSystemListener._lastCheckedFileUri != null &&
+            docUri.toString() == FileSystemListener._lastCheckedFileUri.toString()
+        ) {
             return;
         }
 
         //Only try to open files open in the editor
-        var editor = window.activeTextEditor;
-        if (!editor || !editor.document || editor.document.uri.toString() != docUri.toString()) {
+        const editor = window.activeTextEditor;
+        if (
+            !editor ||
+            !editor.document ||
+            editor.document.uri.toString() != docUri.toString()
+        ) {
             return;
         }
 
@@ -137,10 +163,12 @@ export default class FileSystemListener
     }
 
     private onFileDeleted(uri: Uri) {
-        const fileExcludes = Object.keys(workspace.getConfiguration('files').exclude);
+        const fileExcludes = Object.keys(workspace.getConfiguration("files").exclude);
         const ignoredPatterns = this._p4ignore.concat(fileExcludes);
 
-        const shouldIgnore: boolean = micromatch.any(uri.fsPath, ignoredPatterns, { dot: true });
+        const shouldIgnore: boolean = micromatch.isMatch(uri.fsPath, ignoredPatterns, {
+            dot: true
+        });
 
         // Only `p4 delete` files that are not marked as ignored either in:
         // .p4ignore
@@ -152,40 +180,44 @@ export default class FileSystemListener
 
     private onFileCreated(uri: Uri) {
         //Only try to add files open in the editor
-        var editor = window.activeTextEditor;
-        if(editor && editor.document && editor.document.uri.fsPath == uri.fsPath) {
+        const editor = window.activeTextEditor;
+        if (editor && editor.document && editor.document.uri.fsPath == uri.fsPath) {
             PerforceCommands.add(uri);
         }
     }
 
     private static fileInClientRoot(uri: Uri): Promise<boolean> {
-        let docPath = uri.fsPath;
+        const docPath = uri.fsPath;
         return new Promise((resolve, reject) => {
-            PerforceService.getClientRoot(uri).then((clientRoot) => {
-                //Convert to lower and Strip newlines from paths
-                clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
-                var filePath = docPath.toLowerCase().replace(/(\r\n|\n|\r)/gm,"");
+            PerforceService.getClientRoot(uri)
+                .then(clientRoot => {
+                    //Convert to lower and Strip newlines from paths
+                    clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm, "");
+                    const filePath = docPath.toLowerCase().replace(/(\r\n|\n|\r)/gm, "");
 
-                //Check if p4 Client Root is in uri's path
-                if(filePath.indexOf(clientRoot) !== -1) {
-                    resolve(true);
-                } else {
-                    resolve(false);
-                }
-            }).catch((err) => {
-                reject(err);
-            });
+                    //Check if p4 Client Root is in uri's path
+                    if (filePath.includes(clientRoot)) {
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                })
+                .catch(err => {
+                    reject(err);
+                });
         });
     }
 
     private static fileIsOpened(fileUri: Uri): Promise<boolean> {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             //opened stdout is set if file open, stderr set if not opened
-            PerforceService.executeAsPromise(fileUri, 'opened', fileUri.fsPath).then((stdout) => {
-                resolve(true);
-            }).catch((stderr) => {
-                resolve(false);
-            });
+            PerforceService.executeAsPromise(fileUri, "opened", fileUri.fsPath)
+                .then(() => {
+                    resolve(true);
+                })
+                .catch(() => {
+                    resolve(false);
+                });
         });
     }
 }

@@ -1,13 +1,14 @@
 # vscode-perforce
 
-[![GitHub issues](https://img.shields.io/github/issues/stef-levesque/vscode-perforce.svg)](https://github.com/stef-levesque/vscode-perforce/issues)
-[![Dependency Status](https://img.shields.io/david/stef-levesque/vscode-perforce.svg)](https://david-dm.org/stef-levesque/vscode-perforce#info=dependencies)  
-[![Dev Dependency Status](https://img.shields.io/david/dev/stef-levesque/vscode-perforce.svg)](https://david-dm.org/stef-levesque/vscode-perforce#info=devDependencies)  
-[![GitHub license button](https://img.shields.io/github/license/stef-levesque/vscode-perforce.svg)](https://github.com/stef-levesque/vscode-perforce/blob/master/LICENSE.md)
-[![VS Code marketplace button](https://vsmarketplacebadge.apphb.com/installs/slevesque.perforce.svg)](https://marketplace.visualstudio.com/items/slevesque.perforce)
-[![Gitter chat button](https://img.shields.io/gitter/room/stef-levesque/vscode-perforce.svg)](https://gitter.im/stef-levesque/vscode-perforce)
+[![GitHub issues](https://img.shields.io/github/issues/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/issues)
+[![Dependency Status](https://img.shields.io/david/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce)  
+[![Dev Dependency Status](https://img.shields.io/david/dev/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce?type=dev)  
+[![GitHub license button](https://img.shields.io/github/license/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/blob/master/LICENSE.txt)
+[![VS Code marketplace button](https://vsmarketplacebadge.apphb.com/installs/mjcrouch.perforce.svg)](https://marketplace.visualstudio.com/items/mjcrouch.perforce)
 
 Perforce integration for Visual Studio Code
+
+This is a fork of the `slevesque.perforce` extension, published in 2020, as the original creator now appears to be inactive on GitHub.
 
 ![Login Example](images/login.gif)
 
@@ -58,6 +59,8 @@ Perforce integration for Visual Studio Code
 
 ## Activation
 
+You must properly configure a perforce depot area before the extension activates.
+
 You can specify how you want the extension to activate by setting the parameter `perforce.activationMode`
 
 * `always` - Always try to activate the extension (old behavior)
@@ -99,25 +102,21 @@ See [Multi-root Workspaces - Settings](https://code.visualstudio.com/docs/editor
 * ![file-text](images/file-text.png) not opened on this client
 * ![circle-slash](images/circle-slash.png) not under client's root
 
-## Source Control in VS Code
-
-![SCM Switch](images/scm-switch.png)  
-
-Visual Studio Code now allow to choose which [Source Control Manager](https://code.visualstudio.com/docs/extensionAPI/api-scm) to use.  
-* You can find `Switch SCM Provider` in the command palette, or in the Source Control section menu
-* Use the input box to create new changelists
-* Right-click on file and changelist for more commands
-
+## SCM view
 ![SCM Perforce](images/scm-perforce.png)  
 Keep in mind this is still in early beta! Explore and leave your comments on [GitHub](https://github.com/stef-levesque/vscode-hexdump/issues)
 
 ## Common Questions
 
+#### **Q:** Nothing works and vscode cannot find the commands
+**A:** Ensure you have a perforce area set up. If all else fails, try setting
+`perforce.client`, `perforce.user` and `perforce.port` to the right values for your depot and workspace, and then reload the window. If that does not work, continue below:
+
 #### **Q:** Something is not working
 **A:** Here are a few steps you should try first:
 1. Look at the logs with `Perforce: Show Output`
-1. Search the [existing issue on GitHub](https://github.com/stef-levesque/vscode-perforce/issues?utf8=✓&q=is%3Aissue)
-1. If you can't find your problem, [create an issue](https://github.com/stef-levesque/vscode-perforce/issues/new), and please include the logs when possible
+1. Search the [existing issue on GitHub](https://github.com/mjcrouch/vscode-perforce/issues?utf8=✓&q=is%3Aissue)
+1. If you can't find your problem, [create an issue](https://github.com/mjcrouch/vscode-perforce/issues/new), and please include the logs when possible
   
   
 #### **Q:** Operations on a large files fail
@@ -143,6 +142,8 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 6. Reload *Visual Studio Code*
 
 ## Contributing
+
+**In need of updating to cover linting, tests and CI - I intend to create a new page for this!**
 
 1. Fork it!
 2. Create your feature branch: `git checkout -b my-new-feature`

@@ -6,10 +6,31 @@
         {
             "type": "npm",
             "script": "watch",
-            "problemMatcher": "$tsc-watch",
+            "problemMatcher": {
+                "fileLocation": "absolute",
+                "applyTo": "closedDocuments",
+                "pattern": [
+					{
+						"regexp": "\\[tsl\\] (ERROR|WARNING) in (.*)?\\((\\d+),(\\d+)\\)",
+						"severity": 1,
+						"file": 2,
+						"line": 3,
+						"column": 4
+					},
+					{
+						"regexp": "\\s*TS\\d+:\\s*(.*)",
+						"message": 1
+					}
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Compilation (.*?)starting…",
+                    "endsPattern": "Compilation (.*?)finished"
+                }
+            },
             "isBackground": true,
             "presentation": {
-                "reveal": "never"
+                "reveal": "silent"
             },
             "group": {
                 "kind": "build",

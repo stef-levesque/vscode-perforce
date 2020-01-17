@@ -1,20 +1,23 @@
-import { Event, Uri, workspace } from 'vscode';
-import * as Path from 'path';
-import { PerforceService } from './PerforceService';
-import { Display } from './Display';
+import { Event, Uri, workspace } from "vscode";
+import * as Path from "path";
+import { PerforceService } from "./PerforceService";
+import { Display } from "./Display";
 
-import * as fs from 'fs';
+import * as fs from "fs";
+import * as tmp from "tmp";
 
 export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
-    return (listener, thisArgs = null, disposables?) => event(i => listener.call(thisArgs, map(i)), null, disposables);
+    return (listener, thisArgs = null, disposables?) =>
+        event(i => listener.call(thisArgs, map(i)), null, disposables);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Utils {
     // normalize function for turning windows paths into
     // something comparable before and after processing
     export function normalize(path): string {
-        path = path.replace(/\\\\/g, '/');
-        path = path.replace(/\\/g, '/');
+        path = path.replace(/\\\\/g, "/");
+        path = path.replace(/\\/g, "/");
         const matches = /([A-Z]):(.*)/.exec(path);
         if (matches) {
             path = `${matches[1].toLowerCase()}:${matches[2]}`;
@@ -24,45 +27,63 @@ export namespace Utils {
 
     // Use ASCII expansion for special characters
     export function expansePath(path: string): string {
-        if (workspace.getConfiguration('perforce').get('realpath', false)) {
+        if (workspace.getConfiguration("perforce").get("realpath", false)) {
             if (fs.existsSync(path)) {
                 path = fs.realpathSync(path);
             }
         }
 
-        const fixup = path.replace(/%/g, '%25').replace(/\*/g, '%2A').replace(/#/g, '%23').replace(/@/g, '%40');
+        const fixup = path
+            .replace(/%/g, "%25")
+            .replace(/\*/g, "%2A")
+            .replace(/#/g, "%23")
+            .replace(/@/g, "%40");
         const relativeToRoot = PerforceService.convertToRel(fixup);
-        return relativeToRoot;        
+        return relativeToRoot;
     }
 
-    export function getDepotPathFromDepotUri(uri : Uri) : string {
-        return "//"+uri.authority+uri.path;
+    export function getDepotPathFromDepotUri(uri: Uri): string {
+        return "//" + uri.authority + uri.path;
     }
 
-    function encodeParam(param : string , value?: any) {
-        if (value !== undefined && typeof value === 'string') {
+    function encodeParam(param: string, value?: any) {
+        if (value !== undefined && typeof value === "string") {
             return encodeURIComponent(param) + "=" + encodeURIComponent(value);
         } else if (value === undefined || value) {
-            return encodeURIComponent(param)
+            return encodeURIComponent(param);
         }
     }
 
-    export function makePerforceDocUri(uri : Uri, command: string, p4Args?: string, otherArgs?: {[key: string]: string | boolean}) {
-        return uri.with({scheme: 'perforce', query: makePerforceUriQuery(command, p4Args ?? '', otherArgs)});
+    export function makePerforceDocUri(
+        uri: Uri,
+        command: string,
+        p4Args?: string,
+        otherArgs?: { [key: string]: string | boolean }
+    ) {
+        return uri.with({
+            scheme: "perforce",
+            query: makePerforceUriQuery(command, p4Args ?? "", otherArgs)
+        });
     }
 
-    export function makePerforceUriQuery(command: string, p4Args: string, otherArgs?: {[key: string]: string | boolean}) {
-        let allArgs = [encodeParam('p4args', p4Args), encodeParam('command', command)];
+    export function makePerforceUriQuery(
+        command: string,
+        p4Args: string,
+        otherArgs?: { [key: string]: string | boolean }
+    ) {
+        const allArgs = [encodeParam("p4args", p4Args), encodeParam("command", command)];
         if (otherArgs) {
-            allArgs.push(...
-                Object.keys(otherArgs).filter(key => otherArgs[key] !== false).map((key) => encodeParam(key, otherArgs[key]))
-            )
+            allArgs.push(
+                ...Object.keys(otherArgs)
+                    .filter(key => otherArgs[key] !== false)
+                    .map(key => encodeParam(key, otherArgs[key]))
+            );
         }
         return allArgs.join("&");
     }
 
     export function decodeUriQuery(query: string) {
-        let argArr = query?.split("&") ?? [];
+        const argArr = query?.split("&") ?? [];
         const allArgs = {};
         argArr.forEach(arg => {
             const parts = arg.split("=");
@@ -76,7 +97,7 @@ export namespace Utils {
 
     export function processInfo(output): Map<string, string> {
         const map = new Map<string, string>();
-        const lines = output.trim().split('\n');
+        const lines = output.trim().split("\n");
 
         for (let i = 0, n = lines.length; i < n; ++i) {
             // Property Name: Property Value
@@ -85,30 +106,37 @@ export namespace Utils {
             if (matches) {
                 map.set(matches[1], matches[2]);
             }
-
         }
 
         return map;
     }
 
-    export function isLoggedIn(resource: Uri, compatibilityMode: string): Promise<boolean> {
+    export function isLoggedIn(
+        resource: Uri,
+        compatibilityMode: string
+    ): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            if (compatibilityMode === 'sourcedepot') {
+            if (compatibilityMode === "sourcedepot") {
                 resolve(true);
                 return;
             }
-            
-            PerforceService.execute(resource, 'login', (err, stdout, stderr) => {
-                err && Display.showError(err.toString());
-                stderr && Display.showError(stderr.toString());
-                if (err) {
-                    reject(err);
-                } else if (stderr) {
-                    reject(stderr);
-                } else {
-                    resolve(true);
-                }
-            }, '-s');
+
+            PerforceService.execute(
+                resource,
+                "login",
+                (err, stdout, stderr) => {
+                    err && Display.showError(err.toString());
+                    stderr && Display.showError(stderr.toString());
+                    if (err) {
+                        reject(err);
+                    } else if (stderr) {
+                        reject(stderr);
+                    } else {
+                        resolve(true);
+                    }
+                },
+                "-s"
+            );
         });
     }
 
@@ -128,7 +156,10 @@ export namespace Utils {
         });
     }
 
-    export function getOutputs(resource: Uri, command: string): Promise<[string, string]> {
+    export function getOutputs(
+        resource: Uri,
+        command: string
+    ): Promise<[string, string]> {
         return new Promise((resolve, reject) => {
             PerforceService.execute(resource, command, (err, stdout, stderr) => {
                 err && Display.showError(err.toString());
@@ -141,61 +172,87 @@ export namespace Utils {
     }
 
     // Get a string containing the output of the command
-    export function runCommand(resource: Uri, command: string, file?: Uri | string | null, revision?: number | string, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
+    export function runCommand(
+        resource: Uri,
+        command: string,
+        file?: Uri | string | null,
+        revision?: number | string,
+        prefixArgs?: string,
+        gOpts?: string,
+        input?: string
+    ): Promise<string> {
         return new Promise((resolve, reject) => {
-            let args = prefixArgs != null ? prefixArgs : '';
-    
+            let args = prefixArgs != null ? prefixArgs : "";
+
             if (gOpts != null) {
-                command = gOpts + ' ' + command;
+                command = gOpts + " " + command;
             }
-    
-            let revisionString: string = '';
-            if (typeof revision === 'string') {
+
+            let revisionString = "";
+            if (typeof revision === "string") {
                 revisionString = revision;
             } else if (revision != null && !isNaN(revision)) {
                 revisionString = `#${revision}`;
             }
-    
+
             if (file) {
-                let path = (typeof file === 'string') ? file : file.fsPath;
+                let path = typeof file === "string" ? file : file.fsPath;
                 path = expansePath(path);
-                
+
                 args += ' "' + path + revisionString + '"';
             }
-    
-            PerforceService.execute(resource, command, (err, stdout, stderr) => {
-                err && Display.showError(err.toString());
-                stderr && Display.showError(stderr.toString());
-                if (err) {
-                    reject(err);
-                } else if (stderr) {
-                    reject(stderr);
-                } else {
-                    resolve(stdout);
-                }
-            }, args, null, input);
+
+            PerforceService.execute(
+                resource,
+                command,
+                (err, stdout, stderr) => {
+                    err && Display.showError(err.toString());
+                    stderr && Display.showError(stderr.toString());
+                    if (err) {
+                        reject(err);
+                    } else if (stderr) {
+                        reject(stderr);
+                    } else {
+                        resolve(stdout);
+                    }
+                },
+                args,
+                null,
+                input
+            );
         });
     }
 
     // Get a string containing the output of the command specific to a file
-    export function runCommandForFile(command: string, file: Uri, revision?: number | string, prefixArgs?: string, gOpts?: string, input?: string): Promise<string> {
-        let resource = file;
+    export function runCommandForFile(
+        command: string,
+        file: Uri,
+        revision?: number | string,
+        prefixArgs?: string,
+        gOpts?: string,
+        input?: string
+    ): Promise<string> {
+        const resource = file;
         return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
     }
 
     // Get a path to a file containing the output of the command
     // TODO this is only used for print - seems unecessary when we have a perforce content provider
-    export function getFile(command: string, file: Uri, revision?: number, prefixArgs?: string): Promise<string> {
-        let resource = file;
+    export function getFile(
+        command: string,
+        file: Uri,
+        revision?: number,
+        prefixArgs?: string
+    ): Promise<string> {
+        const resource = file;
         return new Promise((resolve, reject) => {
-            var args = prefixArgs != null ? prefixArgs : '';
-            var revisionString: string = isNaN(revision) ? '' : `#${revision}`;
+            let args = prefixArgs != null ? prefixArgs : "";
+            const revisionString: string = isNaN(revision) ? "" : `#${revision}`;
 
-            var ext = Path.extname(file.fsPath);
-            var tmp = require("tmp");
-            var tmpFilePath = tmp.tmpNameSync({ postfix: ext });
+            const ext = Path.extname(file.fsPath);
+            const tmpFilePath = tmp.tmpNameSync({ postfix: ext });
 
-            var requirePipe = true;
+            let requirePipe = true;
             if (command == "print") {
                 if (!file.fsPath) {
                     reject("P4 Print command require a file path");
@@ -215,15 +272,20 @@ export namespace Utils {
                 args += ' > "' + tmpFilePath + '"';
             }
 
-            PerforceService.execute(resource, "print", (err, strdout, stderr) => {
-                if (err) {
-                    reject(err);
-                } else if (stderr) {
-                    reject(stderr);
-                } else {
-                    resolve(tmpFilePath);
-                }
-            }, args);
+            PerforceService.execute(
+                resource,
+                "print",
+                (err, strdout, stderr) => {
+                    if (err) {
+                        reject(err);
+                    } else if (stderr) {
+                        reject(stderr);
+                    } else {
+                        resolve(tmpFilePath);
+                    }
+                },
+                args
+            );
         });
     }
 }
