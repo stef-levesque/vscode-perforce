@@ -220,7 +220,8 @@ export namespace PerforceService {
         responseCallback: (err: Error, stdout: string, stderr: string) => void,
         args?: string,
         directoryOverride?: string,
-        input?: string
+        input?: string,
+        onDone?: Bottleneck.Callback<void>
     ): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
@@ -249,6 +250,10 @@ export namespace PerforceService {
 
         if (input != null) {
             child.stdin.end(input, "utf8");
+        }
+
+        if (onDone) {
+            child.on("close", onDone);
         }
     }
 

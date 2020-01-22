@@ -1,5 +1,9 @@
 # Change log
 
+## [3.3.1] - 2020-01-22
+
+* Resolve issue opening diffs for shelved edits
+
 ## [3.3.0] - 2020-01-22
 
 ### **Note** This is the first release following the fork to mjcrouch.perforce

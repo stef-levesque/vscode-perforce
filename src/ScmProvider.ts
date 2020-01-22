@@ -486,14 +486,9 @@ export class PerforceSCMProvider {
         resource: Resource,
         diffType: DiffType
     ): Uri | undefined {
-        // the nonce should not be necessary, but sometimes the request seems to continue indefinitely and the promise
-        // is never resolved. Subsequently it is impossible to view the diff until the window is closed and re-opened.
-        // ideally would find out why the promise doesn't resolve
-        const nonce = Math.random().toString();
         const args = {
             depot: resource.isShelved,
-            workspace: resource.model.workspaceUri.fsPath,
-            nonce
+            workspace: resource.model.workspaceUri.fsPath
         };
 
         if (diffType === DiffType.WORKSPACE_V_SHELVE) {
@@ -524,8 +519,7 @@ export class PerforceSCMProvider {
                     return resource.fromFile
                         ? Utils.makePerforceDocUri(resource.fromFile, "print", "-q", {
                               depot: true,
-                              workspace: resource.model.workspaceUri.fsPath,
-                              nonce
+                              workspace: resource.model.workspaceUri.fsPath
                           })
                         : emptyDoc;
                 case Status.INTEGRATE:
@@ -551,8 +545,7 @@ export class PerforceSCMProvider {
         if (diffType === DiffType.SHELVE_V_DEPOT) {
             const args = {
                 depot: resource.isShelved,
-                workspace: resource.model.workspaceUri.fsPath,
-                nonce: Math.random().toString()
+                workspace: resource.model.workspaceUri.fsPath
             };
 
             switch (resource.status) {

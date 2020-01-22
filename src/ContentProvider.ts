@@ -50,6 +50,7 @@ export class PerforceContentProvider {
                     revision,
                     args
                 ).then(resolve);
+                return;
             }
 
             const file = uri.fsPath ? Uri.file(uri.fsPath) : null;
