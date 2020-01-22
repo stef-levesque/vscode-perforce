@@ -1,6 +1,6 @@
 # Change log
 
-## [3.3.0] - 2020-TBD-
+## [3.3.0] - 2020-01-22
 
 ### **Note** This is the first release following the fork to mjcrouch.perforce
 
