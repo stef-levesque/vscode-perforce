@@ -10,6 +10,8 @@ Perforce integration for Visual Studio Code
 
 This is a fork of the `slevesque.perforce` extension, published in 2020, as the original creator now appears to be inactive on GitHub.
 
+If you install this extension, please uninstall or disable `slevesque.perforce` to prevent issues with duplicate icons.
+
 ![Login Example](images/login.gif)
 
 ## Commands
@@ -138,18 +140,12 @@ Keep in mind this is still in early beta! Explore and leave your comments on [Gi
 2. Launch *Code*
 3. From the command palette `ctrl+shift+p` (Windows, Linux) or `cmd+shift+p` (OS X)
 4. Select `Install Extensions`
-5. Choose the extension `Perforce for VS Code`
+5. Choose the extension `Perforce for VS Code` by `mjcrouch`
 6. Reload *Visual Studio Code*
 
 ## Contributing
 
-**In need of updating to cover linting, tests and CI - I intend to create a new page for this!**
-
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request :D
+[Guide to contributing](CONTRIBUTING.md)
 
 ## Requirements
 
