@@ -1,5 +1,9 @@
 # Change log
 
+## [3.3.2] - 2020-01-23
+
+* Resolve another cause for the previous diff issue, where two perforce commands executing at the same time would be given the same ID, and only one of them would run
+
 ## [3.3.1] - 2020-01-22
 
 * Resolve issue opening diffs for shelved edits

@@ -160,6 +160,8 @@ export namespace PerforceService {
         return p4Path;
     }
 
+    let id = 0;
+
     export function execute(
         resource: Uri,
         command: string,
@@ -169,13 +171,17 @@ export namespace PerforceService {
         input?: string
     ): void {
         if (debugModeActive && !debugModeSetup) {
+            limiter.on("error", err => {
+                console.warn("Bottleneck ERROR:", err);
+            });
             limiter.on("debug", (message, data) => {
                 console.log("Bottleneck Debug:", message, data);
             });
             debugModeSetup = true;
         }
+        //execCommand(resource, command, responseCallback, args, directoryOverride, input);
         limiter.submit(
-            { id: `<JOB_ID:${Date.now()}:${command}>` },
+            { id: `<JOB_ID:${++id}:${command}>` },
             execCommand,
             resource,
             command,
@@ -253,7 +259,7 @@ export namespace PerforceService {
         }
 
         if (onDone) {
-            child.on("close", onDone);
+            child.on("close", () => onDone(null));
         }
     }
 
