@@ -55,7 +55,8 @@ describe("Model & ScmProvider modules", () => {
     after(() => {
         doc.dispose();
     });
-    beforeEach(async () => {
+    beforeEach(async function() {
+        this.timeout(4000);
         const showMessage = sinon.spy(Display, "showMessage");
         const showError = sinon.spy(Display, "showError");
 
