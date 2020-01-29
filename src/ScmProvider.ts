@@ -19,6 +19,7 @@ import { FileType } from "./scm/FileTypes";
 import { IPerforceConfig, matchConfig } from "./PerforceService";
 import * as Path from "path";
 import * as fs from "fs";
+import { WorkspaceConfigAccessor } from "./ConfigService";
 
 enum DiffType {
     WORKSPACE_V_DEPOT,
@@ -44,6 +45,10 @@ export class PerforceSCMProvider {
         return mapEvent(this._model.onDidChange, () => this);
     }
 
+    get onRefreshStarted(): Event<this> {
+        return mapEvent(this._model.onRefreshStarted, () => this);
+    }
+
     public get resources(): SourceControlResourceGroup[] {
         return this._model.ResourceGroups;
     }
@@ -54,9 +59,7 @@ export class PerforceSCMProvider {
         return "Perforce";
     }
     public get count(): number {
-        const countBadge = workspace
-            .getConfiguration("perforce")
-            .get<string>("countBadge");
+        const countBadge = this._workspaceConfig.countBadge;
         const statuses = this._model.ResourceGroups.reduce(
             (a, b) =>
                 a.concat(
@@ -95,15 +98,26 @@ export class PerforceSCMProvider {
         return "idle";
     }
 
-    constructor(config: IPerforceConfig, wksFolder: Uri, compatibilityMode: string) {
+    constructor(
+        config: IPerforceConfig,
+        wksFolder: Uri,
+        private _workspaceConfig: WorkspaceConfigAccessor,
+        compatibilityMode: string
+    ) {
         this.compatibilityMode = compatibilityMode;
         this.wksFolder = wksFolder;
         this.config = config;
-        this.Initialize();
     }
 
-    public Initialize() {
-        this._model = new Model(this.config, this.wksFolder, this.compatibilityMode);
+    public async Initialize() {
+        this._model = new Model(
+            this.config,
+            this.wksFolder,
+            this._workspaceConfig,
+            this.compatibilityMode
+        );
+
+        this.disposables.push(this._model);
 
         PerforceSCMProvider.instances.push(this);
         this._model._sourceControl = scm.createSourceControl(
@@ -120,11 +134,12 @@ export class PerforceSCMProvider {
 
         // Hook up the model change event to trigger our own event
         this._model.onDidChange(this.onDidModelChange.bind(this), this, this.disposables);
-        this._model.Refresh();
 
         this._model._sourceControl.inputBox.value = "";
         this._model._sourceControl.inputBox.placeholder =
             "Message (press {0} to create changelist)";
+
+        await this._model.RefreshImmediately();
     }
 
     public static registerCommands() {
@@ -232,14 +247,16 @@ export class PerforceSCMProvider {
         return null;
     }
 
-    public static OpenFile(...resourceStates: SourceControlResourceState[]) {
+    public static async OpenFile(...resourceStates: SourceControlResourceState[]) {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
         const preview = selection.length == 1;
-        for (const resource of selection) {
-            commands.executeCommand<void>("vscode.open", resource.underlyingUri, {
+        const promises = selection.map(resource => {
+            return commands.executeCommand<void>("vscode.open", resource.underlyingUri, {
                 preview
             });
-        }
+        });
+
+        await Promise.all(promises);
     }
 
     public static async Open(...resourceStates: SourceControlResourceState[]) {
@@ -269,17 +286,18 @@ export class PerforceSCMProvider {
         perforceProvider._model.Sync();
     }
 
-    public static Refresh(sourceControl: SourceControl) {
+    public static async Refresh(sourceControl: SourceControl) {
         const perforceProvider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        perforceProvider._model.Refresh();
+        await perforceProvider._model.RefreshPolitely();
     }
 
-    public static RefreshAll() {
-        for (const provider of PerforceSCMProvider.instances) {
-            provider._model.Refresh();
-        }
+    public static async RefreshAll() {
+        const promises = PerforceSCMProvider.instances.map(provider =>
+            provider._model.Refresh()
+        );
+        await Promise.all(promises);
     }
 
     public static Info(sourceControl: SourceControl) {
@@ -470,11 +488,11 @@ export class PerforceSCMProvider {
                 console.error("Status not supported: " + resource.status.toString());
                 return;
             }
-            await commands.executeCommand<void>("vscode.open", right);
+            await window.showTextDocument(right);
             return;
         }
         if (!right) {
-            await commands.executeCommand<void>("vscode.open", left);
+            await window.showTextDocument(left);
             return;
         }
         await commands.executeCommand<void>("vscode.diff", left, right, title);

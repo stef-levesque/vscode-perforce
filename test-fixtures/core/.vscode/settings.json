@@ -1,4 +1,5 @@
 {
     "perforce.client": "",
-    "perforce.user": ""
+    "perforce.user": "",
+    "perforce.bottleneck.maxConcurrent": 1000
 }

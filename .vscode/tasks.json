@@ -36,6 +36,13 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "type": "npm",
+            "script": "compile",
+            "presentation": {
+                "reveal": "silent"
+            }
         }
     ]
 }

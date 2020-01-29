@@ -4,12 +4,15 @@ import * as Path from "path";
 
 import { PerforceService } from "./PerforceService";
 import { Utils } from "./Utils";
+import { debounce } from "./Debounce";
 
 let _statusBarItem: StatusBarItem;
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Display {
     export const channel = window.createOutputChannel("Perforce Log");
+
+    export const updateEditor = debounce(updateEditorImpl, 1000);
 
     export function initialize() {
         _statusBarItem = window.createStatusBarItem(
@@ -21,7 +24,7 @@ export namespace Display {
         updateEditor();
     }
 
-    export function updateEditor() {
+    function updateEditorImpl() {
         const editor = window.activeTextEditor;
         if (!editor) {
             if (_statusBarItem) {

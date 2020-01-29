@@ -14,6 +14,7 @@ import * as Path from "path";
 import * as fs from "fs";
 import * as Ini from "ini";
 import { Disposable } from "vscode";
+import { WorkspaceConfigAccessor } from "./ConfigService";
 
 let _isRegistered = false;
 const _disposable: vscode.Disposable[] = [];
@@ -64,7 +65,15 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
             }
 
             PerforceService.addConfig(config, wksUri.fsPath);
-            _disposable.push(new PerforceSCMProvider(config, wksUri, compatibilityMode));
+            const workspaceConfig = new WorkspaceConfigAccessor(wksUri);
+            const scm = new PerforceSCMProvider(
+                config,
+                wksUri,
+                workspaceConfig,
+                compatibilityMode
+            );
+            scm.Initialize();
+            _disposable.push(scm);
             _disposable.push(new FileSystemListener(wksFolder));
 
             // Register only once

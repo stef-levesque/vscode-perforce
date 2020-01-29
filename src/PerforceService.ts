@@ -1,11 +1,11 @@
 import { workspace, Uri } from "vscode";
-import Bottleneck from "bottleneck";
 
 import { Utils } from "./Utils";
 import { Display } from "./Display";
 import { PerforceSCMProvider } from "./ScmProvider";
 
 import * as CP from "child_process";
+import { CommandLimiter } from "./CommandLimiter";
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IPerforceConfig {
@@ -45,20 +45,9 @@ export function matchConfig(config: IPerforceConfig, uri: Uri): boolean {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace PerforceService {
-    const limiter: Bottleneck = new Bottleneck({
-        maxConcurrent: workspace
-            .getConfiguration("perforce")
-            .get<number>("bottleneck.maxConcurrent"),
-        minTime: workspace.getConfiguration("perforce").get<number>("bottleneck.minTime"),
-        highWater: workspace
-            .getConfiguration("perforce")
-            .get<number>("bottleneck.highWater"),
-        strategy:
-            Bottleneck.strategy[
-                workspace.getConfiguration("perforce").get<string>("bottleneck.strategy")
-            ],
-        penalty: workspace.getConfiguration("perforce").get<number>("bottleneck.penalty")
-    });
+    const limiter: CommandLimiter = new CommandLimiter(
+        workspace.getConfiguration("perforce").get<number>("bottleneck.maxConcurrent")
+    );
 
     const debugModeActive: boolean = workspace
         .getConfiguration("perforce")
@@ -171,26 +160,24 @@ export namespace PerforceService {
         input?: string
     ): void {
         if (debugModeActive && !debugModeSetup) {
-            limiter.on("error", err => {
-                console.warn("Bottleneck ERROR:", err);
-            });
-            limiter.on("debug", (message, data) => {
-                console.log("Bottleneck Debug:", message, data);
-            });
+            limiter.debugMode = true;
             debugModeSetup = true;
         }
         //execCommand(resource, command, responseCallback, args, directoryOverride, input);
-        limiter.submit(
-            { id: `<JOB_ID:${++id}:${command}>` },
-            execCommand,
-            resource,
-            command,
-            responseCallback,
-            args,
-            directoryOverride,
-            input,
-            null
-        );
+        limiter.submit(onDone => {
+            execCommand(
+                resource,
+                command,
+                (...rest) => {
+                    // call done first in case responseCallback throws - the important part is done
+                    onDone();
+                    responseCallback(...rest);
+                },
+                args,
+                directoryOverride,
+                input
+            );
+        }, `<JOB_ID:${++id}:${command}>`);
     }
 
     export function executeAsPromise(
@@ -226,8 +213,7 @@ export namespace PerforceService {
         responseCallback: (err: Error, stdout: string, stderr: string) => void,
         args?: string,
         directoryOverride?: string,
-        input?: string,
-        onDone?: Bottleneck.Callback<void>
+        input?: string
     ): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
@@ -256,10 +242,6 @@ export namespace PerforceService {
 
         if (input != null) {
             child.stdin.end(input, "utf8");
-        }
-
-        if (onDone) {
-            child.on("close", () => onDone(null));
         }
     }
 

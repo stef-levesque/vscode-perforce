@@ -11,16 +11,21 @@ import {
     workspace,
     commands
 } from "vscode";
+import { WorkspaceConfigAccessor } from "../ConfigService";
 import { Utils } from "../Utils";
 import { Display } from "../Display";
 import { Resource } from "./Resource";
 
 import * as Path from "path";
 import * as vscode from "vscode";
+import { DebouncedFunction, debounce } from "../Debounce";
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
 }
+
+type ChangeInfo = { chnum: number; description: string };
+type ShelvedFileInfo = { chnum: number; action: string; path: string };
 
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
@@ -30,7 +35,13 @@ export class Model implements Disposable {
         return this._onDidChange.event;
     }
 
+    private _onRefreshStarted = new EventEmitter<void>();
+    public get onRefreshStarted(): Event<void> {
+        return this._onRefreshStarted.event;
+    }
+
     public dispose() {
+        this.clean();
         if (this._disposables) {
             this._disposables.forEach(d => d.dispose());
             this._disposables = [];
@@ -45,12 +56,15 @@ export class Model implements Disposable {
         number,
         { description: string; group: SourceControlResourceGroup }
     >();
-    private _compatibilityMode: string;
-    private _workspaceUri: Uri;
-    private _config: IPerforceConfig;
+
+    private _refresh: DebouncedFunction<any[], Promise<void>>;
 
     get workspaceUri() {
         return this._workspaceUri;
+    }
+
+    private get clientName(): string | undefined {
+        return this._infos.get("Client name") ?? this._config.p4Client;
     }
 
     public get ResourceGroups(): SourceControlResourceGroup[] {
@@ -76,13 +90,16 @@ export class Model implements Disposable {
     }
 
     public constructor(
-        config: IPerforceConfig,
-        workspaceUri: Uri,
-        compatibilityMode: string
+        private _config: IPerforceConfig,
+        private _workspaceUri: Uri,
+        private _workspaceConfig: WorkspaceConfigAccessor,
+        private _compatibilityMode: string
     ) {
-        this._config = config;
-        this._workspaceUri = workspaceUri;
-        this._compatibilityMode = compatibilityMode;
+        this._refresh = debounce(
+            this.RefreshImpl.bind(this),
+            _workspaceConfig.refreshDebounceTime
+        );
+        this._disposables.push(this._refresh);
     }
 
     public async Sync(): Promise<void> {
@@ -103,8 +120,23 @@ export class Model implements Disposable {
         );
     }
 
-    public async Refresh(): Promise<void> {
-        this.clean();
+    public async Refresh() {
+        await this._refresh.withoutLeadingCall();
+    }
+
+    public async RefreshPolitely() {
+        await this._refresh(true);
+    }
+
+    public async RefreshImmediately() {
+        await this.RefreshImpl(true);
+    }
+
+    private async RefreshImpl(refreshClientInfo?: boolean): Promise<void> {
+        // don't clean the changelists now - this will be done by updateStatus
+        // seeing an empty scm view and waiting for it to populate makes it feel slower.
+        this._onRefreshStarted.fire();
+
         const loggedin = await Utils.isLoggedIn(
             this._workspaceUri,
             this._compatibilityMode
@@ -113,13 +145,15 @@ export class Model implements Disposable {
             return;
         }
 
-        await window.withProgress(
-            {
-                location: ProgressLocation.SourceControl,
-                title: "Updating info..."
-            },
-            () => this.updateInfo()
-        );
+        if (!this.clientName || refreshClientInfo) {
+            await window.withProgress(
+                {
+                    location: ProgressLocation.SourceControl,
+                    title: "Updating info..."
+                },
+                () => this.updateInfo()
+            );
+        }
         await window.withProgress(
             {
                 location: ProgressLocation.SourceControl,
@@ -143,9 +177,7 @@ export class Model implements Disposable {
         descStr: string,
         existingChangelist?: string
     ): Promise<string> {
-        const config = workspace.getConfiguration("perforce");
-        const hideNonWorksSpaceFiles = config.get<boolean>("hideNonWorkspaceFiles");
-        const maxFilePerCommand: number = config.get<number>("maxFilePerCommand");
+        const hideNonWorksSpaceFiles = this._workspaceConfig.hideNonWorkspaceFiles;
 
         const args = `-o ${existingChangelist ? existingChangelist : ""}`;
         if (!descStr) {
@@ -171,15 +203,7 @@ export class Model implements Disposable {
                     return file.substring(0, endOfFileStr).trim();
                 });
 
-                let fstatInfo = [];
-
-                for (let i = 0; i < depotFiles.length; i += maxFilePerCommand) {
-                    fstatInfo = fstatInfo.concat(
-                        await this.getFstatInfoForFiles(
-                            depotFiles.slice(i, i + maxFilePerCommand)
-                        )
-                    );
-                }
+                const fstatInfo = await this.getFstatInfoForFiles(depotFiles);
 
                 newSpec += fstatInfo
                     .filter(info => {
@@ -297,9 +321,6 @@ export class Model implements Disposable {
     }
 
     public async SubmitDefault(): Promise<void> {
-        const config = workspace.getConfiguration("perforce");
-        const hideNonWorksSpaceFiles = config.get<boolean>("hideNonWorkspaceFiles");
-
         const loggedin = await Utils.isLoggedIn(
             this._workspaceUri,
             this._compatibilityMode
@@ -356,7 +377,7 @@ export class Model implements Disposable {
         }
 
         if (pick === "Submit") {
-            if (hideNonWorksSpaceFiles) {
+            if (this._workspaceConfig.hideNonWorkspaceFiles) {
                 const changeListNr = await this.SaveToChangelist(descStr);
                 this.Submit(parseInt(changeListNr, 10));
             } else {
@@ -689,11 +710,7 @@ export class Model implements Disposable {
         const trailingSlash = /^(.*)(\/)$/;
         const config = this._config;
         let pathToSync = null;
-        let p4Dir = config.p4Dir
-            ? config.p4Dir
-            : vscode.workspace
-                  .getConfiguration("perforce", this._workspaceUri)
-                  .get<string>("dir");
+        let p4Dir = config.p4Dir ? config.p4Dir : this._workspaceConfig.dir;
         if (p4Dir && p4Dir !== "none") {
             p4Dir = Utils.normalize(p4Dir);
             if (!trailingSlash.exec(p4Dir)) {
@@ -726,20 +743,85 @@ export class Model implements Disposable {
             return;
         }
 
-        const defaults: Resource[] = [];
-        const pendings = new Map<number, Resource[]>();
+        const changelists = await this.getChanges();
+        const shelvedPromise = this.getAllShelvedResources(changelists);
+        const openPromise = this.getDepotOpenedResources();
+        const [shelvedResources, openResources] = await Promise.all([
+            shelvedPromise,
+            openPromise
+        ]);
+        this.createResourceGroups(changelists, shelvedResources.concat(openResources));
 
-        if (this._defaultGroup) {
-            this._defaultGroup.dispose();
-            this._defaultGroup = null;
+        this._onDidChange.fire();
+    }
+
+    private getResourceForOpenFile(fstatInfo: {}): Resource | undefined {
+        const clientFile = fstatInfo["clientFile"];
+        const change = fstatInfo["change"];
+        const action = fstatInfo["action"];
+        const headType = fstatInfo["headType"];
+        const depotPath = Uri.file(fstatInfo["depotFile"]);
+        const fromFile = fstatInfo["resolveFromFile0"]
+            ? Uri.file(fstatInfo["resolveFromFile0"])
+            : undefined;
+        const uri = Uri.file(clientFile);
+        if (this._workspaceConfig.hideNonWorkspaceFiles) {
+            const workspaceFolder = workspace.getWorkspaceFolder(uri);
+            if (!workspaceFolder) {
+                return;
+            }
         }
+        const resource: Resource = new Resource(
+            this,
+            depotPath,
+            uri,
+            change,
+            false,
+            action,
+            fromFile,
+            headType
+        );
+
+        return resource;
+    }
+
+    private createResourceGroups(
+        changelists: ChangeInfo[],
+        resources: (Resource | undefined)[]
+    ) {
+        this.clean();
+
         this._defaultGroup = this._sourceControl.createResourceGroup(
             "default",
             "Default Changelist"
         );
         this._defaultGroup["model"] = this;
+        this._defaultGroup.resourceStates = resources.filter(
+            resource => resource && resource.change === "default"
+        );
 
-        const pendingArgs = "-c " + this._infos.get("Client name") + " -s pending";
+        const groups = changelists.map(c => {
+            const group = this._sourceControl.createResourceGroup(
+                "pending:" + c.chnum,
+                "#" + c.chnum + ": " + c.description
+            );
+            group["model"] = this;
+            group.resourceStates = resources.filter(
+                resource => resource && resource.change === c.chnum.toString()
+            );
+            return group;
+        });
+
+        groups.forEach((group, i) => {
+            this._pendingGroups.set(changelists[i].chnum, {
+                description: changelists[i].description,
+                group: group
+            });
+        });
+    }
+
+    private async getChanges(): Promise<ChangeInfo[]> {
+        const pendingArgs = "-c " + this.clientName + " -s pending";
         const output: string = await Utils.runCommand(
             this._workspaceUri,
             "changes",
@@ -747,165 +829,101 @@ export class Model implements Disposable {
             null,
             pendingArgs
         );
-        let changelists = output.trim().split("\n");
+        let changeNumbers = output.trim().split("\n");
 
-        const config = workspace.getConfiguration("perforce");
-        const maxFilePerCommand: number = config.get<number>("maxFilePerCommand");
-        if (config.get("changelistOrder") == "ascending") {
-            changelists = changelists.reverse();
+        if (this._workspaceConfig.changelistOrder === "ascending") {
+            changeNumbers = changeNumbers.reverse();
         }
 
-        this._pendingGroups.forEach(value => value.group.dispose());
-        this._pendingGroups.clear();
+        const changelists = this.filterIgnoredChangelists(
+            changeNumbers
+                .map(c => this.parseChangelistDescription(c))
+                .filter(c => c !== undefined)
+        );
 
-        const ignoredChangelists: number[] = [];
+        return changelists;
+    }
 
-        for (let i = 0; i < changelists.length; ++i) {
-            const value = changelists[i];
-            // Change num on date by user@client [status] description
-            const matches = new RegExp(
-                /Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.*)\'/
-            ).exec(value);
+    private filterIgnoredChangelists(changelists: ChangeInfo[]): ChangeInfo[] {
+        const prefix = this._workspaceConfig.ignoredChangelistPrefix;
+        if (prefix) {
+            changelists = changelists.filter(c => !c.description.startsWith(prefix));
+        }
+        return changelists;
+    }
 
-            if (matches) {
-                const num = matches[1];
-                // const date = matches[2];
-                // const user = matches[3];
-                // const client = matches[4];
-                // const status = matches[5];
-                const description = matches[6];
+    private parseChangelistDescription(value: string): ChangeInfo | undefined {
+        // Change num on date by user@client [status] description
+        const matches = new RegExp(
+            /Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.*)\'/
+        ).exec(value);
 
-                const chnum: number = parseInt(num.toString());
+        if (matches) {
+            const num = matches[1];
+            // const date = matches[2];
+            // const user = matches[3];
+            // const client = matches[4];
+            // const status = matches[5];
+            const description = matches[6];
 
-                const prefix = config.get<string>("ignoredChangelistPrefix");
-                if (prefix && description.startsWith(prefix)) {
-                    ignoredChangelists.push(chnum);
-                    continue;
-                }
+            const chnum: number = parseInt(num.toString());
+            return { chnum, description };
+        }
+    }
 
-                if (!this._pendingGroups.has(chnum)) {
-                    const group = this._sourceControl.createResourceGroup(
-                        "pending:" + chnum,
-                        "#" + chnum + ": " + description
-                    );
-                    group["model"] = this;
-                    group.resourceStates = [];
-                    this._pendingGroups.set(chnum, {
-                        description: description,
-                        group: group
-                    });
-                } else {
-                    console.log(
-                        "ERROR: pending changelist already exist: " + chnum.toString()
-                    );
-                }
-                if (!config.get<boolean>("hideShelvedFiles")) {
-                    const depotFiles = await this.getDepotShelvedFilePaths(chnum);
-                    if (!pendings.has(chnum)) {
-                        pendings.set(chnum, []);
-                    }
+    private async getAllShelvedResources(changes: ChangeInfo[]): Promise<Resource[]> {
+        if (this._workspaceConfig.hideShelvedFiles) {
+            return [];
+        }
+        const allFileInfo = await this.getDepotShelvedFilePaths(
+            changes.map(c => c.chnum)
+        );
+        return this.getShelvedResources(allFileInfo);
+    }
 
-                    let fstatInfo = [];
+    private getResourceForShelvedFile(file: ShelvedFileInfo, fstatInfo?: {}) {
+        const { path, action, chnum } = file;
 
-                    for (let i = 0; i < depotFiles.length; i += maxFilePerCommand) {
-                        fstatInfo = fstatInfo.concat(
-                            await this.getFstatInfoForFiles(
-                                depotFiles
-                                    .slice(i, i + maxFilePerCommand)
-                                    .map(df => df[0]),
-                                "-Or"
-                            )
-                        );
-                    }
-
-                    depotFiles.forEach((element, i) => {
-                        const [path, change] = element;
-
-                        let underlyingUri: Uri;
-                        let fromFile: Uri;
-                        if (fstatInfo[i]) {
-                            underlyingUri = Uri.file(fstatInfo[i]["clientFile"]);
-                            fromFile = fstatInfo[i]["resolveFromFile0"]
-                                ? Uri.file(fstatInfo[i]["resolveFromFile0"])
-                                : undefined;
-                        }
-
-                        const resource: Resource = new Resource(
-                            this,
-                            Uri.file(path),
-                            underlyingUri,
-                            chnum.toString(),
-                            true,
-                            change,
-                            fromFile
-                        );
-                        pendings.get(chnum).push(resource);
-                    });
-                }
-            }
+        let underlyingUri: Uri;
+        let fromFile: Uri;
+        if (fstatInfo) {
+            // not present if a file is shelved for add, and not in the filesystem
+            underlyingUri = Uri.file(fstatInfo["clientFile"]);
+            fromFile = fstatInfo["resolveFromFile0"]
+                ? Uri.file(fstatInfo["resolveFromFile0"])
+                : undefined;
         }
 
-        const hideNonWorksSpaceFiles = config.get<boolean>("hideNonWorkspaceFiles");
+        const resource: Resource = new Resource(
+            this,
+            Uri.file(path),
+            underlyingUri,
+            chnum.toString(),
+            true,
+            action,
+            fromFile
+        );
+        return resource;
+    }
 
-        const depotOpenedFilePaths = await this.getDepotOpenedFilePaths();
-        for (let i = 0; i < depotOpenedFilePaths.length; i += maxFilePerCommand) {
-            const fstatInfo = await this.getFstatInfoForFiles(
-                depotOpenedFilePaths.slice(i, i + maxFilePerCommand),
-                "-Or"
-            );
+    private async getShelvedResources(files: ShelvedFileInfo[]): Promise<Resource[]> {
+        const fstatInfo = await this.getFstatInfoForFiles(
+            files.map(f => f.path),
+            "-Or"
+        );
 
-            fstatInfo.forEach(info => {
-                const clientFile = info["clientFile"];
-                const change = info["change"];
-                const action = info["action"];
-                const headType = info["headType"];
-                const depotPath = Uri.file(info["depotFile"]);
-                const fromFile = info["resolveFromFile0"]
-                    ? Uri.file(info["resolveFromFile0"])
-                    : undefined;
-                const uri = Uri.file(clientFile);
-                if (hideNonWorksSpaceFiles) {
-                    const workspaceFolder = workspace.getWorkspaceFolder(uri);
-                    if (!workspaceFolder) {
-                        return;
-                    }
-                }
-                const resource: Resource = new Resource(
-                    this,
-                    depotPath,
-                    uri,
-                    change,
-                    false,
-                    action,
-                    fromFile,
-                    headType
-                );
+        return fstatInfo.map((info, i) => this.getResourceForShelvedFile(files[i], info));
+    }
 
-                if (change.startsWith("default")) {
-                    defaults.push(resource);
-                } else {
-                    const chnum: number = parseInt(change);
-
-                    if (!pendings.has(chnum)) {
-                        pendings.set(chnum, []);
-                    }
-                    pendings.get(chnum).push(resource);
-                }
-            });
-        }
-
-        this._defaultGroup.resourceStates = defaults;
-
-        pendings.forEach((value, key) => {
-            const chnum = key.toString();
-            if (this._pendingGroups.has(key)) {
-                this._pendingGroups.get(key).group.resourceStates = value;
-            } else if (!ignoredChangelists.includes(key)) {
-                console.log("ERROR: pending changelist not found: " + chnum);
-            }
-        });
-
-        this._onDidChange.fire();
+    private async getDepotOpenedResources(): Promise<Resource[]> {
+        const depotOpenedFilePromises = this.getDepotOpenedFilePaths();
+        const fstatInfo = await this.getFstatInfoForFiles(
+            await depotOpenedFilePromises,
+            "-Or"
+        );
+        return fstatInfo
+            .filter(info => !!info) // in case fstat doesn't have output for this file
+            .map(info => this.getResourceForOpenFile(info));
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
@@ -916,7 +934,7 @@ export class Model implements Disposable {
             opened = output.trim().split("\n");
         } catch (err) {
             // perforce writes to stderr if no files are opened.
-            console.log("ERROR: " + err);
+            //console.log("ERROR: " + err);
         }
 
         const files = [];
@@ -932,30 +950,72 @@ export class Model implements Disposable {
         return files;
     }
 
-    private async getDepotShelvedFilePaths(chnum: number): Promise<[string, string][]> {
+    private async getDepotShelvedFilePaths(chnums: number[]): Promise<ShelvedFileInfo[]> {
+        if (chnums.length === 0) {
+            return [];
+        }
         const resource = Uri.file(this._config.localDir);
-        const output = await Utils.getSimpleOutput(resource, "describe -Ss " + chnum);
+        const output = await Utils.getSimpleOutput(
+            resource,
+            "describe -Ss " + chnums.join(" ")
+        );
         const shelved = output.trim().split("\n");
         if (shelved.length === 0) {
-            return;
+            return [];
         }
 
         const files = [];
+        let curCh: number = 0;
         shelved.forEach(open => {
-            const matches = new RegExp(/(\.+)\ (.*)#(.*) (.*)/).exec(open);
-            if (matches) {
-                files.push([matches[2], matches[4].trim()]);
+            const chMatch = new RegExp(/^Change (\d+) by/).exec(open);
+            if (chMatch) {
+                curCh = parseInt(chMatch[1]);
+            } else {
+                const matches = new RegExp(/(\.+)\ (.*)#(.*) (.*)/).exec(open);
+                if (matches) {
+                    files.push({
+                        chnum: curCh,
+                        path: matches[2],
+                        action: matches[4].trim()
+                    });
+                }
             }
         });
 
         return files;
     }
 
+    private splitArray<T>(arr: T[], chunkSize: number): T[][] {
+        const ret: T[][] = [];
+        for (let i = 0; i < arr.length; i += chunkSize) {
+            ret.push(arr.slice(i, i + chunkSize));
+        }
+        return ret;
+    }
+
     private async getFstatInfoForFiles(
         files: string[],
         additionalParams?: string
-    ): Promise<any> {
+    ): Promise<{}[]> {
+        const promises = this.splitArray(
+            files,
+            this._workspaceConfig.maxFilePerCommand
+        ).map(fs => this.getFstatInfoForChunk(fs, additionalParams));
+
+        const result = await Promise.all(promises);
+
+        return result.reduce((prev, cur) => prev.concat(cur), []);
+    }
+
+    private async getFstatInfoForChunk(
+        files: string[],
+        additionalParams?: string
+    ): Promise<{}[]> {
         const resource = Uri.file(this._config.localDir);
+
+        if (additionalParams === undefined) {
+            additionalParams = "";
+        }
 
         // a shelved file may write to stderr if it doesn't exist in the workspace - so don't complain for stderr
         const [fstatOutput] = await Utils.getOutputs(

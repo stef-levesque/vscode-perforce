@@ -15,6 +15,8 @@ To contribute code:
 
 For non-trivial changes, it's a good idea to create an issue first to cover the change you would like to make.
 
+Note that references in the text below to `npm run` can generally be replaced with clicking on the correct button in vscode's `npm scripts` section in the explorer!
+
 ## Writing & Testing your Changes
 
 ### ESLint, Prettier and Webpack
@@ -43,7 +45,22 @@ The original project from which this was forked did not have a test framework, s
 
 Test suites are defined in `src/test`
 
-A launch configuration is provided to run the tests. Run the `Launch Extension` configuration and it will compile the typescript and open up vscode to run the tests (using the `vscode-test` package). Note that this uses tsc directly instead of webpack, as the tests are not included in the webpack build.
+There are two types of test:
+
+* **Unit tests**, that do not require the vscode API
+  * A single run can be started using `npm run unittest`
+  * You can also run a watch built that automatically runs the unit tests on every code change with `npm run watchunit`
+  * As the majority of files require the vscode API, the number of tests here is relatively small
+* **Integration tests**, that require the vscode API and run with a vscode window, using the `vscode-test` package
+  * Running the integration tests also includes the unit tests
+  * A single run of the integration tests can be started using `npm run integrationtest`, however a launch configuration is provided to run the tests in the debugger. Run the `Launch Extension` configuration and it will compile the typescript and open up vscode to run the tests (using the `vscode-test` package).
+  * You should leave the window alone while the tests run. If run from the debugger, the results will appear in the DEBUG CONSOLE view.
+  * Note that the integration tests stub the perforce command line. There can ocassionally be some 'interference' where error messages appear in the debug log, due to the extension reacting to events / editor windows opened by the test, between tests and after the stub has been destroyed. These can generally be ignored as long as they do not cause test failures and the errors do not show up repeatedly.
+
+Note that all of the tests use tsc directly instead of webpack, as the tests are not included in the webpack build.
+
+When you raise a pull request, the continuous integration job will run `npm run test`, which does both of the above - so make sure these pass before raising the pull request.
+
 
 
 
