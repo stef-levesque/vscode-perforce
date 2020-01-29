@@ -1,5 +1,17 @@
 # Change log
 
+## [3.4.0] - 2020-01-29
+
+* Improve performance when refreshing the view (#12)
+  * Previously, the 'bottleneck' package used was introducing approximately half a second latency for each perforce command
+  * Bottleneck has been removed, and replaced with a custom implementation. As a result, most of the 'perforce.bottleneck' settings have been **removed** - only `perforce.bottleneck.maxConcurrent` remains. This controls how many perforce commands are allowed to run concurrently
+* Reduced the amount of command thrashing when performing a large number of operations at the same time (#12)
+  * For example, previously when editing 10 files at the same time (for example, because of a find and replace operation with 'Edit on file save' enabled), the scm view would be refreshed 10 times, and each refresh would use a minimum of 5 commands plus a minimum of 1 command per additional changelist
+  * Now, any actions that occur within one second of the previous action are collapsed in to one refresh call, and the number of perforce commands per refresh has been reduced
+  * There are still issues with doing a large find and replace for files that are not already open, when 'Edit on file save' is enabled - often the first run will fail to save the files, but if you revert everything and do the replace again, it may succeed. This may be a vscode issue. (Clicking 'overwrite' for each file seems to work)
+* If you do experience any issues with perforce commands overloading the perforce server, please raise an issue and include the "Perforce Log" output
+* Updated the extension icon. "Perfork!"
+
 ## [3.3.2] - 2020-01-23
 
 * Resolve another cause for the previous diff issue, where two perforce commands executing at the same time would be given the same ID, and only one of them would run
@@ -10,7 +22,7 @@
 
 ## [3.3.0] - 2020-01-22
 
-### **Note** This is the first release following the fork to mjcrouch.perforce
+### **Note** This is the first release following the fork to mjcrouch.perforce. All issue references below this point refer to issues in stef-levesque.vscode-perforce
 
 * Ability to shelve and unshelve whole changelists, and delete all shelved files for a changelist
 * Ability to diff shelved files against either the depot or the workspace file
