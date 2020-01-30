@@ -700,6 +700,7 @@
         "integrationtest-nocompile": "node ./out/test/runTest.js",
         "unittest": "npm run pretest && npm run unittest-nocompile",
         "integrationtest": "npm run pretest && npm run integrationtest-nocompile",
-        "watchunit": "tsc-watch -p ./ --onSuccess \"npm run unittest-nocompile\""
+        "watchunit": "tsc-watch -p ./ --onSuccess \"npm run unittest-nocompile\"",
+        "watchintegration-linux": "tsc-watch -p ./ --onSuccess \"npm run integrationtest-nocompile -- --display=:99\""
     }
 }

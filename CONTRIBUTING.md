@@ -55,7 +55,15 @@ There are two types of test:
   * Running the integration tests also includes the unit tests
   * A single run of the integration tests can be started using `npm run integrationtest`, however a launch configuration is provided to run the tests in the debugger. Run the `Launch Extension` configuration and it will compile the typescript and open up vscode to run the tests (using the `vscode-test` package).
   * You should leave the window alone while the tests run. If run from the debugger, the results will appear in the DEBUG CONSOLE view.
+  * You can run a watch build of the integration tests using `watchintegration-linux`
+    * This requires a display server, e.g. Xvfb running on display 99, and as such only works on linux.
+    * To run,
+      1. install Xvfb,
+      2. start the server, e.g.
+         `Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &`
+      3. Run `npm run watchintegration-linux`
   * Note that the integration tests stub the perforce command line. There can ocassionally be some 'interference' where error messages appear in the debug log, due to the extension reacting to events / editor windows opened by the test, between tests and after the stub has been destroyed. These can generally be ignored as long as they do not cause test failures and the errors do not show up repeatedly.
+
 
 Note that all of the tests use tsc directly instead of webpack, as the tests are not included in the webpack build.
 
