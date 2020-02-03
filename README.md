@@ -106,7 +106,8 @@ See [Multi-root Workspaces - Settings](https://code.visualstudio.com/docs/editor
 
 ## SCM view
 ![SCM Perforce](images/scm-perforce.png)  
-Keep in mind this is still in early beta! Explore and leave your comments on [GitHub](https://github.com/stef-levesque/vscode-hexdump/issues)
+
+Explore and leave your comments on [GitHub](https://github.com/mjcrouch/vscode-perforce/issues)
 
 ## Common Questions
 
