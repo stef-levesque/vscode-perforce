@@ -10,9 +10,11 @@ type PerforceCommand =
     | "login"
     | "info"
     | "changes"
+    | "change"
     | "opened"
     | "describe"
     | "open"
+    | "reopen"
     | "shelve"
     | "unshelve"
     | "revert"
@@ -28,6 +30,25 @@ type PerforceCommandCallback = (
 ) => [string, string]; // return [stdout, stderr]
 
 type PerforceResponses = Record<PerforceCommand, PerforceCommandCallback | null>;
+
+const changelistHeader =
+    "#  Change:      The change number. 'new' on a new changelist.\n\
+#  Date:        The date this specification was last modified.\n\
+#  Client:      The client on which the changelist was created.  Read-only.\n\
+#  User:        The user who created the changelist.\n\
+#  Status:      Either 'pending' or 'submitted'. Read-only.\n\
+#  Type:        Either 'public' or 'restricted'. Default is 'public'.\n\
+#  Description: Comments about the changelist.  Required.\n\
+#  ImportedBy:  The user who fetched or pushed this change to this server.\n\
+#  Identity:    Identifier for this change.\n\
+#  Jobs:        What opened jobs are to be closed by this changelist.\n\
+#               You may delete jobs from this list.  (New changelists only.)\n\
+#  Stream:      What opened stream is to be added to this changelist.\n\
+#               You may remove an opened stream from this list.\n\
+#  Files:       What opened files from the default changelist are to be added\n\
+#               to this changelist.  You may delete files from this list.\n\
+#               (New changelists only.)\n\
+";
 
 interface StubChangelist {
     chnum: string;
@@ -174,6 +195,61 @@ export const makeResponses = (
                       .join("\n");
                   return stdout(ret);
               },
+              change: (service, _resource, args, _directoryOverride, input) => {
+                  if (args.startsWith("-o")) {
+                      const change = args.split(" ")[1] || "default";
+                      const changelist = service.changelists.find(
+                          c => c.chnum === change
+                      );
+                      let ret = changelistHeader;
+                      ret += "\n\n";
+                      ret +=
+                          "Change:\t" +
+                          (change === "default" ? "new" : changelist.chnum) +
+                          "\n\n";
+
+                      ret += "Client:\tcli\n\n";
+                      ret += "User:\tuser\n\n";
+                      ret +=
+                          "Status:\t" +
+                          (change === "default" ? "new" : "pending") +
+                          "\n\n";
+                      ret +=
+                          "Description:\n\t" +
+                          (change === "default"
+                              ? "<enter description here>"
+                              : changelist.description) +
+                          "\n\n";
+
+                      if (changelist?.files.length > 0) {
+                          ret +=
+                              "Files:\n\t" +
+                              changelist.files
+                                  .map(
+                                      file =>
+                                          file.depotPath +
+                                          "\t# " +
+                                          getStatusText(file.operation ?? Status.EDIT)
+                                  )
+                                  .join("\n\t");
+                      }
+                      return stdout(ret);
+                  } else if (args.startsWith("-i")) {
+                      service.lastChangeInput = input.split("\n\n").reduce((all, cur) => {
+                          if (!cur.startsWith("#")) {
+                              const colPos = cur.indexOf(":");
+                              all[cur.slice(0, colPos)] = cur
+                                  .slice(colPos + 1)
+                                  .replace(/^\n/, "");
+                          }
+                          return all;
+                      }, {});
+                      // not very accurate - doesn't account for updated, or the number of files included
+                      return stdout("Change 99 created.");
+                  } else {
+                      throw new Error("'change' args " + args + " not supported");
+                  }
+              },
               opened: (service, resource, args) => {
                   if (args) {
                       throw new Error("'opened' with args not implemented");
@@ -241,9 +317,8 @@ export const makeResponses = (
 
                   return joinStds(allStds, "\n\n");
               },
-              open: () => {
-                  return stdout("open not implemented");
-              },
+              open: returnStdOut("open not implemented"),
+              reopen: returnStdOut("reopen not implemented"),
               shelve: (service, ...rest) => {
                   const ret = service.runChangelistBehaviour("shelve", "c", ...rest);
                   return ret ?? stdout("shelve not implemented");
@@ -287,6 +362,7 @@ export function getLocalFile(workspace: vscode.Uri, ...relativePath: string[]) {
 
 export class StubPerforceService {
     public changelists: StubChangelist[];
+    public lastChangeInput: {};
 
     constructor(private _responses?: PerforceResponses) {
         this.changelists = [];

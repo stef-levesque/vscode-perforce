@@ -27,6 +27,23 @@ function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
 type ChangeInfo = { chnum: number; description: string };
 type ShelvedFileInfo = { chnum: number; action: string; path: string };
 
+type ChangeFieldRaw = {
+    name: string;
+    value: string[];
+};
+
+type ChangeSpecFile = {
+    depotPath: string;
+    action: string;
+};
+
+type ChangeSpec = {
+    description?: string;
+    files?: ChangeSpecFile[];
+    change?: string;
+    rawFields: ChangeFieldRaw[];
+};
+
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
 
@@ -173,17 +190,19 @@ export class Model implements Disposable {
         );
     }
 
-    public async SaveToChangelist(
-        descStr: string,
-        existingChangelist?: string
-    ): Promise<string> {
-        const hideNonWorksSpaceFiles = this._workspaceConfig.hideNonWorkspaceFiles;
-
-        const args = `-o ${existingChangelist ? existingChangelist : ""}`;
-        if (!descStr) {
-            descStr = "<saved by VSCode>";
+    private parseRawField(value: string) {
+        if (value.startsWith("\n")) {
+            value = value.slice(1);
         }
+        return value.split("\n").map(line => line.replace(/^\t/, ""));
+    }
 
+    private getBasicField(fields: ChangeFieldRaw[], field: string) {
+        return fields.find(i => i.name === field)?.value;
+    }
+
+    private async getChangeSpec(existingChangelist?: string): Promise<ChangeSpec> {
+        const args = `-o ${existingChangelist ? existingChangelist : ""}`;
         const spec: string = await Utils.runCommand(
             this._workspaceUri,
             "change",
@@ -191,60 +210,113 @@ export class Model implements Disposable {
             null,
             args
         );
-        const changeFields = spec.trim().split(/\n\r?\n/);
-        let newSpec = "";
-        for (const field of changeFields) {
-            if (hideNonWorksSpaceFiles && field.startsWith("Files:")) {
-                newSpec += "Files:\n\t";
-                const fileListStr = field.substring(8); // remove prefix Files:\n\t
+        const fields = spec.trim().split(/\n\r?\n/);
+        const rawFields = fields
+            .filter(field => !field.startsWith("#"))
+            .map(field => {
+                const colPos = field.indexOf(":");
+                const name = field.slice(0, colPos);
+                const value = this.parseRawField(field.slice(colPos + 1));
+                return { name, value };
+            });
+        return {
+            change: this.getBasicField(rawFields, "Change")?.[0],
+            description: this.getBasicField(rawFields, "Description").join("\n"),
+            files: this.getBasicField(rawFields, "Files")?.map(file => {
+                const endOfFileStr = file.indexOf("#");
+                return {
+                    depotPath: file.slice(0, endOfFileStr).trim(),
+                    action: file.slice(endOfFileStr + 2)
+                };
+            }),
+            rawFields
+        };
+    }
 
-                const depotFiles = fileListStr.split("\n").map(file => {
-                    const endOfFileStr = file.indexOf("#");
-                    return file.substring(0, endOfFileStr).trim();
-                });
+    private async getChangelistFileInfo(fileList: ChangeSpecFile[]): Promise<{}[]> {
+        const depotFiles = fileList.map(f => f.depotPath);
+        return await this.getFstatInfoForFiles(depotFiles);
+    }
 
-                const fstatInfo = await this.getFstatInfoForFiles(depotFiles);
+    private isInWorkspace(clientFile: string) {
+        return clientFile && !!workspace.getWorkspaceFolder(Uri.file(clientFile));
+    }
 
-                newSpec += fstatInfo
-                    .filter(info => {
-                        const uri = Uri.file(info["clientFile"]);
-                        const workspaceFolder = workspace.getWorkspaceFolder(uri);
-                        return !!workspaceFolder;
-                    })
-                    .map(info => {
-                        return info["depotFile"] + "\t# " + info["action"];
-                    })
-                    .join("\n\t");
-                newSpec += "\n\n";
-            } else if (field.startsWith("Description:")) {
-                newSpec += "Description:\n\t";
-                newSpec += descStr
-                    .trim()
-                    .split("\n")
-                    .join("\n\t");
-                newSpec += "\n\n";
-            } else {
-                newSpec += field;
-                newSpec += "\n\n";
-            }
+    private getDefinedFields(spec: ChangeSpec): ChangeFieldRaw[] {
+        const outFields: ChangeFieldRaw[] = [];
+
+        // add defined fields
+        if (spec.change) {
+            outFields.push({ name: "Change", value: [spec.change] });
+        }
+        if (spec.description) {
+            outFields.push({ name: "Description", value: spec.description.split("\n") });
+        }
+        if (spec.files) {
+            outFields.push({
+                name: "Files",
+                value: spec.files.map(file => file.depotPath + "\t# " + file.action)
+            });
         }
 
-        let newChangelistNumber;
-        try {
-            const createdStr = await Utils.runCommand(
-                this._workspaceUri,
-                "change",
-                null,
-                null,
-                "-i",
-                null,
-                newSpec
+        return outFields;
+    }
+
+    private async inputChangeSpec(spec: ChangeSpec): Promise<string | undefined> {
+        const outFields = this.getDefinedFields(spec).concat(
+            spec.rawFields.filter(field => !spec[field.name.toLowerCase()])
+        );
+
+        const newSpec = outFields
+            .map(field => {
+                const value = field.value.join("\n\t");
+                return field.name + ":\t" + value;
+            })
+            .join("\n\n");
+
+        const output = await Utils.runCommand(
+            this._workspaceUri,
+            "change",
+            null,
+            null,
+            "-i",
+            null,
+            newSpec
+        );
+        Display.channel.append(output);
+        return output;
+    }
+
+    private getChangelistNumber(changeCreatedStr: string) {
+        const matches = new RegExp(/Change\s(\d+)\screated/).exec(changeCreatedStr);
+        // Change #### created with ...
+        return matches?.[1];
+    }
+
+    public async SaveToChangelist(
+        descStr: string,
+        existingChangelist?: string
+    ): Promise<string> {
+        if (!descStr) {
+            descStr = "<saved by VSCode>";
+        }
+
+        const changeFields = await this.getChangeSpec(existingChangelist);
+
+        if (this._workspaceConfig.hideNonWorkspaceFiles) {
+            const infos = await this.getChangelistFileInfo(changeFields.files);
+
+            changeFields.files = changeFields.files.filter((file, i) =>
+                this.isInWorkspace(infos[i]?.["clientFile"])
             );
-            // Change #### created with ...
-            const matches = new RegExp(/Change\s(\d+)\screated with/).exec(createdStr);
-            if (matches) {
-                newChangelistNumber = matches[1];
-            }
+        }
+        changeFields.description = descStr;
+
+        let newChangelistNumber: string;
+        try {
+            const createdStr = await this.inputChangeSpec(changeFields);
+
+            newChangelistNumber = this.getChangelistNumber(createdStr);
             Display.channel.append(createdStr);
             this.Refresh();
         } catch (err) {
@@ -252,6 +324,18 @@ export class Model implements Disposable {
         }
 
         return newChangelistNumber;
+    }
+
+    private async createEmptyChangelist(descStr: string) {
+        try {
+            const changeFields = await this.getChangeSpec();
+            changeFields.files = [];
+            changeFields.description = descStr;
+            const createdStr = await this.inputChangeSpec(changeFields);
+            return this.getChangelistNumber(createdStr);
+        } catch (err) {
+            Display.showImportantError(err.toString());
+        }
     }
 
     public async ProcessChangelist(): Promise<void> {
@@ -647,7 +731,30 @@ export class Model implements Disposable {
         }
     }
 
+    private async requestChangelistDescription() {
+        const newText = await window.showInputBox({
+            prompt: "Enter the new changelist's description",
+            validateInput: val => {
+                if (val.trim() === "") {
+                    return "Description must not be empty";
+                }
+            }
+        });
+
+        return newText;
+    }
+
+    private async createEmptyChangelistInteractively() {
+        const newText = await this.requestChangelistDescription();
+        return newText ? await this.createEmptyChangelist(newText) : undefined;
+    }
+
     public async ReopenFile(resources: Resource[]): Promise<void> {
+        if (resources.some(r => r.isShelved)) {
+            Display.showImportantError("Cannot reopen a shelved file");
+            throw new Error("Cannot reopen shelved file");
+        }
+
         const loggedin = await Utils.isLoggedIn(
             this._workspaceUri,
             this._compatibilityMode
@@ -656,9 +763,9 @@ export class Model implements Disposable {
             return;
         }
 
-        //TODO: remove the file current changelist
         const items = [];
         items.push({ id: "default", label: this._defaultGroup.label, description: "" });
+        items.push({ id: "new", label: "New Changelist...", description: "" });
         this._pendingGroups.forEach((value, key) => {
             items.push({
                 id: key.toString(),
@@ -667,31 +774,38 @@ export class Model implements Disposable {
             });
         });
 
-        window
-            .showQuickPick(items, {
-                matchOnDescription: true,
-                placeHolder: "Choose a changelist:"
-            })
-            .then(selection => {
-                if (selection == undefined) {
-                    Display.showMessage("operation cancelled");
-                    return;
-                }
+        const selection = await window.showQuickPick(items, {
+            matchOnDescription: true,
+            placeHolder: "Choose a changelist:"
+        });
 
-                for (const resource of resources) {
-                    const file = Uri.file(resource.resourceUri.fsPath);
-                    const args = "-c " + selection.id;
+        if (selection === undefined) {
+            return;
+        }
 
-                    Utils.runCommand(this._workspaceUri, "reopen", file, null, args)
-                        .then(output => {
-                            Display.channel.append(output);
-                            this.Refresh();
-                        })
-                        .catch(reason => {
-                            Display.showImportantError(reason.toString());
-                        });
-                }
-            });
+        const chnum =
+            selection.id === "new"
+                ? await this.createEmptyChangelistInteractively()
+                : selection.id;
+
+        if (chnum === undefined) {
+            return;
+        }
+
+        // TODO - ideally this should be a single command instead of many
+        for (const resource of resources) {
+            const file = Uri.file(resource.resourceUri.fsPath);
+            const args = "-c " + chnum;
+
+            Utils.runCommand(this._workspaceUri, "reopen", file, null, args)
+                .then(output => {
+                    Display.channel.append(output);
+                    this.Refresh();
+                })
+                .catch(reason => {
+                    Display.showImportantError(reason.toString());
+                });
+        }
     }
 
     private clean() {

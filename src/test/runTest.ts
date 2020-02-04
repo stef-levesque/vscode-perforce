@@ -41,7 +41,7 @@ async function main() {
             extensionTestsEnv: env
         });
     } catch (err) {
-        console.error("Failed to run tests");
+        console.error("Failed to run tests: " + err);
         process.exit(1);
     }
 }

@@ -36,6 +36,12 @@ export class PerforceSCMProvider {
     dispose(): void {
         this.disposables.forEach(d => d.dispose());
         this.disposables = [];
+        const pos = PerforceSCMProvider.instances.findIndex(
+            instance => instance === this
+        );
+        if (pos >= 0) {
+            PerforceSCMProvider.instances.splice(pos, 1);
+        }
     }
 
     private static instances: PerforceSCMProvider[] = [];
@@ -307,11 +313,11 @@ export class PerforceSCMProvider {
         provider._model.Info();
     }
 
-    public static ProcessChangelist(sourceControl: SourceControl) {
+    public static async ProcessChangelist(sourceControl: SourceControl) {
         const provider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        provider._model.ProcessChangelist();
+        await provider._model.ProcessChangelist();
     }
 
     public static async EditChangelist(input: SourceControlResourceGroup) {
