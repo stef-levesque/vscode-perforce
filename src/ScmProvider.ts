@@ -89,7 +89,7 @@ export class PerforceSCMProvider {
     }
 
     get stateContextKey(): string {
-        if (workspace.workspaceFolders == undefined) {
+        if (workspace.workspaceFolders === undefined) {
             return "norepo";
         }
 
@@ -243,7 +243,7 @@ export class PerforceSCMProvider {
 
     public static async OpenFile(...resourceStates: SourceControlResourceState[]) {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
-        const preview = selection.length == 1;
+        const preview = selection.length === 1;
         const promises = selection.map(resource => {
             return commands.executeCommand<void>("vscode.open", resource.underlyingUri, {
                 preview
@@ -435,7 +435,7 @@ export class PerforceSCMProvider {
             }
         }
 
-        if (!resources || resources.length == 0) {
+        if (!resources || resources.length === 0) {
             return;
         }
 

@@ -186,16 +186,16 @@ export namespace Utils {
         input?: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
-            let args = prefixArgs != null ? prefixArgs : "";
+            let args = prefixArgs ? prefixArgs : "";
 
-            if (gOpts != null) {
+            if (gOpts !== null && gOpts !== undefined) {
                 command = gOpts + " " + command;
             }
 
             let revisionString = "";
             if (typeof revision === "string") {
                 revisionString = revision;
-            } else if (revision != null && !isNaN(revision)) {
+            } else if (revision !== null && revision !== undefined && !isNaN(revision)) {
                 revisionString = `#${revision}`;
             }
 
@@ -250,7 +250,7 @@ export namespace Utils {
     ): Promise<string> {
         const resource = file;
         return new Promise((resolve, reject) => {
-            let args = prefixArgs != null ? prefixArgs : "";
+            let args = prefixArgs ? prefixArgs : "";
             const revisionString: string =
                 revision === undefined || isNaN(revision) ? "" : `#${revision}`;
 
@@ -258,7 +258,7 @@ export namespace Utils {
             const tmpFilePath = tmp.tmpNameSync({ postfix: ext });
 
             let requirePipe = true;
-            if (command == "print") {
+            if (command === "print") {
                 if (!file.fsPath) {
                     reject("P4 Print command require a file path");
                 }

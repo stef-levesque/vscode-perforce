@@ -566,7 +566,7 @@ export namespace PerforceCommands {
                 placeHolder: "Choose a Perforce command:"
             })
             .then(function(selection) {
-                if (selection == undefined) {
+                if (selection === undefined) {
                     return;
                 }
                 switch (selection.label) {

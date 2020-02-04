@@ -102,7 +102,7 @@ export class Model implements Disposable {
             const config = workspace.getConfiguration("perforce");
             if (
                 config.get<boolean>("hideEmptyChangelists") &&
-                value.group.resourceStates.length == 0
+                value.group.resourceStates.length === 0
             ) {
                 value.group.dispose();
             } else {
@@ -458,7 +458,7 @@ export class Model implements Disposable {
             ignoreFocusOut: true
         });
 
-        if (descStr === undefined || descStr.trim().length == 0) {
+        if (descStr === undefined || descStr.trim().length === 0) {
             // pressing enter with no other input will still submit the empty string
             Display.showError("Cannot set empty description");
             return;
@@ -471,7 +471,7 @@ export class Model implements Disposable {
             }
         );
 
-        if (!pick || pick == "Cancel") {
+        if (!pick || pick === "Cancel") {
             return;
         }
 
@@ -499,7 +499,7 @@ export class Model implements Disposable {
 
         if (typeof input === "string") {
             args = `-d "${input}"`;
-        } else if (typeof input == "number") {
+        } else if (typeof input === "number") {
             args = `-c ${input}`;
         } else {
             const group = input;

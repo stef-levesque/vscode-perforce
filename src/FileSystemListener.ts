@@ -114,7 +114,7 @@ export default class FileSystemListener {
         //If this doc has already been checked, just returned
         if (
             FileSystemListener._lastCheckedFileUri &&
-            docUri.toString() == FileSystemListener._lastCheckedFileUri.toString()
+            docUri.toString() === FileSystemListener._lastCheckedFileUri.toString()
         ) {
             return;
         }
@@ -124,7 +124,7 @@ export default class FileSystemListener {
         if (
             !editor ||
             !editor.document ||
-            editor.document.uri.toString() != docUri.toString()
+            editor.document.uri.toString() !== docUri.toString()
         ) {
             return;
         }
@@ -182,7 +182,7 @@ export default class FileSystemListener {
     private onFileCreated(uri: Uri) {
         //Only try to add files open in the editor
         const editor = window.activeTextEditor;
-        if (editor && editor.document && editor.document.uri.fsPath == uri.fsPath) {
+        if (editor && editor.document && editor.document.uri.fsPath === uri.fsPath) {
             PerforceCommands.add(uri);
         }
     }

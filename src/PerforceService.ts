@@ -110,7 +110,7 @@ export namespace PerforceService {
             return ` ${arg} ${value}`;
         };
 
-        if (p4Path == "none") {
+        if (p4Path === "none") {
             const isWindows = process.platform.startsWith("win");
             p4Path = isWindows ? "p4.exe" : "p4";
         } else {
@@ -223,12 +223,12 @@ export namespace PerforceService {
             .getConfiguration("perforce")
             .get("maxBuffer", 200 * 1024);
 
-        if (directoryOverride != null) {
+        if (directoryOverride !== null && directoryOverride !== undefined) {
             cmdLine += " -d " + directoryOverride;
         }
         cmdLine += " " + command;
 
-        if (args != null) {
+        if (args !== undefined) {
             if (config && config.stripLocalDir) {
                 args = args.replace(config.localDir, "");
             }
@@ -240,7 +240,7 @@ export namespace PerforceService {
         const cmdArgs = { cwd: config ? config.localDir : wksPath, maxBuffer: maxBuffer };
         const child = CP.exec(cmdLine, cmdArgs, responseCallback);
 
-        if (input != null) {
+        if (input !== undefined) {
             if (!child.stdin) {
                 throw new Error("Child does not have standard input");
             }

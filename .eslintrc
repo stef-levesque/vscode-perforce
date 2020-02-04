@@ -22,6 +22,7 @@
         "@typescript-eslint/no-inferrable-types": "off",
         "@typescript-eslint/member-delimiter-style": "off",
         "@typescript-eslint/type-annotation-spacing": "off",
-        "curly": "error"
+        "curly": "error",
+        "eqeqeq": "error"
     }
 }
