@@ -36,13 +36,17 @@ export class PerforceContentProvider {
 
             const allArgs = Utils.decodeUriQuery(uri.query ?? "");
 
-            const args = allArgs["p4args"] ?? "-q";
-            const command = allArgs["command"] ?? "print";
+            const args = (allArgs["p4args"] as string) ?? "-q";
+            const command = (allArgs["command"] as string) ?? "print";
 
             if (allArgs["depot"]) {
-                const resource = allArgs["workspace"]
-                    ? Uri.file(allArgs["workspace"])
-                    : workspace.workspaceFolders[0].uri;
+                const resource =
+                    allArgs["workspace"] && typeof (allArgs["workspace"] === "string")
+                        ? Uri.file(allArgs["workspace"] as string)
+                        : workspace.workspaceFolders?.[0].uri;
+                if (!resource) {
+                    throw new Error("A resource is required");
+                }
                 Utils.runCommand(
                     resource,
                     command,

@@ -13,7 +13,7 @@ export class DecorationProvider {
         statuses: Status[],
         isShelved: boolean
     ): SourceControlResourceDecorations {
-        const status: Status = this.getDominantStatus(statuses);
+        const status = this.getDominantStatus(statuses);
         const light = {
             iconPath: DecorationProvider.getIconPath(status, isShelved, "light")
         };
@@ -64,7 +64,7 @@ export class DecorationProvider {
     }
 
     private static getIconPath(
-        status: Status,
+        status: Status | undefined,
         isShelved: boolean,
         theme: string
     ): Uri | undefined {
@@ -97,7 +97,7 @@ export class DecorationProvider {
         }
     }
 
-    private static useStrikeThrough(status: Status): boolean {
+    private static useStrikeThrough(status?: Status): boolean {
         return status === Status.DELETE || status === Status.MOVE_DELETE;
     }
 }

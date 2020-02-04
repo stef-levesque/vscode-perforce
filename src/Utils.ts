@@ -11,11 +11,15 @@ export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
         event(i => listener.call(thisArgs, map(i)), null, disposables);
 }
 
+type UriArguments = {
+    [key: string]: string | boolean;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Utils {
     // normalize function for turning windows paths into
     // something comparable before and after processing
-    export function normalize(path): string {
+    export function normalize(path: string): string {
         path = path.replace(/\\\\/g, "/");
         path = path.replace(/\\/g, "/");
         const matches = /([A-Z]):(.*)/.exec(path);
@@ -84,7 +88,7 @@ export namespace Utils {
 
     export function decodeUriQuery(query: string) {
         const argArr = query?.split("&") ?? [];
-        const allArgs = {};
+        const allArgs: UriArguments = {};
         argArr.forEach(arg => {
             const parts = arg.split("=");
             const name = decodeURIComponent(parts[0]);
@@ -95,13 +99,13 @@ export namespace Utils {
         return allArgs;
     }
 
-    export function processInfo(output): Map<string, string> {
+    export function processInfo(output: string): Map<string, string> {
         const map = new Map<string, string>();
         const lines = output.trim().split("\n");
 
         for (let i = 0, n = lines.length; i < n; ++i) {
             // Property Name: Property Value
-            const matches = lines[i].match(/([^:]+): (.+)/);
+            const matches = new RegExp(/([^:]+): (.+)/).exec(lines[i]);
 
             if (matches) {
                 map.set(matches[1], matches[2]);
@@ -175,10 +179,10 @@ export namespace Utils {
     export function runCommand(
         resource: Uri,
         command: string,
-        file?: Uri | string | null,
-        revision?: number | string,
+        file?: Uri | string | null | undefined,
+        revision?: number | string | null,
         prefixArgs?: string,
-        gOpts?: string,
+        gOpts?: string | null,
         input?: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
@@ -247,7 +251,8 @@ export namespace Utils {
         const resource = file;
         return new Promise((resolve, reject) => {
             let args = prefixArgs != null ? prefixArgs : "";
-            const revisionString: string = isNaN(revision) ? "" : `#${revision}`;
+            const revisionString: string =
+                revision === undefined || isNaN(revision) ? "" : `#${revision}`;
 
             const ext = Path.extname(file.fsPath);
             const tmpFilePath = tmp.tmpNameSync({ postfix: ext });

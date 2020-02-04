@@ -1,7 +1,7 @@
 class QueueItem<T> {
     private _next?: QueueItem<T>;
     constructor(private _item: T) {}
-    set next(next: QueueItem<T>) {
+    set next(next: QueueItem<T> | undefined) {
         this._next = next;
     }
     get next() {

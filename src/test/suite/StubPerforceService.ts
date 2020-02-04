@@ -20,16 +20,23 @@ type PerforceCommand =
     | "revert"
     | "fstat"
     | "print";
-type PerforceResponseCallback = (err: Error, stdout: string, stderr: string) => void;
+type PerforceResponseCallback = (
+    err: Error | null,
+    stdout: string,
+    stderr: string
+) => void;
 type PerforceCommandCallback = (
     service: StubPerforceService,
-    resource?: vscode.Uri,
+    resource: vscode.Uri,
     args?: string,
-    directoryOverride?: string,
+    directoryOverride?: string | null,
     input?: string
 ) => [string, string]; // return [stdout, stderr]
 
-type PerforceResponses = Record<PerforceCommand, PerforceCommandCallback | null>;
+type PerforceResponses = Record<
+    PerforceCommand,
+    PerforceCommandCallback | null | undefined
+>;
 
 const changelistHeader =
     "#  Change:      The change number. 'new' on a new changelist.\n\
@@ -196,7 +203,7 @@ export const makeResponses = (
                   return stdout(ret);
               },
               change: (service, _resource, args, _directoryOverride, input) => {
-                  if (args.startsWith("-o")) {
+                  if (args?.startsWith("-o")) {
                       const change = args.split(" ")[1] || "default";
                       const changelist = service.changelists.find(
                           c => c.chnum === change
@@ -205,7 +212,7 @@ export const makeResponses = (
                       ret += "\n\n";
                       ret +=
                           "Change:\t" +
-                          (change === "default" ? "new" : changelist.chnum) +
+                          (change === "default" ? "new" : changelist?.chnum) +
                           "\n\n";
 
                       ret += "Client:\tcli\n\n";
@@ -218,10 +225,10 @@ export const makeResponses = (
                           "Description:\n\t" +
                           (change === "default"
                               ? "<enter description here>"
-                              : changelist.description) +
+                              : changelist?.description) +
                           "\n\n";
 
-                      if (changelist?.files.length > 0) {
+                      if (changelist && changelist.files.length > 0) {
                           ret +=
                               "Files:\n\t" +
                               changelist.files
@@ -234,7 +241,10 @@ export const makeResponses = (
                                   .join("\n\t");
                       }
                       return stdout(ret);
-                  } else if (args.startsWith("-i")) {
+                  } else if (args?.startsWith("-i")) {
+                      if (!input) {
+                          return stderr("no input provided");
+                      }
                       service.lastChangeInput = input.split("\n\n").reduce((all, cur) => {
                           if (!cur.startsWith("#")) {
                               const colPos = cur.indexOf(":");
@@ -243,7 +253,7 @@ export const makeResponses = (
                                   .replace(/^\n/, "");
                           }
                           return all;
-                      }, {});
+                      }, {} as { [key: string]: string });
                       // not very accurate - doesn't account for updated, or the number of files included
                       return stdout("Change 99 created.");
                   } else {
@@ -280,6 +290,9 @@ export const makeResponses = (
                   }
               },
               describe: (service, resource, args, ...rest) => {
+                  if (!args) {
+                      return stderr("No arguments supplied to describe");
+                  }
                   const [, ...chnums] = args.split(" ");
                   const allStds = chnums.map(chnum => {
                       const c = service.changelists.find(c => c.chnum === chnum);
@@ -332,25 +345,29 @@ export const makeResponses = (
                   return ret ?? stdout("revert not implemented");
               },
               fstat: (service, resource, args) => {
+                  if (!args) {
+                      return stderr("No args supplied to fstat");
+                  }
                   const [, ...files] = args.split(" ");
                   // remove quotes
                   const fs = files.map(f => service.getFstatOutput(f.slice(1, -1)));
                   const stdout: string[] = [];
-                  const stderr: string[] = [];
+                  const sterr: string[] = [];
                   fs.forEach((text, i) => {
                       if (text !== undefined) {
                           stdout.push(text);
                       } else {
-                          stderr.push(files[i] + " - no such file(s).");
+                          sterr.push(files[i] + " - no such file(s).");
                       }
                   });
-                  return [stdout.join("\n\n"), stderr.join("\n\n")];
+                  return [stdout.join("\n\n"), sterr.join("\n\n")];
               },
               print: returnStdOut("print not implemented")
           };
     if (responses) {
         Object.keys(responses).forEach(key => {
-            ret[key] = responses[key];
+            ret[key as keyof PerforceResponses] =
+                responses[key as keyof PerforceResponses];
         });
     }
     return ret;
@@ -362,12 +379,15 @@ export function getLocalFile(workspace: vscode.Uri, ...relativePath: string[]) {
 
 export class StubPerforceService {
     public changelists: StubChangelist[];
-    public lastChangeInput: {};
+    public lastChangeInput?: { [key: string]: string };
+    private _responses: PerforceResponses;
 
-    constructor(private _responses?: PerforceResponses) {
+    constructor(responses?: PerforceResponses) {
         this.changelists = [];
-        if (!_responses) {
+        if (!responses) {
             this._responses = makeResponses();
+        } else {
+            this._responses = responses;
         }
     }
 
@@ -389,16 +409,19 @@ export class StubPerforceService {
         identifier: string,
         resource: vscode.Uri,
         args?: string,
-        directoryOverride?: string,
+        directoryOverride?: string | null,
         input?: string
     ): [string, string] | undefined {
+        if (!args) {
+            return;
+        }
         const re = new RegExp(`-${identifier} (\\w*)`);
         const matches = new RegExp(re).exec(args);
         const chnum = matches?.[1];
         if (chnum) {
             const c = this.getChangelist(chnum);
-            if (c?.behaviours?.[command]) {
-                return c.behaviours[command](
+            if (c?.behaviours?.[command as keyof PerforceResponses]) {
+                return c.behaviours?.[command as keyof PerforceResponses](
                     this,
                     resource,
                     args,
@@ -415,19 +438,19 @@ export class StubPerforceService {
         command: string,
         responseCallback: PerforceResponseCallback,
         args?: string,
-        directoryOverride?: string,
+        directoryOverride?: string | null,
         input?: string
     ) {
         const [cmd, ...firstArgs] = command.split(" ");
         const allArgs =
             firstArgs?.length > 0 ? firstArgs.join(" ") + (args ? " " + args : "") : args;
-        const func = this._responses[cmd];
+        const func = this._responses[cmd as keyof PerforceResponses];
         if (!func) {
             throw new Error("No stub for perforce command: " + cmd);
         }
         const ret = func(this, resource, allArgs, directoryOverride, input);
         setImmediate(() => {
-            responseCallback(undefined, ret[0], ret[1]);
+            responseCallback(null, ret[0], ret[1]);
         });
     }
 
@@ -436,7 +459,7 @@ export class StubPerforceService {
     }
 
     getFstatOutput(depotPath: string): string | undefined {
-        const cl: StubChangelist = this.changelists.find(
+        const cl = this.changelists.find(
             c =>
                 c.files.find(file => file.depotPath === depotPath) ||
                 c.shelvedFiles?.find(file => file.depotPath === depotPath)
@@ -448,21 +471,25 @@ export class StubPerforceService {
             const props = {
                 depotFile: depotPath,
                 clientFile:
-                    pendingFile?.localFile.fsPath ?? shelvedFile?.localFile.fsPath,
+                    pendingFile?.localFile?.fsPath ?? shelvedFile?.localFile?.fsPath,
                 isMapped: true,
                 headType: pendingFile?.fileType ?? shelvedFile?.fileType ?? "text",
                 action: pendingFile
                     ? getStatusText(pendingFile.operation ?? Status.EDIT)
                     : false,
-                change: pendingFile ? cl.chnum : false,
+                change: pendingFile ? cl?.chnum : false,
                 resolveFromFile0:
                     pendingFile?.resolveFromDepotPath ?? shelvedFile?.resolveFromDepotPath
             };
             return Object.keys(props)
-                .filter(prop => props[prop] !== undefined && props[prop] !== false)
+                .filter(
+                    prop =>
+                        props[prop as keyof typeof props] !== undefined &&
+                        props[prop as keyof typeof props] !== false
+                )
                 .map(prop => {
-                    if (typeof props[prop] === "string") {
-                        return `... ${prop} ${props[prop]}`;
+                    if (typeof props[prop as keyof typeof props] === "string") {
+                        return `... ${prop} ${props[prop as keyof typeof props]}`;
                     } else {
                         return `... ${prop}`;
                     }

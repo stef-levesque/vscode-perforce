@@ -30,10 +30,20 @@ chai.use(chaiAsPromised);
 interface TestItems {
     instance: PerforceSCMProvider;
     stubService: StubPerforceService;
-    execute: sinon.SinonStub;
-    showMessage: sinon.SinonSpy;
-    showError: sinon.SinonSpy;
-    showImportantError: sinon.SinonSpy;
+    execute: sinon.SinonStub<
+        [
+            vscode.Uri,
+            string,
+            (err: Error | null, stdout: string, stderr: string) => void,
+            (string | undefined)?,
+            (string | null | undefined)?,
+            (string | undefined)?
+        ],
+        void
+    >;
+    showMessage: sinon.SinonSpy<[string], void>;
+    showError: sinon.SinonSpy<[string], void>;
+    showImportantError: sinon.SinonSpy<[string], void>;
     refresh: sinon.SinonSpy;
 }
 
@@ -47,22 +57,33 @@ function findResourceForShelvedFile(
     group: vscode.SourceControlResourceGroup,
     file: StubFile
 ) {
-    return group.resourceStates.find(
+    const res = group.resourceStates.find(
         resource =>
             (resource as Resource).isShelved &&
             Utils.getDepotPathFromDepotUri(resource.resourceUri) === file.depotPath
     );
+    if (res === undefined) {
+        throw new Error("No shelved resource found");
+    }
+    return res;
 }
 
 function findResourceForFile(group: vscode.SourceControlResourceGroup, file: StubFile) {
-    return group.resourceStates.find(
+    const res = group.resourceStates.find(
         resource =>
             !(resource as Resource).isShelved &&
-            (resource as Resource).resourceUri.fsPath === file.localFile.fsPath
+            (resource as Resource).resourceUri.fsPath === file.localFile?.fsPath
     );
+    if (res === undefined) {
+        throw new Error("No resource found");
+    }
+    return res;
 }
 
 describe("Model & ScmProvider modules (integration)", () => {
+    if (!vscode.workspace.workspaceFolders?.[0]) {
+        throw new Error("No workspace folders open");
+    }
     const workspaceUri = vscode.workspace.workspaceFolders[0].uri;
 
     const basicFiles = {
@@ -1109,6 +1130,11 @@ describe("Model & ScmProvider modules (integration)", () => {
              * @param file
              */
             function perforceLocalUriMatcher(file: StubFile) {
+                if (!file.localFile) {
+                    throw new Error(
+                        "Can't make a local file matcher without a local file"
+                    );
+                }
                 return Utils.makePerforceDocUri(file.localFile, "print", "-q", {
                     workspace: workspaceUri.fsPath
                 });
@@ -1157,6 +1183,11 @@ describe("Model & ScmProvider modules (integration)", () => {
             }
 
             function perforceLocalShelvedUriMatcher(file: StubFile, chnum: string) {
+                if (!file.localFile) {
+                    throw new Error(
+                        "Can't make a local file matcher without a local file"
+                    );
+                }
                 return Utils.makePerforceDocUri(
                     file.localFile.with({ fragment: "@=" + chnum }),
                     "print",
@@ -1165,7 +1196,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 );
             }
 
-            let execCommand: sinon.SinonSpy;
+            let execCommand: sinon.SinonSpy<[string, ...any[]], Thenable<unknown>>;
             beforeEach(function() {
                 this.timeout(4000);
                 execCommand = sinon.spy(vscode.commands, "executeCommand");
@@ -1179,6 +1210,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         file
                     );
 
+                    expect(resource).not.to.be.undefined;
                     await PerforceSCMProvider.OpenFile(resource);
 
                     expect(execCommand.lastCall).to.be.vscodeOpenCall(file.localFile);
@@ -1538,7 +1570,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 await PerforceSCMProvider.ReopenFile(resource as Resource);
 
-                const itemArg = quickPick.lastCall.args[0];
+                const itemArg = quickPick.lastCall.args[0] as vscode.QuickPickItem[];
                 expect(itemArg).to.have.lengthOf(4);
                 expect(itemArg[0]).to.include({ label: "Default Changelist" });
                 expect(itemArg[1]).to.include({
@@ -1560,7 +1592,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Can move files to a changelist", async () => {
                 sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
-                    return Promise.resolve(items[3]);
+                    return Promise.resolve((items as vscode.QuickPickItem[])[3]);
                 });
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
@@ -1589,7 +1621,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Can move files to the default changelist", async () => {
                 sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
-                    return Promise.resolve(items[0]);
+                    return Promise.resolve((items as vscode.QuickPickItem[])[0]);
                 });
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
@@ -1608,7 +1640,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Can move files to a new changelist", async () => {
                 sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
-                    return Promise.resolve(items[1]);
+                    return Promise.resolve((items as vscode.QuickPickItem[])[1]);
                 });
                 sinon
                     .stub(vscode.window, "showInputBox")
@@ -1663,7 +1695,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Handles an error when creating a changelist", async () => {
                 sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
-                    return Promise.resolve(items[1]);
+                    return Promise.resolve((items as vscode.QuickPickItem[])[1]);
                 });
                 sinon
                     .stub(vscode.window, "showInputBox")

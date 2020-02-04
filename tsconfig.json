@@ -6,7 +6,8 @@
             "es6"
         ],
         "outDir": "out",
-        "sourceMap": true
+        "sourceMap": true,
+        "strict": true
     },
     "exclude": [
         "node_modules"

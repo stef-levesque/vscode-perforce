@@ -6,12 +6,11 @@ import {
     Disposable,
     SourceControl,
     SourceControlResourceState,
-    SourceControlResourceGroup,
     Event,
     ProviderResult,
     workspace
 } from "vscode";
-import { Model } from "./scm/Model";
+import { Model, ResourceGroup } from "./scm/Model";
 import { Resource } from "./scm/Resource";
 import { Status } from "./scm/Status";
 import { mapEvent, Utils } from "./Utils";
@@ -55,7 +54,7 @@ export class PerforceSCMProvider {
         return mapEvent(this._model.onRefreshStarted, () => this);
     }
 
-    public get resources(): SourceControlResourceGroup[] {
+    public get resources(): ResourceGroup[] {
         return this._model.ResourceGroups;
     }
     public get id(): string {
@@ -66,18 +65,9 @@ export class PerforceSCMProvider {
     }
     public get count(): number {
         const countBadge = this._workspaceConfig.countBadge;
-        const statuses = this._model.ResourceGroups.reduce(
-            (a, b) =>
-                a.concat(
-                    b.resourceStates.reduce(
-                        (c, d) =>
-                            c.concat([
-                                [(d as Resource).status, (d as Resource).isShelved]
-                            ]),
-                        []
-                    )
-                ),
-            []
+        const resources: Resource[] = this._model.ResourceGroups.reduce(
+            (a, b) => a.concat(b.resourceStates as Resource[]),
+            [] as Resource[]
         );
 
         // Don't count MOVE_DELETE as we already count MOVE_ADD
@@ -85,10 +75,12 @@ export class PerforceSCMProvider {
             case "off":
                 return 0;
             case "all-but-shelved":
-                return statuses.filter(s => s[0] !== Status.MOVE_DELETE && !s[1]).length;
+                return resources.filter(
+                    s => s.status !== Status.MOVE_DELETE && !s.isShelved
+                ).length;
             case "all":
             default:
-                return statuses.filter(s => s[0] !== Status.MOVE_DELETE).length;
+                return resources.filter(s => s.status !== Status.MOVE_DELETE).length;
         }
     }
 
@@ -113,24 +105,18 @@ export class PerforceSCMProvider {
         this.compatibilityMode = compatibilityMode;
         this.wksFolder = wksFolder;
         this.config = config;
-    }
 
-    public async Initialize() {
         this._model = new Model(
             this.config,
             this.wksFolder,
             this._workspaceConfig,
-            this.compatibilityMode
+            this.compatibilityMode,
+            scm.createSourceControl(this.id, this.label, Uri.file(this.config.localDir))
         );
 
         this.disposables.push(this._model);
 
         PerforceSCMProvider.instances.push(this);
-        this._model._sourceControl = scm.createSourceControl(
-            this.id,
-            this.label,
-            Uri.file(this.config.localDir)
-        );
         this._model._sourceControl.quickDiffProvider = this;
         this._model._sourceControl.acceptInputCommand = {
             command: "perforce.processChangelist",
@@ -144,7 +130,9 @@ export class PerforceSCMProvider {
         this._model._sourceControl.inputBox.value = "";
         this._model._sourceControl.inputBox.placeholder =
             "Message (press {0} to create changelist)";
+    }
 
+    public async Initialize() {
         await this._model.RefreshImmediately();
     }
 
@@ -235,7 +223,7 @@ export class PerforceSCMProvider {
         commands.executeCommand("setContext", "perforceState", this.stateContextKey);
     }
 
-    private static GetInstance(uri: Uri | null): PerforceSCMProvider {
+    private static GetInstance(uri?: Uri | null): PerforceSCMProvider | null {
         if (!uri) {
             return PerforceSCMProvider.instances
                 ? PerforceSCMProvider.instances[0]
@@ -289,14 +277,14 @@ export class PerforceSCMProvider {
         const perforceProvider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        perforceProvider._model.Sync();
+        perforceProvider?._model.Sync();
     }
 
     public static async Refresh(sourceControl: SourceControl) {
         const perforceProvider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        await perforceProvider._model.RefreshPolitely();
+        await perforceProvider?._model.RefreshPolitely();
     }
 
     public static async RefreshAll() {
@@ -310,25 +298,25 @@ export class PerforceSCMProvider {
         const provider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        provider._model.Info();
+        provider?._model.Info();
     }
 
     public static async ProcessChangelist(sourceControl: SourceControl) {
         const provider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        await provider._model.ProcessChangelist();
+        await provider?._model.ProcessChangelist();
     }
 
-    public static async EditChangelist(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async EditChangelist(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.EditChangelist(input);
         }
     }
 
-    public static async Describe(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async Describe(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.Describe(input);
         }
@@ -338,18 +326,18 @@ export class PerforceSCMProvider {
         const provider = PerforceSCMProvider.GetInstance(
             sourceControl ? sourceControl.rootUri : null
         );
-        await provider._model.SubmitDefault();
+        await provider?._model.SubmitDefault();
     }
 
-    public static async Submit(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async Submit(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.Submit(input);
         }
     }
 
     public static async Revert(
-        arg: Resource | SourceControlResourceGroup,
+        arg: Resource | ResourceGroup,
         ...resourceStates: SourceControlResourceState[]
     ) {
         if (arg instanceof Resource) {
@@ -358,13 +346,13 @@ export class PerforceSCMProvider {
             await Promise.all(promises);
         } else {
             const group = arg;
-            const model: Model = group["model"];
+            const model: Model = group.model;
             await model.Revert(group);
         }
     }
 
     public static async RevertUnchanged(
-        arg: Resource | SourceControlResourceGroup,
+        arg: Resource | ResourceGroup,
         ...resourceStates: SourceControlResourceState[]
     ) {
         if (arg instanceof Resource) {
@@ -375,34 +363,34 @@ export class PerforceSCMProvider {
             await Promise.all(promises);
         } else {
             const group = arg;
-            const model: Model = group["model"];
+            const model: Model = group.model;
             await model.Revert(group, true);
         }
     }
 
-    public static async ShelveChangelist(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async ShelveChangelist(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.ShelveChangelist(input);
         }
     }
 
-    public static async ShelveRevertChangelist(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async ShelveRevertChangelist(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.ShelveChangelist(input, true);
         }
     }
 
-    public static async UnshelveChangelist(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async UnshelveChangelist(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.UnshelveChangelist(input);
         }
     }
 
-    public static async DeleteShelvedChangelist(input: SourceControlResourceGroup) {
-        const model: Model = input["model"];
+    public static async DeleteShelvedChangelist(input: ResourceGroup) {
+        const model: Model = input.model;
         if (model) {
             await model.DeleteShelvedChangelist(input);
         }
@@ -484,8 +472,8 @@ export class PerforceSCMProvider {
                 : DiffType.WORKSPACE_V_DEPOT;
         }
 
-        const left: Uri = PerforceSCMProvider.getLeftResource(resource, diffType);
-        const right: Uri = PerforceSCMProvider.getRightResource(resource, diffType);
+        const left = PerforceSCMProvider.getLeftResource(resource, diffType);
+        const right = PerforceSCMProvider.getRightResource(resource, diffType);
         const title: string = PerforceSCMProvider.getTitle(resource, diffType);
 
         if (!left) {

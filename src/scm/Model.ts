@@ -24,6 +24,10 @@ function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
 }
 
+type FstatInfo = {
+    [key: string]: string;
+};
+
 type ChangeInfo = { chnum: number; description: string };
 type ShelvedFileInfo = { chnum: number; action: string; path: string };
 
@@ -43,6 +47,10 @@ type ChangeSpec = {
     change?: string;
     rawFields: ChangeFieldRaw[];
 };
+
+export interface ResourceGroup extends SourceControlResourceGroup {
+    model: Model;
+}
 
 export class Model implements Disposable {
     private _disposables: Disposable[] = [];
@@ -65,13 +73,12 @@ export class Model implements Disposable {
         }
     }
 
-    public _sourceControl: SourceControl;
     private _infos = new Map<string, string>();
 
-    private _defaultGroup: SourceControlResourceGroup;
+    private _defaultGroup?: ResourceGroup;
     private _pendingGroups = new Map<
         number,
-        { description: string; group: SourceControlResourceGroup }
+        { description: string; group: ResourceGroup }
     >();
 
     private _refresh: DebouncedFunction<any[], Promise<void>>;
@@ -84,8 +91,8 @@ export class Model implements Disposable {
         return this._infos.get("Client name") ?? this._config.p4Client;
     }
 
-    public get ResourceGroups(): SourceControlResourceGroup[] {
-        const result: SourceControlResourceGroup[] = [];
+    public get ResourceGroups(): ResourceGroup[] {
+        const result: ResourceGroup[] = [];
 
         if (this._defaultGroup) {
             result.push(this._defaultGroup);
@@ -110,9 +117,10 @@ export class Model implements Disposable {
         private _config: IPerforceConfig,
         private _workspaceUri: Uri,
         private _workspaceConfig: WorkspaceConfigAccessor,
-        private _compatibilityMode: string
+        private _compatibilityMode: string,
+        public _sourceControl: SourceControl
     ) {
-        this._refresh = debounce(
+        this._refresh = debounce<(boolean | undefined)[], Promise<void>>(
             this.RefreshImpl.bind(this),
             _workspaceConfig.refreshDebounceTime
         );
@@ -182,12 +190,15 @@ export class Model implements Disposable {
 
     public async Info(): Promise<void> {
         const resource = this._sourceControl.rootUri;
-        Display.channel.show();
-        await PerforceService.executeAsPromise(
-            resource,
-            "info",
-            PerforceService.handleInfoServiceResponse.bind(this)
-        );
+        if (resource) {
+            Display.channel.show();
+            try {
+                const output = await PerforceService.executeAsPromise(resource, "info");
+                Display.channel.append(output);
+            } catch (err) {
+                Display.showError(err.toString());
+            }
+        }
     }
 
     private parseRawField(value: string) {
@@ -221,7 +232,7 @@ export class Model implements Disposable {
             });
         return {
             change: this.getBasicField(rawFields, "Change")?.[0],
-            description: this.getBasicField(rawFields, "Description").join("\n"),
+            description: this.getBasicField(rawFields, "Description")?.join("\n"),
             files: this.getBasicField(rawFields, "Files")?.map(file => {
                 const endOfFileStr = file.indexOf("#");
                 return {
@@ -233,13 +244,15 @@ export class Model implements Disposable {
         };
     }
 
-    private async getChangelistFileInfo(fileList: ChangeSpecFile[]): Promise<{}[]> {
+    private async getChangelistFileInfo(
+        fileList: ChangeSpecFile[]
+    ): Promise<(FstatInfo | undefined)[]> {
         const depotFiles = fileList.map(f => f.depotPath);
         return await this.getFstatInfoForFiles(depotFiles);
     }
 
-    private isInWorkspace(clientFile: string) {
-        return clientFile && !!workspace.getWorkspaceFolder(Uri.file(clientFile));
+    private isInWorkspace(clientFile?: string): boolean {
+        return !!clientFile && !!workspace.getWorkspaceFolder(Uri.file(clientFile));
     }
 
     private getDefinedFields(spec: ChangeSpec): ChangeFieldRaw[] {
@@ -262,9 +275,11 @@ export class Model implements Disposable {
         return outFields;
     }
 
-    private async inputChangeSpec(spec: ChangeSpec): Promise<string | undefined> {
+    private async inputChangeSpec(spec: ChangeSpec): Promise<string> {
         const outFields = this.getDefinedFields(spec).concat(
-            spec.rawFields.filter(field => !spec[field.name.toLowerCase()])
+            spec.rawFields.filter(
+                field => !spec[field.name.toLowerCase() as keyof ChangeSpec]
+            )
         );
 
         const newSpec = outFields
@@ -296,14 +311,14 @@ export class Model implements Disposable {
     public async SaveToChangelist(
         descStr: string,
         existingChangelist?: string
-    ): Promise<string> {
+    ): Promise<string | undefined> {
         if (!descStr) {
             descStr = "<saved by VSCode>";
         }
 
         const changeFields = await this.getChangeSpec(existingChangelist);
 
-        if (this._workspaceConfig.hideNonWorkspaceFiles) {
+        if (this._workspaceConfig.hideNonWorkspaceFiles && changeFields.files) {
             const infos = await this.getChangelistFileInfo(changeFields.files);
 
             changeFields.files = changeFields.files.filter((file, i) =>
@@ -312,7 +327,7 @@ export class Model implements Disposable {
         }
         changeFields.description = descStr;
 
-        let newChangelistNumber: string;
+        let newChangelistNumber: string | undefined;
         try {
             const createdStr = await this.inputChangeSpec(changeFields);
 
@@ -463,7 +478,10 @@ export class Model implements Disposable {
         if (pick === "Submit") {
             if (this._workspaceConfig.hideNonWorkspaceFiles) {
                 const changeListNr = await this.SaveToChangelist(descStr);
-                this.Submit(parseInt(changeListNr, 10));
+
+                if (changeListNr !== undefined) {
+                    this.Submit(parseInt(changeListNr, 10));
+                }
             } else {
                 this.Submit(descStr);
             }
@@ -764,7 +782,11 @@ export class Model implements Disposable {
         }
 
         const items = [];
-        items.push({ id: "default", label: this._defaultGroup.label, description: "" });
+        items.push({
+            id: "default",
+            label: this._defaultGroup?.label ?? "Default Changelist",
+            description: ""
+        });
         items.push({ id: "new", label: "New Changelist...", description: "" });
         this._pendingGroups.forEach((value, key) => {
             items.push({
@@ -811,7 +833,7 @@ export class Model implements Disposable {
     private clean() {
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
-            this._defaultGroup = null;
+            this._defaultGroup = undefined;
         }
 
         this._pendingGroups.forEach(value => value.group.dispose());
@@ -824,7 +846,7 @@ export class Model implements Disposable {
         const trailingSlash = /^(.*)(\/)$/;
         const config = this._config;
         let pathToSync = null;
-        let p4Dir = config.p4Dir ? config.p4Dir : this._workspaceConfig.dir;
+        let p4Dir = config.p4Dir ? config.p4Dir : this._workspaceConfig.pwdOverride;
         if (p4Dir && p4Dir !== "none") {
             p4Dir = Utils.normalize(p4Dir);
             if (!trailingSlash.exec(p4Dir)) {
@@ -869,7 +891,7 @@ export class Model implements Disposable {
         this._onDidChange.fire();
     }
 
-    private getResourceForOpenFile(fstatInfo: {}): Resource | undefined {
+    private getResourceForOpenFile(fstatInfo: FstatInfo): Resource | undefined {
         const clientFile = fstatInfo["clientFile"];
         const change = fstatInfo["change"];
         const action = fstatInfo["action"];
@@ -899,29 +921,33 @@ export class Model implements Disposable {
         return resource;
     }
 
-    private createResourceGroups(
-        changelists: ChangeInfo[],
-        resources: (Resource | undefined)[]
-    ) {
+    private createResourceGroups(changelists: ChangeInfo[], resources: Resource[]) {
+        if (!this._sourceControl) {
+            throw new Error("Source control not initialised");
+        }
+        const sc = this._sourceControl;
+
         this.clean();
 
         this._defaultGroup = this._sourceControl.createResourceGroup(
             "default",
             "Default Changelist"
-        );
-        this._defaultGroup["model"] = this;
+        ) as ResourceGroup;
+        this._defaultGroup.model = this;
         this._defaultGroup.resourceStates = resources.filter(
-            resource => resource && resource.change === "default"
+            (resource): resource is Resource =>
+                !!resource && resource.change === "default"
         );
 
         const groups = changelists.map(c => {
-            const group = this._sourceControl.createResourceGroup(
+            const group = sc.createResourceGroup(
                 "pending:" + c.chnum,
                 "#" + c.chnum + ": " + c.description
-            );
+            ) as ResourceGroup;
             group["model"] = this;
             group.resourceStates = resources.filter(
-                resource => resource && resource.change === c.chnum.toString()
+                (resource): resource is Resource =>
+                    !!resource && resource.change === c.chnum.toString()
             );
             return group;
         });
@@ -952,7 +978,7 @@ export class Model implements Disposable {
         const changelists = this.filterIgnoredChangelists(
             changeNumbers
                 .map(c => this.parseChangelistDescription(c))
-                .filter(c => c !== undefined)
+                .filter((c): c is ChangeInfo => c !== undefined)
         );
 
         return changelists;
@@ -995,11 +1021,11 @@ export class Model implements Disposable {
         return this.getShelvedResources(allFileInfo);
     }
 
-    private getResourceForShelvedFile(file: ShelvedFileInfo, fstatInfo?: {}) {
+    private getResourceForShelvedFile(file: ShelvedFileInfo, fstatInfo?: FstatInfo) {
         const { path, action, chnum } = file;
 
-        let underlyingUri: Uri;
-        let fromFile: Uri;
+        let underlyingUri: Uri | undefined;
+        let fromFile: Uri | undefined;
         if (fstatInfo) {
             // not present if a file is shelved for add, and not in the filesystem
             underlyingUri = Uri.file(fstatInfo["clientFile"]);
@@ -1036,13 +1062,14 @@ export class Model implements Disposable {
             "-Or"
         );
         return fstatInfo
-            .filter(info => !!info) // in case fstat doesn't have output for this file
-            .map(info => this.getResourceForOpenFile(info));
+            .filter((info): info is FstatInfo => !!info) // in case fstat doesn't have output for this file
+            .map(info => this.getResourceForOpenFile(info))
+            .filter((resource): resource is Resource => resource !== undefined); // for files out of workspace
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
         const resource = Uri.file(this._config.localDir);
-        let opened = [];
+        let opened: string[] = [];
         try {
             const output = await Utils.getSimpleOutput(resource, "opened");
             opened = output.trim().split("\n");
@@ -1051,11 +1078,11 @@ export class Model implements Disposable {
             //console.log("ERROR: " + err);
         }
 
-        const files = [];
+        const files: string[] = [];
         opened.forEach(open => {
-            const matches = open.match(
+            const matches = new RegExp(
                 /(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\(([\w\+]+)\)/
-            );
+            ).exec(open);
             if (matches) {
                 files.push(matches[1]);
             }
@@ -1078,7 +1105,7 @@ export class Model implements Disposable {
             return [];
         }
 
-        const files = [];
+        const files: ShelvedFileInfo[] = [];
         let curCh: number = 0;
         shelved.forEach(open => {
             const chMatch = new RegExp(/^Change (\d+) by/).exec(open);
@@ -1110,7 +1137,7 @@ export class Model implements Disposable {
     private async getFstatInfoForFiles(
         files: string[],
         additionalParams?: string
-    ): Promise<{}[]> {
+    ): Promise<(FstatInfo | undefined)[]> {
         const promises = this.splitArray(
             files,
             this._workspaceConfig.maxFilePerCommand
@@ -1124,7 +1151,7 @@ export class Model implements Disposable {
     private async getFstatInfoForChunk(
         files: string[],
         additionalParams?: string
-    ): Promise<{}[]> {
+    ): Promise<(FstatInfo | undefined)[]> {
         const resource = Uri.file(this._config.localDir);
 
         if (additionalParams === undefined) {
@@ -1144,7 +1171,7 @@ export class Model implements Disposable {
         const fstatFiles = fstatOutput.trim().split(/\n\r?\n/);
         const all = fstatFiles.map(file => {
             const lines = file.split("\n");
-            const lineMap = {};
+            const lineMap: FstatInfo = {};
             lines.forEach(line => {
                 // ... Key Value
                 const matches = new RegExp(/[.]{3} (\w+)[ ]*(.+)?/).exec(line);

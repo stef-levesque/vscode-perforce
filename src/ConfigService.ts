@@ -18,19 +18,19 @@ export class ConfigAccessor {
     }
 
     public get hideNonWorkspaceFiles(): boolean {
-        return this.getConfigItem("hideNonWorkspaceFiles");
+        return this.getConfigItem("hideNonWorkspaceFiles") ?? false;
     }
 
     public get hideShelvedFiles(): boolean {
-        return this.getConfigItem("hideShelvedFiles");
+        return this.getConfigItem("hideShelvedFiles") ?? false;
     }
 
     public get maxFilePerCommand(): number {
-        return this.getConfigItem("maxFilePerCommand");
+        return this.getConfigItem("maxFilePerCommand") ?? 32;
     }
 
     public get countBadge(): string {
-        return this.getConfigItem<string>("countBadge");
+        return this.getConfigItem<string>("countBadge") ?? "all-but-shelved";
     }
 
     public get refreshDebounceTime(): number {
@@ -47,7 +47,7 @@ export class WorkspaceConfigAccessor extends ConfigAccessor {
         return workspace.getConfiguration("perforce", this._workspaceUri).get<T>(item);
     }
 
-    public get dir(): string {
+    public get pwdOverride(): string | undefined {
         return this.getWorkspaceConfigItem("dir");
     }
 }

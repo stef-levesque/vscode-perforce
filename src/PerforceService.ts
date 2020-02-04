@@ -46,12 +46,12 @@ export function matchConfig(config: IPerforceConfig, uri: Uri): boolean {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace PerforceService {
     const limiter: CommandLimiter = new CommandLimiter(
-        workspace.getConfiguration("perforce").get<number>("bottleneck.maxConcurrent")
+        workspace.getConfiguration("perforce").get<number>("bottleneck.maxConcurrent") ??
+            10
     );
 
-    const debugModeActive: boolean = workspace
-        .getConfiguration("perforce")
-        .get("debugModeActive");
+    const debugModeActive: boolean =
+        workspace.getConfiguration("perforce").get("debugModeActive") ?? false;
 
     let debugModeSetup = false;
 
@@ -63,7 +63,7 @@ export namespace PerforceService {
     export function removeConfig(workspacePath: string): void {
         delete _configs[workspacePath];
     }
-    export function getConfig(workspacePath): IPerforceConfig {
+    export function getConfig(workspacePath: string): IPerforceConfig {
         return _configs[workspacePath];
     }
     export function convertToRel(path: string): string {
@@ -103,7 +103,7 @@ export namespace PerforceService {
             .get("password", "none");
         const p4Dir = workspace.getConfiguration("perforce", resource).get("dir", "none");
 
-        const buildCmd = (value, arg): string => {
+        const buildCmd = (value: string | number | undefined, arg: string): string => {
             if (!value || value === "none") {
                 return "";
             }
@@ -154,9 +154,9 @@ export namespace PerforceService {
     export function execute(
         resource: Uri,
         command: string,
-        responseCallback: (err: Error, stdout: string, stderr: string) => void,
+        responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         args?: string,
-        directoryOverride?: string,
+        directoryOverride?: string | null,
         input?: string
     ): void {
         if (debugModeActive && !debugModeSetup) {
@@ -210,9 +210,9 @@ export namespace PerforceService {
     function execCommand(
         resource: Uri,
         command: string,
-        responseCallback: (err: Error, stdout: string, stderr: string) => void,
+        responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         args?: string,
-        directoryOverride?: string,
+        directoryOverride?: string | null,
         input?: string
     ): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
@@ -241,24 +241,15 @@ export namespace PerforceService {
         const child = CP.exec(cmdLine, cmdArgs, responseCallback);
 
         if (input != null) {
+            if (!child.stdin) {
+                throw new Error("Child does not have standard input");
+            }
             child.stdin.end(input, "utf8");
         }
     }
 
-    export function handleInfoServiceResponse(
-        err: Error,
-        stdout: string,
-        stderr: string
-    ) {
-        if (err) {
-            Display.showError(stderr.toString());
-        } else {
-            Display.channel.append(stdout.toString());
-        }
-    }
-
     export function handleCommonServiceResponse(
-        err: Error,
+        err: Error | null,
         stdout: string,
         stderr: string
     ) {

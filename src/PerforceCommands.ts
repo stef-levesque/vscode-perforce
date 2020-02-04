@@ -152,10 +152,9 @@ export namespace PerforceCommands {
 
         //If folder not opened, overrided p4 directory
         const fileUri = editor.document.uri;
-        let directoryOverride: string;
-        if (!checkFolderOpened()) {
-            directoryOverride = Path.dirname(fileUri.fsPath);
-        }
+        const directoryOverride = !checkFolderOpened()
+            ? Path.dirname(fileUri.fsPath)
+            : undefined;
 
         const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
         PerforceService.execute(

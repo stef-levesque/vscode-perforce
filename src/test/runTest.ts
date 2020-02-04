@@ -2,6 +2,9 @@ import * as path from "path";
 
 import { runTests } from "vscode-test";
 
+type Env = { [key: string]: string };
+type Params = { [key: string]: string | boolean };
+
 async function main() {
     try {
         // The folder containing the Extension Manifest package.json
@@ -14,16 +17,16 @@ async function main() {
 
         const testWorkspace = path.resolve(__dirname, "../../test-fixtures/core/");
 
-        const params = process.argv.slice(2).reduce((all, cur) => {
+        const params: Params = process.argv.slice(2).reduce((all, cur) => {
             const [name, val] = cur.split("=");
             const finalVal = val ? val : true;
             all[name] = finalVal;
             return all;
-        }, {});
+        }, {} as Params);
 
-        const env = {};
+        const env: Env = {};
         if (params["--display"]) {
-            env["DISPLAY"] = params["--display"];
+            env["DISPLAY"] = params["--display"] as string;
             console.log(
                 "\nRUNNING WITH DISPLAY: " +
                     params["--display"] +

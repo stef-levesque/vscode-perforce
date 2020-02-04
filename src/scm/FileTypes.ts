@@ -31,7 +31,7 @@ export interface IFileType {
     storeRevCount?: number; // only if Modifiers.STOREREV_COUNT or Modifiers.STOREREV_ONLY_HEAD
 }
 
-export function GetFileType(headType: string): IFileType {
+export function GetFileType(headType?: string): IFileType {
     const result: IFileType = { base: FileType.UNKNOWN, modifiers: Modifiers.NONE };
 
     if (!headType || headType.length === 0) {

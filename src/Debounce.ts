@@ -1,10 +1,10 @@
 class DebouncedCall<P extends any[], T> {
     private _expires: number;
     private _expired: boolean;
-    private _promise: Promise<T>;
-    private _timer: NodeJS.Timeout;
-    res: (val: T) => void;
-    rej: (err: any) => void;
+    private _promise?: Promise<T>;
+    private _timer?: NodeJS.Timeout;
+    res?: (val: T) => void;
+    rej?: (err: any) => void;
 
     public constructor(
         private _func: (...rest: P) => T,
@@ -44,9 +44,9 @@ class DebouncedCall<P extends any[], T> {
         this._timer = setTimeout(() => {
             try {
                 const ret = this._func(...args);
-                this.res(ret);
+                this.res?.(ret);
             } catch (err) {
-                this.rej(err);
+                this.rej?.(err);
             }
             this._expired = true;
         }, this._expires - Date.now());
@@ -106,7 +106,7 @@ export function debounce<P extends any[], T>(
     func: (...rest: P) => T,
     time: number
 ): DebouncedFunction<P, T> {
-    let lastDebounced: DebouncedCall<P, T>;
+    let lastDebounced: DebouncedCall<P, T> | undefined;
 
     const ret = (...args: P): Promise<T> => {
         const now = Date.now();
