@@ -216,6 +216,14 @@ export class PerforceSCMProvider {
             "perforce.reopenFile",
             PerforceSCMProvider.ReopenFile.bind(this)
         );
+        commands.registerCommand(
+            "perforce.fixJob",
+            PerforceSCMProvider.FixJob.bind(this)
+        );
+        commands.registerCommand(
+            "perforce.unfixJob",
+            PerforceSCMProvider.UnfixJob.bind(this)
+        );
     }
 
     private onDidModelChange(): void {
@@ -440,6 +448,20 @@ export class PerforceSCMProvider {
         }
 
         await resources[0].model.ReopenFile(resources);
+    }
+
+    public static async FixJob(input: ResourceGroup) {
+        const model: Model = input.model;
+        if (model) {
+            await model.FixJob(input);
+        }
+    }
+
+    public static async UnfixJob(input: ResourceGroup) {
+        const model: Model = input.model;
+        if (model) {
+            await model.UnfixJob(input);
+        }
     }
 
     provideOriginalResource(uri: Uri): ProviderResult<Uri> {

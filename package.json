@@ -399,6 +399,16 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.fixJob",
+                "title": "Attach job...",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.unfixJob",
+                "title": "Remove job...",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.describe",
                 "title": "Describe changelist",
                 "category": "Perforce"
@@ -537,9 +547,19 @@
                     "group": "2_shelving@4"
                 },
                 {
+                    "command": "perforce.fixJob",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "3_job@1"
+                },
+                {
+                    "command": "perforce.unfixJob",
+                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "group": "3_job@1"
+                },
+                {
                     "command": "perforce.describe",
                     "when": "scmProvider == perforce",
-                    "group": "3_info"
+                    "group": "4_info"
                 }
             ],
             "scm/resourceState/context": [

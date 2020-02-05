@@ -42,6 +42,7 @@ interface TestItems {
         void
     >;
     showMessage: sinon.SinonSpy<[string], void>;
+    showModalMessage: sinon.SinonSpy<[string], void>;
     showError: sinon.SinonSpy<[string], void>;
     showImportantError: sinon.SinonSpy<[string], void>;
     refresh: sinon.SinonSpy;
@@ -885,6 +886,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             await instance.Initialize();
 
             const showImportantError = sinon.spy(Display, "showImportantError");
+            const showModalMessage = sinon.stub(Display, "showModalMessage"); // stub because modal gets in the way
 
             const refresh = sinon.spy();
 
@@ -893,6 +895,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 instance,
                 execute,
                 showMessage,
+                showModalMessage,
                 showError,
                 showImportantError,
                 refresh
@@ -1715,6 +1718,120 @@ describe("Model & ScmProvider modules (integration)", () => {
                     sinon.match.any,
                     "reopen"
                 );
+            });
+        });
+        describe("Fix a Job", () => {
+            it("Fixes a perforce job", async () => {
+                sinon.stub(vscode.window, "showInputBox").resolves("job00001");
+                await PerforceSCMProvider.FixJob(items.instance.resources[1]);
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "fix",
+                    sinon.match.any,
+                    "-c 1 job00001"
+                );
+
+                expect(items.showMessage).to.have.been.calledWithMatch(
+                    "Job job00001 added"
+                );
+            });
+            it("Cannot fix with the default changelist", async () => {
+                await expect(
+                    PerforceSCMProvider.FixJob(items.instance.resources[0])
+                ).to.eventually.be.rejectedWith(
+                    "The default changelist cannot fix a job"
+                );
+            });
+            it("Can be cancelled by not entering a job", async () => {
+                sinon.stub(vscode.window, "showInputBox").resolves(undefined);
+                await PerforceSCMProvider.FixJob(items.instance.resources[1]);
+
+                expect(items.execute).not.to.have.been.calledWith(sinon.match.any, "fix");
+            });
+            it("Can handle an error fixing a perforce job", async () => {
+                sinon.stub(vscode.window, "showInputBox").resolves("job00001");
+                items.stubService.setResponse("fix", returnStdErr("My fix error"));
+
+                await PerforceSCMProvider.FixJob(items.instance.resources[1]);
+
+                expect(items.showImportantError).to.have.been.calledWith("My fix error");
+            });
+        });
+        describe("Unfix a Job", () => {
+            it("Displays a list of fixed jobs to unfix", async () => {
+                items.stubService.changelists[0].jobs = [
+                    { name: "job00001", description: ["a job"] },
+                    {
+                        name: "job00002",
+                        description: ["a second job", "with multiple lines", "to show"]
+                    }
+                ];
+
+                const quickPick = sinon
+                    .stub(vscode.window, "showQuickPick")
+                    .resolves(undefined);
+
+                await PerforceSCMProvider.UnfixJob(items.instance.resources[1]);
+
+                const itemArg = quickPick.lastCall.args[0] as vscode.QuickPickItem[];
+                expect(itemArg).to.have.lengthOf(2);
+                expect(itemArg[0]).to.include({
+                    label: "job00001",
+                    description: "a job"
+                });
+                expect(itemArg[1]).to.include({
+                    label: "job00002",
+                    description: "a second job",
+                    detail: "with multiple lines to show"
+                });
+
+                expect(items.execute).not.to.have.been.calledWith(sinon.match.any, "fix");
+            });
+            it("Unfixes a perforce job", async () => {
+                items.stubService.changelists[0].jobs = [
+                    { name: "job00001", description: ["a job"] }
+                ];
+                sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
+                    return Promise.resolve((items as vscode.QuickPickItem[])[0]);
+                });
+                await PerforceSCMProvider.UnfixJob(items.instance.resources[1]);
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "fix",
+                    sinon.match.any,
+                    "-c 1 -d job00001"
+                );
+                expect(items.showMessage).to.have.been.calledWithMatch(
+                    "Job job00001 removed"
+                );
+            });
+            it("Displays a message when there are no jobs to unfix", async () => {
+                await PerforceSCMProvider.UnfixJob(items.instance.resources[2]);
+                expect(items.showModalMessage).to.have.been.calledWith(
+                    "Changelist 2 does not have any jobs attached"
+                );
+            });
+            it("Cannot unfix with the default changelist", async () => {
+                await expect(
+                    PerforceSCMProvider.UnfixJob(items.instance.resources[0])
+                ).to.eventually.be.rejectedWith(
+                    "The default changelist cannot fix a job"
+                );
+            });
+            it("Can handle an error unfixing a perforce job", async () => {
+                items.stubService.changelists[0].jobs = [
+                    { name: "job00001", description: ["a job"] }
+                ];
+                sinon.stub(vscode.window, "showQuickPick").callsFake(items => {
+                    return Promise.resolve((items as vscode.QuickPickItem[])[0]);
+                });
+                items.stubService.setResponse("fix", returnStdErr("My fix error"));
+
+                await PerforceSCMProvider.UnfixJob(items.instance.resources[1]);
+
+                expect(items.showImportantError).to.have.been.calledWith("My fix error");
             });
         });
     });

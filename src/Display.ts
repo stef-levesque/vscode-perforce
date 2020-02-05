@@ -75,6 +75,10 @@ export namespace Display {
         channel.append(message);
     }
 
+    export function showModalMessage(message: string) {
+        window.showInformationMessage(message, { modal: true });
+    }
+
     export function showError(error: string) {
         window.setStatusBarMessage("Perforce: " + error, 3000);
         channel.appendLine(`ERROR: ${JSON.stringify(error)}`);

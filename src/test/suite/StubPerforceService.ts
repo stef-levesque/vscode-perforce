@@ -15,6 +15,7 @@ type PerforceCommand =
     | "describe"
     | "open"
     | "reopen"
+    | "fix"
     | "shelve"
     | "unshelve"
     | "revert"
@@ -57,6 +58,11 @@ const changelistHeader =
 #               (New changelists only.)\n\
 ";
 
+interface StubJob {
+    name: string;
+    description: string[];
+}
+
 interface StubChangelist {
     chnum: string;
     description: string;
@@ -64,6 +70,7 @@ interface StubChangelist {
     files: StubFile[];
     shelvedFiles?: StubFile[];
     behaviours?: StubChangelistBehaviours;
+    jobs?: StubJob[];
 }
 
 export interface StubFile {
@@ -293,7 +300,11 @@ export const makeResponses = (
                   if (!args) {
                       return stderr("No arguments supplied to describe");
                   }
-                  const [, ...chnums] = args.split(" ");
+                  const chnums = args.split(" ");
+                  let opts = "";
+                  if (chnums[0]?.startsWith("-")) {
+                      opts = chnums.splice(0, 1)[0];
+                  }
                   const allStds = chnums.map(chnum => {
                       const c = service.changelists.find(c => c.chnum === chnum);
                       if (c && c.behaviours?.describe) {
@@ -308,10 +319,26 @@ export const makeResponses = (
                               "\n\n" +
                               "       " +
                               c.description +
-                              "\n\n" +
-                              (c.submitted
+                              "\n\n";
+
+                          if (c.jobs) {
+                              ret += "Jobs fixed ...\n\n";
+                              ret += c.jobs
+                                  .map(
+                                      job =>
+                                          job.name +
+                                          " on 2020/02/02 by user *closed*\n\n" +
+                                          "\t" +
+                                          job.description.join("\n\t") +
+                                          "\n\n"
+                                  )
+                                  .join("");
+                          }
+
+                          ret +=
+                              c.submitted || opts !== "-Ss"
                                   ? "Affected files ...\n"
-                                  : "Shelved files ...\n\n");
+                                  : "Shelved files ...\n\n";
 
                           if (c.shelvedFiles) {
                               ret += c.shelvedFiles
@@ -362,7 +389,8 @@ export const makeResponses = (
                   });
                   return [stdout.join("\n\n"), sterr.join("\n\n")];
               },
-              print: returnStdOut("print not implemented")
+              print: returnStdOut("print not implemented"),
+              fix: returnStdOut("fix not implemented")
           };
     if (responses) {
         Object.keys(responses).forEach(key => {

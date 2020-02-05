@@ -749,6 +749,101 @@ export class Model implements Disposable {
         }
     }
 
+    private async requestJobId(chnum: string) {
+        const re = new RegExp(/^[a-z0-9]+$/i);
+        return await window.showInputBox({
+            prompt: "Enter the job to be fixed by changelist " + chnum,
+            placeHolder: "jobNNNNN",
+            validateInput: val => {
+                if (val.trim() === "") {
+                    return "Enter a job name";
+                }
+                if (!re.exec(val)) {
+                    return "Job names can only contain letters and numbers";
+                }
+            }
+        });
+    }
+
+    public async FixJob(input: ResourceGroup) {
+        const id = input.id;
+        const chnum = id.substr(id.indexOf(":") + 1);
+        if (chnum === "default") {
+            throw new Error("The default changelist cannot fix a job");
+        }
+
+        const jobId = await this.requestJobId(chnum);
+        if (jobId === undefined) {
+            return;
+        }
+
+        const command = "fix";
+        const args = "-c " + chnum + " " + jobId;
+
+        try {
+            await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            this.Refresh();
+            Display.showMessage("Job " + jobId + " added");
+        } catch (err) {
+            Display.showImportantError(err.toString());
+        }
+    }
+
+    private async pickJobFromChangelist(chnum: string) {
+        const allJobs = await this.getFixedJobs(chnum);
+
+        const items = allJobs.map(
+            (job): vscode.QuickPickItem => {
+                return {
+                    description: job.description[0],
+                    label: job.id,
+                    detail: job.description.slice(1).join(" ")
+                };
+            }
+        );
+
+        if (items.length === 0) {
+            Display.showModalMessage(
+                "Changelist " + chnum + " does not have any jobs attached"
+            );
+            return;
+        }
+
+        const job = await window.showQuickPick(items, {
+            placeHolder: "Select a job to remove",
+            matchOnDescription: true,
+            matchOnDetail: true
+        });
+
+        return job;
+    }
+
+    public async UnfixJob(input: ResourceGroup) {
+        const id = input.id;
+        const chnum = id.substr(id.indexOf(":") + 1);
+        if (chnum === "default") {
+            throw new Error("The default changelist cannot fix a job");
+        }
+
+        const job = await this.pickJobFromChangelist(chnum);
+
+        if (job === undefined) {
+            return;
+        }
+
+        const jobId = job.label;
+        const command = "fix";
+        const args = "-c " + chnum + " -d " + jobId;
+
+        try {
+            await Utils.runCommand(this._workspaceUri, command, null, null, args);
+            this.Refresh();
+            Display.showMessage("Job " + jobId + " removed");
+        } catch (err) {
+            Display.showImportantError(err.toString());
+        }
+    }
+
     private async requestChangelistDescription() {
         const newText = await window.showInputBox({
             prompt: "Enter the new changelist's description",
@@ -1089,6 +1184,46 @@ export class Model implements Disposable {
         });
 
         return files;
+    }
+
+    private async getFixedJobs(chnum: string) {
+        const resource = Uri.file(this._config.localDir);
+        const output = await Utils.getSimpleOutput(resource, "describe -s " + chnum);
+
+        type FixedJob = { id: string; description: string[] };
+
+        const allLines = output.trim().split("\n");
+        const startIndex = allLines.findIndex(line => line.startsWith("Jobs fixed ..."));
+        if (startIndex >= 0) {
+            const endIndex = allLines.findIndex(
+                line => !line.startsWith("\t") && line.includes("files ...")
+            );
+            const subLines =
+                endIndex > 0
+                    ? allLines.slice(startIndex + 1, endIndex)
+                    : allLines.slice(startIndex + 1);
+
+            let curJob: FixedJob;
+            const allJobs: FixedJob[] = [];
+            subLines.forEach(line => {
+                line = line.replace(/\r/g, "");
+                if (!line.startsWith("\t")) {
+                    const matches = new RegExp(/^(.*?) on/).exec(line);
+                    if (matches) {
+                        curJob = { id: matches[1], description: [] };
+                        if (curJob) {
+                            allJobs.push(curJob);
+                        }
+                    }
+                } else if (curJob) {
+                    curJob.description.push(line.slice(1));
+                }
+            });
+
+            return allJobs;
+        }
+
+        return [];
     }
 
     private async getDepotShelvedFilePaths(chnums: number[]): Promise<ShelvedFileInfo[]> {
