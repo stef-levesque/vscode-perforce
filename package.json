@@ -399,6 +399,11 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.deleteShelvedFile",
+                "title": "Delete shelved file",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.fixJob",
                 "title": "Attach job...",
                 "category": "Perforce"
@@ -611,7 +616,12 @@
                 {
                     "command": "perforce.shelveunshelve",
                     "when": "scmProvider == perforce && scmResourceGroup != default",
-                    "group": "1_modification@4"
+                    "group": "2_shelve@1"
+                },
+                {
+                    "command": "perforce.deleteShelvedFile",
+                    "when": "scmProvider == perforce",
+                    "group": "2_shelve@2"
                 }
             ]
         },

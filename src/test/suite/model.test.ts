@@ -1127,6 +1127,113 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
         });
 
+        describe("Deleting a shelved file", () => {
+            it("Prompts the user for confirmation", async () => {
+                const prompt = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolves(undefined);
+
+                const resource = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveDelete
+                );
+
+                await PerforceSCMProvider.DeleteShelvedFile(resource as Resource);
+
+                expect(prompt).to.be.calledOnce;
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "shelve"
+                );
+            });
+            it("Deletes the shelved file", async () => {
+                sinon.stub(vscode.window, "showWarningMessage").resolvesArg(2);
+
+                const resource = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveDelete
+                );
+
+                await PerforceSCMProvider.DeleteShelvedFile(resource as Resource);
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "shelve",
+                    sinon.match.any,
+                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                );
+            });
+            it("Can delete multiple shelved files", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                const resource1 = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveDelete
+                );
+                const resource2 = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveEdit
+                );
+
+                await PerforceSCMProvider.DeleteShelvedFile(
+                    resource1 as Resource,
+                    resource2
+                );
+
+                expect(warn).to.have.been.calledTwice;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "shelve",
+                    sinon.match.any,
+                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                );
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "shelve",
+                    sinon.match.any,
+                    '-d -c 1 "' + basicFiles.shelveEdit.depotPath + '"'
+                );
+            });
+            it("Cannot be used on normal files", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                const resource1 = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveDelete
+                );
+                const resource2 = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.add
+                );
+
+                await PerforceSCMProvider.DeleteShelvedFile(
+                    resource1 as Resource,
+                    resource2
+                );
+
+                expect(warn).to.have.been.calledOnce;
+                expect(items.showImportantError).to.have.been.calledWith(
+                    "Shelve cannot be used on normal file: new.txt"
+                );
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "shelve",
+                    sinon.match.any,
+                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                );
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "shelve",
+                    sinon.match.any,
+                    "new.txt"
+                );
+            });
+        });
+
         describe("Opening", () => {
             /**
              * Matches against a perforce URI, containing a local file's path
@@ -1832,6 +1939,244 @@ describe("Model & ScmProvider modules (integration)", () => {
                 await PerforceSCMProvider.UnfixJob(items.instance.resources[1]);
 
                 expect(items.showImportantError).to.have.been.calledWith("My fix error");
+            });
+        });
+        describe("Revert file", () => {
+            it("Prompts the user for confirmation", async () => {
+                const prompt = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolves(undefined);
+
+                const resource = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.edit
+                );
+
+                await PerforceSCMProvider.Revert(resource as Resource);
+
+                expect(prompt).to.be.calledOnce;
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "revert"
+                );
+            });
+            it("Reverts an open file", async () => {
+                sinon.stub(vscode.window, "showWarningMessage").resolvesArg(2);
+
+                const resource = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.edit
+                );
+
+                await PerforceSCMProvider.Revert(resource as Resource);
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    '"' + basicFiles.edit.localFile.fsPath + '"'
+                );
+            });
+            it("Can revert multiple files", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                const resource1 = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.add
+                );
+
+                const resource2 = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.delete
+                );
+
+                await PerforceSCMProvider.Revert(resource1 as Resource, resource2);
+
+                expect(warn).to.have.been.calledTwice;
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    '"' + basicFiles.add.localFile.fsPath + '"'
+                );
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    '"' + basicFiles.delete.localFile.fsPath + '"'
+                );
+            });
+            it("Cannot revert a shelved file", async () => {
+                sinon.stub(vscode.window, "showWarningMessage").resolvesArg(2);
+
+                const resource1 = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.moveAdd
+                );
+
+                const resource2 = findResourceForShelvedFile(
+                    items.instance.resources[1],
+                    basicFiles.shelveEdit
+                );
+
+                await PerforceSCMProvider.Revert(resource1 as Resource, resource2);
+
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    '"' + basicFiles.moveAdd.localFile.fsPath + '"'
+                );
+
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    "a.txt"
+                );
+
+                expect(items.showImportantError).to.have.been.calledWith(
+                    "Revert cannot be used on shelved file: a.txt"
+                );
+            });
+            it("Can revert if unchanged", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                const resource = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.edit
+                );
+
+                await PerforceSCMProvider.RevertUnchanged(resource as Resource);
+
+                expect(warn).not.to.have.been.called;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    '-a  "' + basicFiles.edit.localFile.fsPath + '"'
+                );
+            });
+        });
+        describe("Revert changelist", () => {
+            it("Prompts the user for confirmation", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolves(undefined);
+
+                await PerforceSCMProvider.Revert(items.instance.resources[1]);
+
+                expect(warn).to.have.been.calledOnce;
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "revert"
+                );
+            });
+            it("Reverts a changelist and deletes it", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                await PerforceSCMProvider.Revert(items.instance.resources[2]);
+
+                expect(warn).to.have.been.calledOnce;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    "-c 2"
+                );
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "change",
+                    sinon.match.any,
+                    "-d 2"
+                );
+            });
+            it("Can revert the default changelist and does not attempt to delete it", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                await PerforceSCMProvider.Revert(items.instance.resources[0]);
+
+                expect(warn).to.have.been.calledOnce;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    "-c default"
+                );
+
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "change",
+                    sinon.match.any,
+                    "-d"
+                );
+            });
+            it("Does not try to delete a changelist with shelved files", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                await PerforceSCMProvider.Revert(items.instance.resources[1]);
+
+                expect(warn).to.have.been.calledOnce;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    "-c 1"
+                );
+                expect(items.execute).not.to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "change",
+                    sinon.match.any,
+                    "-d"
+                );
+            });
+            it("Can revert if unchanged", async () => {
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                await PerforceSCMProvider.RevertUnchanged(items.instance.resources[2]);
+
+                expect(warn).not.to.have.been.called;
+                expect(items.execute).to.have.been.calledWithMatch(
+                    workspaceUri,
+                    "revert",
+                    sinon.match.any,
+                    "-a -c 2 //..."
+                );
+                expect(items.execute).to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "change",
+                    sinon.match.any,
+                    "-d 2"
+                );
+            });
+            it("Can handle an error reverting a changelist", async () => {
+                sinon.stub(vscode.window, "showWarningMessage").resolvesArg(2);
+
+                items.stubService.setResponse("revert", returnStdErr("My revert error"));
+
+                await PerforceSCMProvider.RevertUnchanged(items.instance.resources[2]);
+
+                expect(items.showError).to.have.been.calledWith("My revert error");
+                // it still tries to revert, even with an error - because the changelist may already be empty
+                expect(items.execute).to.have.been.calledWithMatch(
+                    sinon.match.any,
+                    "change",
+                    sinon.match.any,
+                    "-d 2"
+                );
             });
         });
     });
