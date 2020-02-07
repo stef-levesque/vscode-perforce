@@ -74,7 +74,7 @@ interface StubChangelist {
 }
 
 export interface StubFile {
-    localFile?: vscode.Uri; // may be undefined where shelved for add and no local file
+    localFile: vscode.Uri;
     depotPath: string;
     depotRevision: number;
     behaviours?: StubFileBehaviours;
@@ -375,9 +375,25 @@ export const makeResponses = (
                   if (!args) {
                       return stderr("No args supplied to fstat");
                   }
-                  const [, ...files] = args.split(" ");
+                  const opts: string[] = [];
+                  const files: string[] = [];
+                  let chnum: string | undefined;
+                  let doneOpts = false;
+                  args.split(" ").forEach((arg, i, arr) => {
+                      if (!doneOpts && arr[i - 1] && arr[i - 1] === "-e") {
+                          chnum = arg;
+                      } else if (!doneOpts && arg.startsWith("-")) {
+                          opts.push(arg);
+                      } else {
+                          doneOpts = true;
+                          files.push(arg);
+                      }
+                  });
+                  const shelved = args.includes("-Rs");
                   // remove quotes
-                  const fs = files.map(f => service.getFstatOutput(f.slice(1, -1)));
+                  const fs = files.map(f =>
+                      service.getFstatOutput(shelved, f.slice(1, -1), chnum)
+                  );
                   const stdout: string[] = [];
                   const sterr: string[] = [];
                   fs.forEach((text, i) => {
@@ -486,28 +502,27 @@ export class StubPerforceService {
         return this.changelists.find(c => c.chnum === chnum);
     }
 
-    getFstatOutput(depotPath: string): string | undefined {
-        const cl = this.changelists.find(
-            c =>
-                c.files.find(file => file.depotPath === depotPath) ||
-                c.shelvedFiles?.find(file => file.depotPath === depotPath)
+    getFstatOutput(
+        shelved: boolean,
+        depotPath: string,
+        chnum?: string
+    ): string | undefined {
+        const cl = this.changelists.find(c =>
+            chnum ? c.chnum === chnum : c.files.some(file => file.depotPath === depotPath)
         );
-        const pendingFile = cl?.files.find(file => file.depotPath === depotPath);
-        const shelvedFile = cl?.files.find(file => file.depotPath === depotPath);
+        const file = shelved
+            ? cl?.shelvedFiles?.find(file => file.depotPath === depotPath)
+            : cl?.files.find(file => file.depotPath === depotPath);
 
-        if (pendingFile || shelvedFile) {
+        if (file) {
             const props = {
                 depotFile: depotPath,
-                clientFile:
-                    pendingFile?.localFile?.fsPath ?? shelvedFile?.localFile?.fsPath,
+                clientFile: file.localFile.fsPath,
                 isMapped: true,
-                headType: pendingFile?.fileType ?? shelvedFile?.fileType ?? "text",
-                action: pendingFile
-                    ? getStatusText(pendingFile.operation ?? Status.EDIT)
-                    : false,
-                change: pendingFile ? cl?.chnum : false,
-                resolveFromFile0:
-                    pendingFile?.resolveFromDepotPath ?? shelvedFile?.resolveFromDepotPath
+                headType: file.fileType ?? "text",
+                action: getStatusText(file.operation ?? Status.EDIT),
+                change: cl?.chnum,
+                resolveFromFile0: file.resolveFromDepotPath
             };
             return Object.keys(props)
                 .filter(

@@ -25,11 +25,12 @@ function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
 }
 
 type FstatInfo = {
+    depotFile: string;
     [key: string]: string;
 };
 
 type ChangeInfo = { chnum: number; description: string };
-type ShelvedFileInfo = { chnum: number; action: string; path: string };
+type ShelvedChangeInfo = { chnum: number; paths: string[] };
 
 type ChangeFieldRaw = {
     name: string;
@@ -1164,38 +1165,39 @@ export class Model implements Disposable {
         return this.getShelvedResources(allFileInfo);
     }
 
-    private getResourceForShelvedFile(file: ShelvedFileInfo, fstatInfo?: FstatInfo) {
-        const { path, action, chnum } = file;
-
-        let underlyingUri: Uri | undefined;
-        let fromFile: Uri | undefined;
-        if (fstatInfo) {
-            // not present if a file is shelved for add, and not in the filesystem
-            underlyingUri = Uri.file(fstatInfo["clientFile"]);
-            fromFile = fstatInfo["resolveFromFile0"]
-                ? Uri.file(fstatInfo["resolveFromFile0"])
-                : undefined;
-        }
+    private getResourceForShelvedFile(chnum: string, fstatInfo: FstatInfo) {
+        const underlyingUri = Uri.file(fstatInfo["clientFile"]);
+        const fromFile = fstatInfo["resolveFromFile0"]
+            ? Uri.file(fstatInfo["resolveFromFile0"])
+            : undefined;
 
         const resource: Resource = new Resource(
             this,
-            Uri.file(path),
+            Uri.file(fstatInfo.depotFile),
             underlyingUri,
-            chnum.toString(),
+            chnum,
             true,
-            action,
+            fstatInfo["action"],
             fromFile
         );
         return resource;
     }
 
-    private async getShelvedResources(files: ShelvedFileInfo[]): Promise<Resource[]> {
-        const fstatInfo = await this.getFstatInfoForFiles(
-            files.map(f => f.path),
-            "-Or"
+    private async getShelvedResources(files: ShelvedChangeInfo[]): Promise<Resource[]> {
+        const proms = files.map(f =>
+            this.getFstatInfoForFiles(f.paths, "-Or -Rs -e " + f.chnum)
         );
+        const fstatInfo = await Promise.all(proms);
 
-        return fstatInfo.map((info, i) => this.getResourceForShelvedFile(files[i], info));
+        return fstatInfo.reduce((all, cur, i) => {
+            return all.concat(
+                cur
+                    .filter((f): f is FstatInfo => !!f)
+                    .map(f =>
+                        this.getResourceForShelvedFile(files[i].chnum.toString(), f)
+                    )
+            );
+        }, [] as Resource[]);
     }
 
     private async getDepotOpenedResources(): Promise<Resource[]> {
@@ -1274,7 +1276,9 @@ export class Model implements Disposable {
         return [];
     }
 
-    private async getDepotShelvedFilePaths(chnums: number[]): Promise<ShelvedFileInfo[]> {
+    private async getDepotShelvedFilePaths(
+        chnums: number[]
+    ): Promise<ShelvedChangeInfo[]> {
         if (chnums.length === 0) {
             return [];
         }
@@ -1288,25 +1292,20 @@ export class Model implements Disposable {
             return [];
         }
 
-        const files: ShelvedFileInfo[] = [];
-        let curCh: number = 0;
+        const files: ShelvedChangeInfo[] = [];
         shelved.forEach(open => {
             const chMatch = new RegExp(/^Change (\d+) by/).exec(open);
             if (chMatch) {
-                curCh = parseInt(chMatch[1]);
-            } else {
+                files.push({ chnum: parseInt(chMatch[1]), paths: [] });
+            } else if (files.length > 0) {
                 const matches = new RegExp(/(\.+)\ (.*)#(.*) (.*)/).exec(open);
                 if (matches) {
-                    files.push({
-                        chnum: curCh,
-                        path: matches[2],
-                        action: matches[4].trim()
-                    });
+                    files[files.length - 1].paths.push(matches[2]);
                 }
             }
         });
 
-        return files;
+        return files.filter(c => c.paths.length > 0);
     }
 
     private splitArray<T>(arr: T[], chunkSize: number): T[][] {
@@ -1354,7 +1353,7 @@ export class Model implements Disposable {
         const fstatFiles = fstatOutput.trim().split(/\n\r?\n/);
         const all = fstatFiles.map(file => {
             const lines = file.split("\n");
-            const lineMap: FstatInfo = {};
+            const lineMap: FstatInfo = { depotFile: "" };
             lines.forEach(line => {
                 // ... Key Value
                 const matches = new RegExp(/[.]{3} (\w+)[ ]*(.+)?/).exec(line);

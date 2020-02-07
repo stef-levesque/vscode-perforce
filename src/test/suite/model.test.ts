@@ -147,6 +147,7 @@ describe("Model & ScmProvider modules (integration)", () => {
         },
         shelveNoWorkspace: {
             depotPath: "//depot/testArea/testFolder/none.txt",
+            localFile: getLocalFile(workspaceUri, "testFolder", "none.txt"),
             depotRevision: 1,
             operation: Status.ADD
         },
