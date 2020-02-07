@@ -1,5 +1,14 @@
 # Change log
 
+## [3.5.0] - 2020-02-07
+* When using `Move to changelist` from the context menu, it's now possible to create a new changelist. This is useful when you want to move just a few files from the default changelist to a new changelist, instead of all of them (#4)
+* Add context menu options to `Attach job` and `Remove job` from a changelist (#3)
+* Add context menu item to delete an individual shelved file (#17)
+* Prevent `revert file` from being used on shelved files (#17) (ideally the option wouldn't be present at-all, but this is not possible with the current vscode API)
+* Gutter decorations to show the diff have been corrected to diff against the have revision (#6)
+* Diffing from the scm provider view now diffs against the working / have revision (#6)
+* Compatibility with source depot has been removed (I don't think it's possible that anyone is using it) (#8)
+
 ## [3.4.0] - 2020-01-29
 
 * Improve performance when refreshing the view (#12)
@@ -175,6 +184,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.5.0]: https://github.com/mjcrouch/vscode-perforce/compare/6807513579057a52292f87d3ca58babf012cb906...33d036413600eaeeecd1425898d7615e472a7a6b
 [3.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/1fca898f1bceacf1135f044bee87983c59cbc87e...4af0dc0242d2e05f447c75420e76768f30d89469
 [3.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/7cf9e068708d0ccadda7201e862c835826ca35bf...b9192e2fb31ad615dace4b035adc0cb8e08f78c9
 [2.2.2]: https://github.com/stef-levesque/vscode-perforce/compare/fc74e236c7c40525ad9101e1a9541b4963d36355...f953b90996f2420bb19b391708a624515d2b604f
