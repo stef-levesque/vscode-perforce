@@ -115,16 +115,8 @@ export namespace Utils {
         return map;
     }
 
-    export function isLoggedIn(
-        resource: Uri,
-        compatibilityMode: string
-    ): Promise<boolean> {
+    export function isLoggedIn(resource: Uri): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            if (compatibilityMode === "sourcedepot") {
-                resolve(true);
-                return;
-            }
-
             PerforceService.execute(
                 resource,
                 "login",

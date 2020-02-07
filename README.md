@@ -40,7 +40,6 @@ If you install this extension, please uninstall or disable `slevesque.perforce` 
 |&nbsp; 
 |`perforce.dir`                     |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
 |`perforce.command`                 |`string`   |Configure a path to p4 or an alternate command if needed
-|`perforce.compatibilityMode`       |`string`   |Specify if we should run in compatibility mode, currently support `perforce` and `sourcedepot`
 |`perforce.maxBuffer`               |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 1048576 (1MB)
 |`perforce.realpath`                |`boolean`  |**Experimental** Try to resolve real file path before executing command
 |&nbsp; 
@@ -132,8 +131,9 @@ Explore and leave your comments on [GitHub](https://github.com/mjcrouch/vscode-p
   
   
 #### **Q:** I'm using this old thing called *Source Depot*...
-**A:** Great :) Try to set the experimental setting `"perforce.compatibilityMode": "sourcedepot"`  
-[more...](https://github.com/stef-levesque/vscode-perforce/issues/47)
+**A:** I don't think you exist, since Microsoft has migrated to git. Compatibility mode has been removed.
+If i'm wrong, and you do exist, the original slevesque version of this extension provides a compatibility mode setting, which may or may not work
+[original issue...](https://github.com/stef-levesque/vscode-perforce/issues/47)
 
 ## Installation
 

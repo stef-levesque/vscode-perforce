@@ -118,7 +118,6 @@ export class Model implements Disposable {
         private _config: IPerforceConfig,
         private _workspaceUri: Uri,
         private _workspaceConfig: WorkspaceConfigAccessor,
-        private _compatibilityMode: string,
         public _sourceControl: SourceControl
     ) {
         this._refresh = debounce<(boolean | undefined)[], Promise<void>>(
@@ -129,10 +128,7 @@ export class Model implements Disposable {
     }
 
     public async Sync(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(
-            this._workspaceUri,
-            this._compatibilityMode
-        );
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -163,10 +159,7 @@ export class Model implements Disposable {
         // seeing an empty scm view and waiting for it to populate makes it feel slower.
         this._onRefreshStarted.fire();
 
-        const loggedin = await Utils.isLoggedIn(
-            this._workspaceUri,
-            this._compatibilityMode
-        );
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -421,10 +414,7 @@ export class Model implements Disposable {
     }
 
     public async SubmitDefault(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(
-            this._workspaceUri,
-            this._compatibilityMode
-        );
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -917,10 +907,7 @@ export class Model implements Disposable {
             throw new Error("Cannot reopen shelved file");
         }
 
-        const loggedin = await Utils.isLoggedIn(
-            this._workspaceUri,
-            this._compatibilityMode
-        );
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -1015,10 +1002,7 @@ export class Model implements Disposable {
     }
 
     private async updateStatus(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(
-            this._workspaceUri,
-            this._compatibilityMode
-        );
+        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }

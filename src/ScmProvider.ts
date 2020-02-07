@@ -27,7 +27,6 @@ enum DiffType {
 }
 
 export class PerforceSCMProvider {
-    private compatibilityMode: string;
     private wksFolder: Uri;
     private config: IPerforceConfig;
 
@@ -99,10 +98,8 @@ export class PerforceSCMProvider {
     constructor(
         config: IPerforceConfig,
         wksFolder: Uri,
-        private _workspaceConfig: WorkspaceConfigAccessor,
-        compatibilityMode: string
+        private _workspaceConfig: WorkspaceConfigAccessor
     ) {
-        this.compatibilityMode = compatibilityMode;
         this.wksFolder = wksFolder;
         this.config = config;
 
@@ -110,7 +107,6 @@ export class PerforceSCMProvider {
             this.config,
             this.wksFolder,
             this._workspaceConfig,
-            this.compatibilityMode,
             scm.createSourceControl(this.id, this.label, Uri.file(this.config.localDir))
         );
 

@@ -13,10 +13,7 @@ export class PerforceContentProvider {
         this.disposables.forEach(d => d.dispose());
     }
 
-    private compatibilityMode: string;
-
-    constructor(compatibilityMode: string) {
-        this.compatibilityMode = compatibilityMode;
+    constructor() {
         this.disposables.push(
             workspace.registerTextDocumentContentProvider("perforce", this)
         );

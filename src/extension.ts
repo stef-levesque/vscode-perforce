@@ -31,15 +31,6 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
         }
 
         const CreateP4 = (config: IPerforceConfig): boolean => {
-            const compatibilityMode = vscode.workspace
-                .getConfiguration("perforce")
-                .get("compatibilityMode", "perforce");
-            vscode.commands.executeCommand(
-                "setContext",
-                "perforce.compatibilityMode",
-                compatibilityMode
-            );
-
             // path fixups:
             const trailingSlash = /^(.*)(\/)$/;
 
@@ -66,12 +57,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
 
             PerforceService.addConfig(config, wksUri.fsPath);
             const workspaceConfig = new WorkspaceConfigAccessor(wksUri);
-            const scm = new PerforceSCMProvider(
-                config,
-                wksUri,
-                workspaceConfig,
-                compatibilityMode
-            );
+            const scm = new PerforceSCMProvider(config, wksUri, workspaceConfig);
             scm.Initialize();
             _disposable.push(scm);
             _disposable.push(new FileSystemListener(wksFolder));
@@ -80,7 +66,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
             if (!_isRegistered) {
                 _isRegistered = true;
 
-                _disposable.push(new PerforceContentProvider(compatibilityMode));
+                _disposable.push(new PerforceContentProvider());
 
                 // todo: fix dependency / order of operations issues
                 PerforceCommands.registerCommands();

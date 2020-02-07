@@ -172,7 +172,7 @@ describe("Model & ScmProvider modules (integration)", () => {
     let items: TestItems;
     let subscriptions: vscode.Disposable[] = [];
 
-    const doc = new PerforceContentProvider("perforce");
+    const doc = new PerforceContentProvider();
 
     before(async () => {
         await vscode.commands.executeCommand("workbench.action.closeAllEditors");
@@ -196,12 +196,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             // save time on refresh function calls
             sinon.stub(workspaceConfig, "refreshDebounceTime").get(() => 100);
 
-            instance = new PerforceSCMProvider(
-                config,
-                workspaceUri,
-                workspaceConfig,
-                "perforce"
-            );
+            instance = new PerforceSCMProvider(config, workspaceUri, workspaceConfig);
             subscriptions.push(instance);
         });
         this.afterEach(() => {
@@ -876,8 +871,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             const instance = new PerforceSCMProvider(
                 config,
                 workspaceUri,
-                workspaceConfig,
-                "perforce"
+                workspaceConfig
             );
             subscriptions.push(instance);
             await instance.Initialize();

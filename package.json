@@ -138,15 +138,6 @@
                     "default": "none",
                     "description": "Configure a path to p4 or an alternate command if needed"
                 },
-                "perforce.compatibilityMode": {
-                    "type": "string",
-                    "default": "perforce",
-                    "enum": [
-                        "perforce",
-                        "sourcedepot"
-                    ],
-                    "description": "Specify if we should run in compatibility mode, currently support 'perforce' and 'sourcedepot'"
-                },
                 "perforce.countBadge": {
                     "type": "string",
                     "description": "Controls the badge counter for Perforce",
@@ -467,12 +458,12 @@
                 {
                     "command": "perforce.login",
                     "group": "2_login",
-                    "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
+                    "when": "scmProvider == perforce"
                 },
                 {
                     "command": "perforce.logout",
                     "group": "2_login",
-                    "when": "scmProvider == perforce && perforce.compatibilityMode != sourcedepot"
+                    "when": "scmProvider == perforce"
                 },
                 {
                     "command": "perforce.info",
