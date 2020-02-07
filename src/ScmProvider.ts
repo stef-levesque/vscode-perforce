@@ -483,7 +483,7 @@ export class PerforceSCMProvider {
             return;
         }
 
-        return Utils.makePerforceDocUri(uri, "print", "-q");
+        return Utils.makePerforceDocUri(uri, "print", "-q").with({ fragment: "have" });
     }
 
     /**
@@ -510,7 +510,6 @@ export class PerforceSCMProvider {
 
         const left = PerforceSCMProvider.getLeftResource(resource, diffType);
         const right = PerforceSCMProvider.getRightResource(resource, diffType);
-        const title: string = PerforceSCMProvider.getTitle(resource, diffType);
 
         if (!left) {
             if (!right) {
@@ -522,10 +521,15 @@ export class PerforceSCMProvider {
             return;
         }
         if (!right) {
-            await window.showTextDocument(left);
+            await window.showTextDocument(left.uri);
             return;
         }
-        await commands.executeCommand<void>("vscode.diff", left, right, title);
+        await commands.executeCommand<void>(
+            "vscode.diff",
+            left.uri,
+            right,
+            PerforceSCMProvider.getTitle(resource, left.title, diffType)
+        );
         return;
     }
 
@@ -533,7 +537,7 @@ export class PerforceSCMProvider {
     private static getLeftResource(
         resource: Resource,
         diffType: DiffType
-    ): Uri | undefined {
+    ): { title: string; uri: Uri } | undefined {
         const args = {
             depot: resource.isShelved,
             workspace: resource.model.workspaceUri.fsPath
@@ -547,11 +551,17 @@ export class PerforceSCMProvider {
                 case Status.INTEGRATE:
                 case Status.MOVE_ADD:
                 case Status.BRANCH:
-                    return resource.resourceUri.with({
-                        scheme: "perforce",
-                        query: Utils.makePerforceUriQuery("print", "-q", args),
-                        fragment: "@=" + resource.change
-                    });
+                    return {
+                        title:
+                            Path.basename(resource.resourceUri.fsPath) +
+                            "@=" +
+                            resource.change,
+                        uri: resource.resourceUri.with({
+                            scheme: "perforce",
+                            query: Utils.makePerforceUriQuery("print", "-q", args),
+                            fragment: "@=" + resource.change
+                        })
+                    };
                 case Status.DELETE:
                 case Status.MOVE_DELETE:
             }
@@ -561,25 +571,41 @@ export class PerforceSCMProvider {
             switch (resource.status) {
                 case Status.ADD:
                 case Status.BRANCH:
-                    return emptyDoc;
+                    return {
+                        title: Path.basename(resource.resourceUri.fsPath) + "#0",
+                        uri: emptyDoc
+                    };
                 case Status.MOVE_ADD:
                     // diff against the old file if it is known (always a depot path)
-                    return resource.fromFile
-                        ? Utils.makePerforceDocUri(resource.fromFile, "print", "-q", {
-                              depot: true,
-                              workspace: resource.model.workspaceUri.fsPath
-                          })
-                        : emptyDoc;
+                    return {
+                        title: resource.baseFile
+                            ? Path.basename(resource.baseFile.fsPath) +
+                              "#" +
+                              resource.baseRev
+                            : "Depot Version",
+                        uri: resource.baseFile
+                            ? Utils.makePerforceDocUri(resource.baseFile, "print", "-q", {
+                                  depot: true,
+                                  workspace: resource.model.workspaceUri.fsPath
+                              }).with({ fragment: resource.baseRev })
+                            : emptyDoc
+                    };
                 case Status.INTEGRATE:
                 case Status.EDIT:
                 case Status.DELETE:
                 case Status.MOVE_DELETE:
-                    return Utils.makePerforceDocUri(
-                        resource.resourceUri,
-                        "print",
-                        "-q",
-                        args
-                    );
+                    return {
+                        title:
+                            Path.basename(resource.resourceUri.fsPath) +
+                            "#" +
+                            resource.workingRevision,
+                        uri: Utils.makePerforceDocUri(
+                            resource.resourceUri,
+                            "print",
+                            "-q",
+                            args
+                        ).with({ fragment: resource.workingRevision })
+                    };
             }
         }
     }
@@ -623,20 +649,24 @@ export class PerforceSCMProvider {
         }
     }
 
-    private static getTitle(resource: Resource, diffType: DiffType): string {
+    private static getTitle(
+        resource: Resource,
+        leftTitle: string,
+        diffType: DiffType
+    ): string {
         const basename = Path.basename(resource.resourceUri.fsPath);
 
         let text = "";
         switch (diffType) {
             case DiffType.SHELVE_V_DEPOT:
-                text = "Diff Shelve (right) Against Depot Version (left)";
+                text = leftTitle + " vs " + basename + "@=" + resource.change;
                 break;
             case DiffType.WORKSPACE_V_SHELVE:
-                text = "Diff Workspace (right) Against Shelved Version (left)";
+                text = leftTitle + " vs " + basename + " (workspace)";
                 break;
             case DiffType.WORKSPACE_V_DEPOT:
-                text = "Diff Workspace (right) Against Most Recent Revision (left)";
+                text = leftTitle + " vs " + basename + " (workspace)";
         }
-        return `${basename} - ${text}`;
+        return text;
     }
 }

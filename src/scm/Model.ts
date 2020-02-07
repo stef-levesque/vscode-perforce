@@ -24,7 +24,7 @@ function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg.id !== undefined;
 }
 
-type FstatInfo = {
+export type FstatInfo = {
     depotFile: string;
     [key: string]: string;
 };
@@ -1041,9 +1041,7 @@ export class Model implements Disposable {
         const action = fstatInfo["action"];
         const headType = fstatInfo["headType"];
         const depotPath = Uri.file(fstatInfo["depotFile"]);
-        const fromFile = fstatInfo["resolveFromFile0"]
-            ? Uri.file(fstatInfo["resolveFromFile0"])
-            : undefined;
+
         const uri = Uri.file(clientFile);
         if (this._workspaceConfig.hideNonWorkspaceFiles) {
             const workspaceFolder = workspace.getWorkspaceFolder(uri);
@@ -1058,7 +1056,7 @@ export class Model implements Disposable {
             change,
             false,
             action,
-            fromFile,
+            fstatInfo,
             headType
         );
 
@@ -1167,9 +1165,6 @@ export class Model implements Disposable {
 
     private getResourceForShelvedFile(chnum: string, fstatInfo: FstatInfo) {
         const underlyingUri = Uri.file(fstatInfo["clientFile"]);
-        const fromFile = fstatInfo["resolveFromFile0"]
-            ? Uri.file(fstatInfo["resolveFromFile0"])
-            : undefined;
 
         const resource: Resource = new Resource(
             this,
@@ -1178,7 +1173,7 @@ export class Model implements Disposable {
             chnum,
             true,
             fstatInfo["action"],
-            fromFile
+            fstatInfo
         );
         return resource;
     }

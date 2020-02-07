@@ -29,9 +29,9 @@ export class PerforceContentProvider {
                 return;
             }
 
-            let revision: number | string = uri.fragment;
-            if (!revision.startsWith("@")) {
-                revision = parseInt(uri.fragment);
+            let revision: string = uri.fragment;
+            if (revision && !revision.startsWith("@")) {
+                revision = "#" + uri.fragment;
             }
 
             const allArgs = Utils.decodeUriQuery(uri.query ?? "");

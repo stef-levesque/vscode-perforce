@@ -8,7 +8,7 @@ import {
 import { DecorationProvider } from "./DecorationProvider";
 import { GetStatuses, Status } from "./Status";
 import { IFileType, GetFileType } from "./FileTypes";
-import { Model } from "./Model";
+import { Model, FstatInfo } from "./Model";
 import { Utils } from "../Utils";
 
 /**
@@ -25,10 +25,21 @@ export class Resource implements SourceControlResourceState {
     private _statuses: Status[];
     private _headType: IFileType;
     private _resourceUri: Uri;
+    private _baseFile?: Uri;
+    private _baseRev?: string;
+
+    /**
+     * The working revision of the file if open (it should be)
+     *
+     * This is normally the same as the have revision, but a shelved file
+     * might have a different working revision
+     */
+    private _workingRevision: string;
 
     /**
      * URI is always a depot path stored as a URI (depot paths are not really URIs, but it is close enough,
      * and the SourceControlResourceState requires this property to be a URI)
+     *
      * You **must not** use fsPath on this URI to get a depot path - this does not work on windows.
      * Use the `depotPath` property instead.
      */
@@ -37,6 +48,7 @@ export class Resource implements SourceControlResourceState {
     }
     /**
      * Resource URI *should* be the underlying file, but for shelved files, a depot path is used
+     *
      * this keeps them together in the workspace tree, and for some operations there may not be a matching file in the workspace
      */
     get resourceUri(): Uri {
@@ -58,12 +70,17 @@ export class Resource implements SourceControlResourceState {
         return Utils.getDepotPathFromDepotUri(this._uri);
     }
     /**
-     * The file that this file is pending integration from - a depot path as a URI
+     * The base file from which this file is pending integration - a depot path as a URI
+     *
      * You **must not** use fsPath on this URI to get a depot path - this does not work on windows.
      * Use `Utils.getDepotPathFromDepotUri` instead
      */
-    get fromFile(): Uri | undefined {
-        return this._fromFile;
+    get baseFile(): Uri | undefined {
+        return this._baseFile;
+    }
+
+    get baseRev(): string | undefined {
+        return this._baseRev;
     }
 
     get status(): Status {
@@ -88,6 +105,10 @@ export class Resource implements SourceControlResourceState {
         return this._change;
     }
 
+    get workingRevision(): string {
+        return this._workingRevision;
+    }
+
     constructor(
         public model: Model,
         private _uri: Uri,
@@ -95,7 +116,7 @@ export class Resource implements SourceControlResourceState {
         private _change: string,
         private _isShelved: boolean,
         action: string,
-        private _fromFile?: Uri,
+        fstatInfo: FstatInfo,
         headType?: string
     ) {
         this._statuses = GetStatuses(action);
@@ -110,6 +131,12 @@ export class Resource implements SourceControlResourceState {
             }
             this._resourceUri = _underlyingUri;
         }
+        if (fstatInfo["resolveBaseFile0"]) {
+            this._baseFile = Uri.file(fstatInfo["resolveBaseFile0"]);
+        }
+        this._baseRev = fstatInfo["resolveBaseRev0"];
+
+        this._workingRevision = fstatInfo["workRev"] ?? fstatInfo["haveRev"] ?? "have"; // (files opened for branch probably have a workRev but no haveRev)
         this._headType = GetFileType(headType);
     }
 

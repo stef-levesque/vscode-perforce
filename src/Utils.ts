@@ -180,7 +180,7 @@ export namespace Utils {
         resource: Uri,
         command: string,
         file?: Uri | string | null | undefined,
-        revision?: number | string | null,
+        revision?: string | null, // must include the # or @
         prefixArgs?: string,
         gOpts?: string | null,
         input?: string
@@ -192,12 +192,7 @@ export namespace Utils {
                 command = gOpts + " " + command;
             }
 
-            let revisionString = "";
-            if (typeof revision === "string") {
-                revisionString = revision;
-            } else if (revision !== null && revision !== undefined && !isNaN(revision)) {
-                revisionString = `#${revision}`;
-            }
+            const revisionString = revision ?? "";
 
             if (file) {
                 let path = typeof file === "string" ? file : file.fsPath;
@@ -231,7 +226,7 @@ export namespace Utils {
     export function runCommandForFile(
         command: string,
         file: Uri,
-        revision?: number | string,
+        revision?: string,
         prefixArgs?: string,
         gOpts?: string,
         input?: string

@@ -17,7 +17,6 @@ import {
 } from "./StubPerforceService";
 import { Display } from "../../Display";
 import { Utils } from "../../Utils";
-import * as path from "path";
 import { Resource } from "../../scm/Resource";
 import { Status } from "../../scm/Status";
 import p4Commands from "../helpers/p4Commands";
@@ -46,12 +45,6 @@ interface TestItems {
     showError: sinon.SinonSpy<[string], void>;
     showImportantError: sinon.SinonSpy<[string], void>;
     refresh: sinon.SinonSpy;
-}
-
-function timeout(ms: number) {
-    return new Promise(res => {
-        setTimeout(() => res(), ms);
-    });
 }
 
 function findResourceForShelvedFile(
@@ -87,11 +80,11 @@ describe("Model & ScmProvider modules (integration)", () => {
     }
     const workspaceUri = vscode.workspace.workspaceFolders[0].uri;
 
-    const basicFiles = {
+    const basicFiles: { [key: string]: StubFile } = {
         edit: {
             localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
             depotPath: "//depot/testArea/testFolder/a.txt",
-            depotRevision: 1,
+            depotRevision: 4,
             operation: Status.EDIT
         },
         delete: {
@@ -111,7 +104,8 @@ describe("Model & ScmProvider modules (integration)", () => {
             depotPath: "//depot/testArea/testFolder/moved.txt",
             depotRevision: 1,
             operation: Status.MOVE_ADD,
-            resolveFromDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt"
+            resolveBaseDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
+            resolveBaseRev: 4
         },
         moveDelete: {
             localFile: getLocalFile(workspaceUri, "testFolderOld", "movedFrom.txt"),
@@ -124,14 +118,16 @@ describe("Model & ScmProvider modules (integration)", () => {
             depotPath: "//depot/testArea/testFolder/branched.txt",
             depotRevision: 1,
             operation: Status.BRANCH,
-            resolveFromDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt"
+            resolveBaseDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt",
+            resolveBaseRev: 1
         },
         integrate: {
             localFile: getLocalFile(workspaceUri, "testFolder", "integrated.txt"),
             depotPath: "//depot/testArea/testFolder/integrated.txt",
             depotRevision: 7,
             operation: Status.INTEGRATE,
-            resolveFromDepotPath: "//depot/testAreaOld/testFolder/integrated.txt"
+            resolveBaseDepotPath: "//depot/testAreaOld/testFolder/integrated.txt",
+            resolveBaseRev: 5
         },
         outOfWorkspaceAdd: {
             localFile: getLocalFile(workspaceUri, "..", "outOfWorkspaceAdd.txt"),
@@ -889,7 +885,11 @@ describe("Model & ScmProvider modules (integration)", () => {
             const showImportantError = sinon.spy(Display, "showImportantError");
             const showModalMessage = sinon.stub(Display, "showModalMessage"); // stub because modal gets in the way
 
-            const refresh = sinon.spy();
+            // Need to stub this private function - it kicks off some async calls that are not
+            // awaited, so can interfere with later tests and produce undesirable log output.
+            const refresh = sinon.fake();
+            sinon.stub((instance as any)._model, "Refresh").callsFake(refresh);
+            sinon.stub((instance as any)._model, "RefreshPolitely").callsFake(refresh);
 
             items = {
                 stubService,
@@ -902,7 +902,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 refresh
             };
 
-            subscriptions.push(instance.onRefreshStarted(refresh));
+            //subscriptions.push(instance.onRefreshStarted(refresh));
         });
         afterEach(async () => {
             await vscode.commands.executeCommand("workbench.action.closeAllEditors");
@@ -911,6 +911,29 @@ describe("Model & ScmProvider modules (integration)", () => {
             sinon.restore();
         });
 
+        describe("Provide original resource", () => {
+            it("Diffs against the have revision", async () => {
+                const out = await items.instance.provideOriginalResource(
+                    basicFiles.add.localFile
+                );
+
+                expect(out).to.deep.equal(
+                    basicFiles.add.localFile.with({
+                        scheme: "perforce",
+                        fragment: "have",
+                        query: "p4args=-q&command=print"
+                    })
+                );
+            });
+            it("Does not diff non-file resources", async () => {
+                const inUri = Utils.makePerforceDocUri(
+                    basicFiles.edit.localFile,
+                    "print"
+                );
+                const out = await items.instance.provideOriginalResource(inUri);
+                expect(out).to.be.undefined;
+            });
+        });
         describe("Shelving a changelist", () => {
             it("Cannot shelve the default changelist", async () => {
                 await expect(
@@ -920,7 +943,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "shelve"
                 );
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
             });
 
@@ -935,7 +957,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showMessage).to.have.been.calledOnceWith(
                     "Changelist shelved"
                 );
-                await timeout(1);
                 expect(items.refresh).to.have.been.calledOnce;
             });
 
@@ -958,7 +979,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showMessage).to.have.been.calledOnceWith(
                     "Changelist shelved"
                 );
-                await timeout(1);
                 expect(items.refresh).to.have.been.calledOnce;
             });
 
@@ -974,7 +994,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showImportantError).to.have.been.calledOnceWith(
                     "my shelve error"
                 );
-                await timeout(1);
                 expect(items.refresh).to.have.been.calledOnce;
             });
 
@@ -996,7 +1015,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "revert"
                 );
-                await timeout(1);
                 expect(items.refresh).to.have.been.calledOnce;
             });
         });
@@ -1013,7 +1031,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showMessage).to.have.been.calledOnceWith(
                     "Changelist unshelved"
                 );
-                await timeout(1);
                 expect(items.refresh).to.have.been.calledOnce;
             });
 
@@ -1025,7 +1042,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "unshelve"
                 );
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
             });
 
@@ -1041,7 +1057,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showImportantError).to.have.been.calledOnceWith(
                     "my unshelve error"
                 );
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
             });
         });
@@ -1058,7 +1073,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 );
 
                 expect(warn).to.have.been.calledOnce;
-                await timeout(1);
+
                 expect(items.refresh).to.have.been.calledOnce;
                 expect(items.execute).to.have.been.calledWithMatch(
                     workspaceUri,
@@ -1079,7 +1094,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 );
 
                 expect(warn).to.have.been.calledOnce;
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
                 expect(items.execute).not.to.have.been.calledWithMatch(
                     workspaceUri,
@@ -1107,7 +1121,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                 expect(items.showImportantError).to.have.been.calledOnceWith(
                     "my shelve error"
                 );
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
             });
 
@@ -1123,7 +1136,6 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "shelve"
                 );
-                await timeout(1);
                 expect(items.refresh).not.to.have.been.called;
             });
         });
@@ -1248,7 +1260,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 }
                 return Utils.makePerforceDocUri(file.localFile, "print", "-q", {
                     workspace: workspaceUri.fsPath
-                });
+                }).with({ fragment: file.depotRevision.toString() });
             }
 
             /**
@@ -1261,20 +1273,20 @@ describe("Model & ScmProvider modules (integration)", () => {
                     "print",
                     "-q",
                     { depot: true, workspace: workspaceUri.fsPath }
-                );
+                ).with({ fragment: file.depotRevision.toString() });
             }
 
             /**
-             * Matches against a perforce URI, using the resolvedFromFile0 depot path
+             * Matches against a perforce URI, using the resolveBaseFile0 depot path
              * @param file
              */
             function perforceFromFileUriMatcher(file: StubFile) {
                 return Utils.makePerforceDocUri(
-                    vscode.Uri.parse("perforce:" + file.resolveFromDepotPath),
+                    vscode.Uri.parse("perforce:" + file.resolveBaseDepotPath),
                     "print",
                     "-q",
                     { depot: true, workspace: workspaceUri.fsPath }
-                );
+                ).with({ fragment: file.resolveBaseRev?.toString() });
             }
 
             /**
@@ -1357,14 +1369,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceLocalUriMatcher(file),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "a.txt#4 vs a.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         file.localFile,
                         "print",
                         sinon.match.any,
-                        '-q "' + file.localFile.fsPath + '"'
+                        '-q "' + file.localFile.fsPath + '#4"'
                     );
                 });
                 it("Can open multiple resources", async () => {
@@ -1386,14 +1397,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.getCall(-1)).to.be.vscodeDiffCall(
                         perforceLocalUriMatcher(file1),
                         file1.localFile,
-                        path.basename(file1.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "a.txt#4 vs a.txt"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         file1.localFile,
                         "print",
                         sinon.match.any,
-                        '-q "' + file1.localFile.fsPath + '"'
+                        '-q "' + file1.localFile.fsPath + '#4"'
                     );
                     expect(td.lastCall.args[0]).to.be.p4Uri(
                         perforceLocalUriMatcher(file2)
@@ -1426,8 +1436,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         vscode.Uri.parse("perforce:EMPTY"),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "new.txt#0 vs new.txt (workspace)"
                     );
                 });
                 it("Diffs a moved file against the original file", async () => {
@@ -1442,14 +1451,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceFromFileUriMatcher(file),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "movedFrom.txt#4 vs moved.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         sinon.match({ fsPath: workspaceUri.fsPath }),
                         "print",
                         sinon.match.any,
-                        '-q "' + file.resolveFromDepotPath + '"'
+                        '-q "' + file.resolveBaseDepotPath + '#4"'
                     );
                 });
                 it("Displays the depot version for a move / delete", async () => {
@@ -1479,8 +1487,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         vscode.Uri.parse("perforce:EMPTY"),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "branched.txt#0 vs branched.txt (workspace)"
                     );
                 });
                 it("Diffs an integration/merge against the target depot file", async () => {
@@ -1495,15 +1502,14 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceLocalUriMatcher(file),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Most Recent Revision (left)"
+                        "integrated.txt#7 vs integrated.txt (workspace)"
                     );
 
                     expect(items.execute).to.be.calledWithMatch(
                         file.localFile,
                         "print",
                         sinon.match.any,
-                        '-q "' + file.localFile.fsPath + '"'
+                        '-q "' + file.localFile.fsPath + '#7"'
                     );
                 });
                 it("Diffs a shelved file against the depot file", async () => {
@@ -1518,8 +1524,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceDepotUriMatcher(file),
                         perforceShelvedUriMatcher(file, "1"),
-                        path.basename(file.localFile.path) +
-                            " - Diff Shelve (right) Against Depot Version (left)"
+                        "a.txt#1 vs a.txt@=1"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         { fsPath: workspaceUri.fsPath },
@@ -1531,7 +1536,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         { fsPath: workspaceUri.fsPath },
                         "print",
                         sinon.match.any,
-                        '-q "' + file.depotPath + '"'
+                        '-q "' + file.depotPath + '#1"'
                     );
                 });
                 it("Can diff a local file against the shelved file (from the shelved file)", async () => {
@@ -1546,8 +1551,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceShelvedUriMatcher(file, "1"),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Shelved Version (left)"
+                        "a.txt@=1 vs a.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         { fsPath: workspaceUri.fsPath },
@@ -1568,8 +1572,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeDiffCall(
                         perforceLocalShelvedUriMatcher(file, "1"),
                         file.localFile,
-                        path.basename(file.localFile.path) +
-                            " - Diff Workspace (right) Against Shelved Version (left)"
+                        "a.txt@=1 vs a.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
                         file.localFile,
