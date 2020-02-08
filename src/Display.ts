@@ -14,12 +14,14 @@ export namespace Display {
 
     export const updateEditor = debounce(updateEditorImpl, 1000);
 
-    export function initialize() {
+    export function initialize(subscriptions: { dispose(): any }[]) {
         _statusBarItem = window.createStatusBarItem(
             StatusBarAlignment.Left,
             Number.MIN_VALUE
         );
         _statusBarItem.command = "perforce.menuFunctions";
+        subscriptions.push(_statusBarItem);
+        subscriptions.push(channel);
 
         updateEditor();
     }

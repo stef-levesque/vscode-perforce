@@ -55,7 +55,7 @@
                 },
                 "perforce.activationMode": {
                     "type": "string",
-                    "description": "Controls when to activate the extension",
+                    "description": "Controls when to activate the extension. Requires a restart to take effect",
                     "enum": [
                         "always",
                         "autodetect",
