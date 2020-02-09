@@ -25,8 +25,8 @@ export class Resource implements SourceControlResourceState {
     private _statuses: Status[];
     private _headType: IFileType;
     private _resourceUri: Uri;
-    private _baseFile?: Uri;
-    private _baseRev?: string;
+    private _fromFile?: Uri;
+    private _fromEndRev?: string;
 
     /**
      * The working revision of the file if open (it should be)
@@ -75,12 +75,12 @@ export class Resource implements SourceControlResourceState {
      * You **must not** use fsPath on this URI to get a depot path - this does not work on windows.
      * Use `Utils.getDepotPathFromDepotUri` instead
      */
-    get baseFile(): Uri | undefined {
-        return this._baseFile;
+    get fromFile(): Uri | undefined {
+        return this._fromFile;
     }
 
-    get baseRev(): string | undefined {
-        return this._baseRev;
+    get fromEndRev(): string | undefined {
+        return this._fromEndRev;
     }
 
     get status(): Status {
@@ -131,10 +131,10 @@ export class Resource implements SourceControlResourceState {
             }
             this._resourceUri = _underlyingUri;
         }
-        if (fstatInfo["resolveBaseFile0"]) {
-            this._baseFile = Uri.file(fstatInfo["resolveBaseFile0"]);
+        if (fstatInfo["resolveFromFile0"]) {
+            this._fromFile = Uri.file(fstatInfo["resolveFromFile0"]);
         }
-        this._baseRev = fstatInfo["resolveBaseRev0"];
+        this._fromEndRev = fstatInfo["resolveEndFromRev0"];
 
         this._workingRevision = fstatInfo["workRev"] ?? fstatInfo["haveRev"] ?? "have"; // (files opened for branch probably have a workRev but no haveRev)
         this._headType = GetFileType(headType);

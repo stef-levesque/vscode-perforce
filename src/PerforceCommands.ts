@@ -171,7 +171,7 @@ export namespace PerforceCommands {
         );
     }
 
-    export function diff(revision?: number) {
+    export async function diff(revision?: number) {
         const editor = window.activeTextEditor;
         if (!checkFileSelected()) {
             return false;
@@ -188,23 +188,17 @@ export namespace PerforceCommands {
         const doc = editor.document;
 
         if (!doc.isUntitled) {
-            Utils.getFile("print", doc.uri, revision).then(
-                (tmpFile: string) => {
-                    const tmpFileUri = Uri.file(tmpFile);
-                    const revisionLabel =
-                        !revision || isNaN(revision)
-                            ? "Most Recent Revision"
-                            : `Revision #${revision}`;
-                    commands.executeCommand(
-                        "vscode.diff",
-                        tmpFileUri,
-                        doc.uri,
-                        Path.basename(doc.uri.fsPath) + " - Diff Against " + revisionLabel
-                    );
-                },
-                err => {
-                    Display.showError(err.toString());
-                }
+            const revStr = revision && !isNaN(revision) ? revision.toString() : "have";
+            const depotUri = Utils.makePerforceDocUri(doc.uri, "print", "-q").with({
+                fragment: revStr
+            });
+
+            const fn = Path.basename(doc.uri.fsPath);
+            await commands.executeCommand(
+                "vscode.diff",
+                depotUri,
+                doc.uri,
+                fn + "#" + revStr + " vs " + fn + " (workspace)"
             );
         }
     }

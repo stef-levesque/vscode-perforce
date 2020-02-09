@@ -81,6 +81,7 @@ export class Model implements Disposable {
         number,
         { description: string; group: ResourceGroup }
     >();
+    private _openResourcesByPath = new Map<string, Resource>();
 
     private _refresh: DebouncedFunction<any[], Promise<void>>;
 
@@ -152,6 +153,14 @@ export class Model implements Disposable {
 
     public async RefreshImmediately() {
         await this.RefreshImpl(true);
+    }
+
+    /**
+     * Gets the resource for a local file if it is open in the workspace (not shelved)
+     * @param localFile
+     */
+    public getOpenResource(localFile: Uri) {
+        return this._openResourcesByPath.get(localFile.fsPath);
     }
 
     private async RefreshImpl(refreshClientInfo?: boolean): Promise<void> {
@@ -962,6 +971,8 @@ export class Model implements Disposable {
     }
 
     private clean() {
+        this._openResourcesByPath.clear();
+
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
             this._defaultGroup = undefined;
@@ -1019,7 +1030,7 @@ export class Model implements Disposable {
         this._onDidChange.fire();
     }
 
-    private getResourceForOpenFile(fstatInfo: FstatInfo): Resource | undefined {
+    private makeResourceForOpenFile(fstatInfo: FstatInfo): Resource | undefined {
         const clientFile = fstatInfo["clientFile"];
         const change = fstatInfo["change"];
         const action = fstatInfo["action"];
@@ -1076,6 +1087,12 @@ export class Model implements Disposable {
                     !!resource && resource.change === c.chnum.toString()
             );
             return group;
+        });
+
+        resources.forEach(resource => {
+            if (!resource.isShelved && resource.underlyingUri) {
+                this._openResourcesByPath.set(resource.underlyingUri.fsPath, resource);
+            }
         });
 
         groups.forEach((group, i) => {
@@ -1147,7 +1164,7 @@ export class Model implements Disposable {
         return this.getShelvedResources(allFileInfo);
     }
 
-    private getResourceForShelvedFile(chnum: string, fstatInfo: FstatInfo) {
+    private makeResourceForShelvedFile(chnum: string, fstatInfo: FstatInfo) {
         const underlyingUri = Uri.file(fstatInfo["clientFile"]);
 
         const resource: Resource = new Resource(
@@ -1173,7 +1190,7 @@ export class Model implements Disposable {
                 cur
                     .filter((f): f is FstatInfo => !!f)
                     .map(f =>
-                        this.getResourceForShelvedFile(files[i].chnum.toString(), f)
+                        this.makeResourceForShelvedFile(files[i].chnum.toString(), f)
                     )
             );
         }, [] as Resource[]);
@@ -1187,7 +1204,7 @@ export class Model implements Disposable {
         );
         return fstatInfo
             .filter((info): info is FstatInfo => !!info) // in case fstat doesn't have output for this file
-            .map(info => this.getResourceForOpenFile(info))
+            .map(info => this.makeResourceForOpenFile(info))
             .filter((resource): resource is Resource => resource !== undefined); // for files out of workspace
     }
 

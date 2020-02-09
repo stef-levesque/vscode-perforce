@@ -479,6 +479,22 @@ export class PerforceSCMProvider {
             return;
         }
 
+        // for a MOVE operation, diff against the original file
+        const resource = this._model.getOpenResource(uri);
+        if (
+            resource &&
+            resource.status === Status.MOVE_ADD &&
+            resource.fromFile &&
+            resource.fromEndRev
+        ) {
+            return Utils.makePerforceDocUri(resource.fromFile, "print", "-q", {
+                depot: true
+            }).with({
+                fragment: resource.fromEndRev
+            });
+        }
+
+        // otherwise diff against the have revision
         return Utils.makePerforceDocUri(uri, "print", "-q").with({ fragment: "have" });
     }
 
@@ -574,16 +590,16 @@ export class PerforceSCMProvider {
                 case Status.MOVE_ADD:
                     // diff against the old file if it is known (always a depot path)
                     return {
-                        title: resource.baseFile
-                            ? Path.basename(resource.baseFile.fsPath) +
+                        title: resource.fromFile
+                            ? Path.basename(resource.fromFile.fsPath) +
                               "#" +
-                              resource.baseRev
+                              resource.fromEndRev
                             : "Depot Version",
-                        uri: resource.baseFile
-                            ? Utils.makePerforceDocUri(resource.baseFile, "print", "-q", {
+                        uri: resource.fromFile
+                            ? Utils.makePerforceDocUri(resource.fromFile, "print", "-q", {
                                   depot: true,
                                   workspace: resource.model.workspaceUri.fsPath
-                              }).with({ fragment: resource.baseRev })
+                              }).with({ fragment: resource.fromEndRev })
                             : emptyDoc
                     };
                 case Status.INTEGRATE:

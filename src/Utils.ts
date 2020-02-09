@@ -1,10 +1,8 @@
 import { Event, Uri, workspace } from "vscode";
-import * as Path from "path";
 import { PerforceService } from "./PerforceService";
 import { Display } from "./Display";
 
 import * as fs from "fs";
-import * as tmp from "tmp";
 
 export function mapEvent<I, O>(event: Event<I>, map: (i: I) => O): Event<O> {
     return (listener, thisArgs = null, disposables?) =>
@@ -225,59 +223,5 @@ export namespace Utils {
     ): Promise<string> {
         const resource = file;
         return runCommand(resource, command, file, revision, prefixArgs, gOpts, input);
-    }
-
-    // Get a path to a file containing the output of the command
-    // TODO this is only used for print - seems unecessary when we have a perforce content provider
-    export function getFile(
-        command: string,
-        file: Uri,
-        revision?: number,
-        prefixArgs?: string
-    ): Promise<string> {
-        const resource = file;
-        return new Promise((resolve, reject) => {
-            let args = prefixArgs ? prefixArgs : "";
-            const revisionString: string =
-                revision === undefined || isNaN(revision) ? "" : `#${revision}`;
-
-            const ext = Path.extname(file.fsPath);
-            const tmpFilePath = tmp.tmpNameSync({ postfix: ext });
-
-            let requirePipe = true;
-            if (command === "print") {
-                if (!file.fsPath) {
-                    reject("P4 Print command require a file path");
-                }
-
-                // special case to directly output in the file
-                args += ' -q -o "' + tmpFilePath + '"';
-                requirePipe = false;
-            }
-
-            if (file.fsPath) {
-                args += ' "' + expansePath(file.fsPath) + revisionString + '"';
-            }
-
-            if (requirePipe) {
-                // forward all output to the file
-                args += ' > "' + tmpFilePath + '"';
-            }
-
-            PerforceService.execute(
-                resource,
-                "print",
-                (err, strdout, stderr) => {
-                    if (err) {
-                        reject(err);
-                    } else if (stderr) {
-                        reject(stderr);
-                    } else {
-                        resolve(tmpFilePath);
-                    }
-                },
-                args
-            );
-        });
     }
 }

@@ -13,7 +13,12 @@ import {
     StubPerforceService,
     StubFile,
     getLocalFile,
-    returnStdErr
+    returnStdErr,
+    perforceLocalUriMatcher,
+    perforceDepotUriMatcher,
+    perforceShelvedUriMatcher,
+    perforceFromFileUriMatcher,
+    perforceLocalShelvedUriMatcher
 } from "./StubPerforceService";
 import { Display } from "../../Display";
 import { Utils } from "../../Utils";
@@ -29,17 +34,7 @@ chai.use(chaiAsPromised);
 interface TestItems {
     instance: PerforceSCMProvider;
     stubService: StubPerforceService;
-    execute: sinon.SinonStub<
-        [
-            vscode.Uri,
-            string,
-            (err: Error | null, stdout: string, stderr: string) => void,
-            (string | undefined)?,
-            (string | null | undefined)?,
-            (string | undefined)?
-        ],
-        void
-    >;
+    execute: sinon.SinonSpy;
     showMessage: sinon.SinonSpy<[string], void>;
     showModalMessage: sinon.SinonSpy<[string], void>;
     showError: sinon.SinonSpy<[string], void>;
@@ -104,8 +99,8 @@ describe("Model & ScmProvider modules (integration)", () => {
             depotPath: "//depot/testArea/testFolder/moved.txt",
             depotRevision: 1,
             operation: Status.MOVE_ADD,
-            resolveBaseDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
-            resolveBaseRev: 4
+            resolveFromDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
+            resolveEndFromRev: 4
         },
         moveDelete: {
             localFile: getLocalFile(workspaceUri, "testFolderOld", "movedFrom.txt"),
@@ -118,16 +113,16 @@ describe("Model & ScmProvider modules (integration)", () => {
             depotPath: "//depot/testArea/testFolder/branched.txt",
             depotRevision: 1,
             operation: Status.BRANCH,
-            resolveBaseDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt",
-            resolveBaseRev: 1
+            resolveFromDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt",
+            resolveEndFromRev: 1
         },
         integrate: {
             localFile: getLocalFile(workspaceUri, "testFolder", "integrated.txt"),
             depotPath: "//depot/testArea/testFolder/integrated.txt",
             depotRevision: 7,
             operation: Status.INTEGRATE,
-            resolveBaseDepotPath: "//depot/testAreaOld/testFolder/integrated.txt",
-            resolveBaseRev: 5
+            resolveFromDepotPath: "//depot/testAreaOld/testFolder/integrated.txt",
+            resolveEndFromRev: 5
         },
         outOfWorkspaceAdd: {
             localFile: getLocalFile(workspaceUri, "..", "outOfWorkspaceAdd.txt"),
@@ -927,6 +922,19 @@ describe("Model & ScmProvider modules (integration)", () => {
                 const out = await items.instance.provideOriginalResource(inUri);
                 expect(out).to.be.undefined;
             });
+            it("Diffs moved files against the original file", async () => {
+                const out = await items.instance.provideOriginalResource(
+                    basicFiles.moveAdd.localFile
+                );
+
+                expect(out).to.deep.equal(
+                    vscode.Uri.parse(basicFiles.moveDelete.depotPath).with({
+                        scheme: "perforce",
+                        fragment: "4",
+                        query: "p4args=-q&command=print&depot"
+                    })
+                );
+            });
         });
         describe("Shelving a changelist", () => {
             it("Cannot shelve the default changelist", async () => {
@@ -1242,77 +1250,6 @@ describe("Model & ScmProvider modules (integration)", () => {
         });
 
         describe("Opening", () => {
-            /**
-             * Matches against a perforce URI, containing a local file's path
-             * @param file
-             */
-            function perforceLocalUriMatcher(file: StubFile) {
-                if (!file.localFile) {
-                    throw new Error(
-                        "Can't make a local file matcher without a local file"
-                    );
-                }
-                return Utils.makePerforceDocUri(file.localFile, "print", "-q", {
-                    workspace: workspaceUri.fsPath
-                }).with({ fragment: file.depotRevision.toString() });
-            }
-
-            /**
-             * Matches against a perforce URI, using the depot path for a file
-             * @param file
-             */
-            function perforceDepotUriMatcher(file: StubFile) {
-                return Utils.makePerforceDocUri(
-                    vscode.Uri.parse("perforce:" + file.depotPath),
-                    "print",
-                    "-q",
-                    { depot: true, workspace: workspaceUri.fsPath }
-                ).with({ fragment: file.depotRevision.toString() });
-            }
-
-            /**
-             * Matches against a perforce URI, using the resolveBaseFile0 depot path
-             * @param file
-             */
-            function perforceFromFileUriMatcher(file: StubFile) {
-                return Utils.makePerforceDocUri(
-                    vscode.Uri.parse("perforce:" + file.resolveBaseDepotPath),
-                    "print",
-                    "-q",
-                    { depot: true, workspace: workspaceUri.fsPath }
-                ).with({ fragment: file.resolveBaseRev?.toString() });
-            }
-
-            /**
-             * Matches against a perforce URI, using the depot path for the file AND containing a fragment for the shelved changelist number
-             * @param file
-             * @param chnum
-             */
-            function perforceShelvedUriMatcher(file: StubFile, chnum: string) {
-                return Utils.makePerforceDocUri(
-                    vscode.Uri.parse("perforce:" + file.depotPath).with({
-                        fragment: "@=" + chnum
-                    }),
-                    "print",
-                    "-q",
-                    { depot: true, workspace: workspaceUri.fsPath }
-                );
-            }
-
-            function perforceLocalShelvedUriMatcher(file: StubFile, chnum: string) {
-                if (!file.localFile) {
-                    throw new Error(
-                        "Can't make a local file matcher without a local file"
-                    );
-                }
-                return Utils.makePerforceDocUri(
-                    file.localFile.with({ fragment: "@=" + chnum }),
-                    "print",
-                    "-q",
-                    { workspace: workspaceUri.fsPath }
-                );
-            }
-
             let execCommand: sinon.SinonSpy<[string, ...any[]], Thenable<unknown>>;
             beforeEach(function() {
                 this.timeout(4000);
@@ -1451,7 +1388,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         sinon.match({ fsPath: workspaceUri.fsPath }),
                         "print",
                         sinon.match.any,
-                        '-q "' + file.resolveBaseDepotPath + '#4"'
+                        '-q "' + file.resolveFromDepotPath + '#4"'
                     );
                 });
                 it("Displays the depot version for a move / delete", async () => {
