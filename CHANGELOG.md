@@ -190,7 +190,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
-[3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.1...3.5.0
+[3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.0...3.5.1
 [3.5.0]: https://github.com/mjcrouch/vscode-perforce/compare/6807513579057a52292f87d3ca58babf012cb906...33d036413600eaeeecd1425898d7615e472a7a6b
 [3.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/1fca898f1bceacf1135f044bee87983c59cbc87e...4af0dc0242d2e05f447c75420e76768f30d89469
 [3.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/7cf9e068708d0ccadda7201e862c835826ca35bf...b9192e2fb31ad615dace4b035adc0cb8e08f78c9
