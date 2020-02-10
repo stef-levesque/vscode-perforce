@@ -56,7 +56,7 @@ If you install this extension, please uninstall or disable `slevesque.perforce` 
 |`perforce.hideShelvedFiles`        |`boolean`  |Hide shelved files in the SCM Explorer.
 |`perforce.hideEmptyChangelists`    |`boolean`  |Hide changelists with no file in the SCM Explorer.
 |&nbsp;
-|`perforce.bottleneck`              |`object`   |**Experimental** Throttle all perforce commands via bottleneck.
+|`perforce.bottleneck.maxConcurrent` |`number`  |Limit the maximum number of perforce commands running at any given time.
 
 ## Activation
 

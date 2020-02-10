@@ -1,5 +1,11 @@
 # Change log
 
+## [3.5.1] - 2020-02-10
+* Gutter decorations for a moved file now show the diff against the file it was moved from, if known (#29)
+* Correct the revision used for the scm provider diff if a file is moved (#29)
+* The perforce output is always initialised (unless the activiation move is 'off') - which will help to diagnose issues with workspace configuration (#7)
+* Hide commands in the command palette when they can't be used (#24)
+
 ## [3.5.0] - 2020-02-07
 * When using `Move to changelist` from the context menu, it's now possible to create a new changelist. This is useful when you want to move just a few files from the default changelist to a new changelist, instead of all of them (#4)
 * Add context menu options to `Attach job` and `Remove job` from a changelist (#3)
@@ -184,6 +190,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.1...3.5.0
 [3.5.0]: https://github.com/mjcrouch/vscode-perforce/compare/6807513579057a52292f87d3ca58babf012cb906...33d036413600eaeeecd1425898d7615e472a7a6b
 [3.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/1fca898f1bceacf1135f044bee87983c59cbc87e...4af0dc0242d2e05f447c75420e76768f30d89469
 [3.0.0]: https://github.com/stef-levesque/vscode-perforce/compare/7cf9e068708d0ccadda7201e862c835826ca35bf...b9192e2fb31ad615dace4b035adc0cb8e08f78c9
