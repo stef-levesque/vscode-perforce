@@ -231,37 +231,37 @@
             },
             {
                 "command": "perforce.add",
-                "title": "add - Open a new file to add it to the depot",
+                "title": "Add - Open the current file to add it to the depot",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.edit",
-                "title": "edit - Open an existing file for edit",
+                "title": "Edit - Open the current file for edit",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.delete",
-                "title": "delete - Delete an existing file",
+                "title": "Delete - Delete the current file",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.revert",
-                "title": "revert - Discard changes from an opened file",
+                "title": "Revert - Discard changes from the current file",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.diff",
-                "title": "diff - Display diff of client file with depot file",
+                "title": "Diff - Display diff of client file with depot file",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.diffRevision",
-                "title": "diff revision - Display diff of client file with depot file at a specific revision",
+                "title": "Diff revision - Display diff of client file with depot file at a specific revision",
                 "category": "Perforce"
             },
             {
                 "command": "perforce.annotate",
-                "title": "annotate - Print file lines and their revisions in the gutter",
+                "title": "Annotate - Print file lines and their revisions in the gutter",
                 "category": "Perforce"
             },
             {
@@ -429,11 +429,89 @@
             },
             {
                 "command": "perforce.opened",
-                "title": "opened - Display 'open' files and open one in the editor",
+                "title": "Opened - Display 'open' files, and open one in the editor",
                 "category": "Perforce"
             }
         ],
         "menus": {
+            "commandPalette": [
+                {
+                    "command": "perforce.submitChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.revertChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.editChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.revertUnchangedChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.shelveChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.shelveRevertChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.unshelveChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.deleteShelvedChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.fixJob",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.unfixJob",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.describe",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.revertFile",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.reopenFile",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.shelveunshelve",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.openResource",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.openResourcevShelved",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.openFile",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.revertUnchangedFile",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.deleteShelvedFile",
+                    "when": "0"
+                }
+            ],
             "scm/title": [
                 {
                     "command": "perforce.Sync",
