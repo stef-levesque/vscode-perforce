@@ -131,4 +131,36 @@ describe("Debounce", () => {
         debounced.dispose();
         await expect(p2).to.eventually.be.rejectedWith("Debounced function cancelled");
     });
+    it("Calls the onCall event immediately for every normal call", async () => {
+        const spy = sinon.spy();
+        const db2 = debounce(callee, 10, spy);
+
+        db2("1");
+        db2("2");
+        const prom = db2("3");
+
+        expect(spy).to.have.been.calledWith("1");
+        expect(spy).to.have.been.calledWith("2");
+        expect(spy).to.have.been.calledWith("3");
+        await prom;
+        expect(callee).to.have.been.calledWith("1");
+        expect(callee).not.to.have.been.calledWith("2");
+        expect(callee).to.have.been.calledWith("3");
+    });
+    it("Calls the onCall event immediately for without-leading call", async () => {
+        const spy = sinon.spy();
+        const db2 = debounce(callee, 10, spy);
+
+        db2.withoutLeadingCall("1");
+        db2.withoutLeadingCall("2");
+        const prom = db2.withoutLeadingCall("3");
+
+        expect(spy).to.have.been.calledWith("1");
+        expect(spy).to.have.been.calledWith("2");
+        expect(spy).to.have.been.calledWith("3");
+        await prom;
+        expect(callee).not.to.have.been.calledWith("1");
+        expect(callee).not.to.have.been.calledWith("2");
+        expect(callee).to.have.been.calledWith("3");
+    });
 });

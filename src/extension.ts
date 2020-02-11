@@ -226,7 +226,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
         return;
     }
 
-    Display.initialize(ctx.subscriptions);
+    Display.initializeChannel(_disposable);
 
     ctx.subscriptions.push(
         new vscode.Disposable(() => Disposable.from(..._disposable).dispose())
@@ -256,6 +256,8 @@ function doOneTimeRegistration() {
         Display.channel.appendLine(
             "Performing one-time registration of perforce commands"
         );
+
+        Display.initialize(_disposable);
 
         _disposable.push(new PerforceContentProvider());
 

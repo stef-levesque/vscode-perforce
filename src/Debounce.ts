@@ -104,12 +104,15 @@ export type DebouncedFunction<P extends any[], T> = {
  */
 export function debounce<P extends any[], T>(
     func: (...rest: P) => T,
-    time: number
+    time: number,
+    onCall?: (...args: P) => void
 ): DebouncedFunction<P, T> {
     let lastDebounced: DebouncedCall<P, T> | undefined;
 
     const ret = (...args: P): Promise<T> => {
         const now = Date.now();
+
+        onCall?.(...args);
 
         if (!lastDebounced || !lastDebounced.canExecute) {
             lastDebounced = new DebouncedCall(func, now, time);
@@ -121,6 +124,8 @@ export function debounce<P extends any[], T>(
 
     ret.withoutLeadingCall = (...args: P): Promise<T> => {
         const now = Date.now();
+
+        onCall?.(...args);
 
         if (!lastDebounced || !lastDebounced.canExecute) {
             lastDebounced = new DebouncedCall(func, now, time);

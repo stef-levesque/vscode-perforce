@@ -20,7 +20,7 @@ import {
     perforceFromFileUriMatcher,
     perforceLocalShelvedUriMatcher
 } from "./StubPerforceService";
-import { Display } from "../../Display";
+import { Display, ActiveStatusEvent, ActiveEditorStatus } from "../../Display";
 import { Utils } from "../../Utils";
 import { Resource } from "../../scm/Resource";
 import { Status } from "../../scm/Status";
@@ -57,6 +57,12 @@ function findResourceForShelvedFile(
     return res;
 }
 
+/*function anotherFrame() {
+    return new Promise(res => {
+        setTimeout(() => res(), 1);
+    });
+}*/
+
 function findResourceForFile(group: vscode.SourceControlResourceGroup, file: StubFile) {
     const res = group.resourceStates.find(
         resource =>
@@ -75,84 +81,110 @@ describe("Model & ScmProvider modules (integration)", () => {
     }
     const workspaceUri = vscode.workspace.workspaceFolders[0].uri;
 
-    const basicFiles: { [key: string]: StubFile } = {
-        edit: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
-            depotPath: "//depot/testArea/testFolder/a.txt",
-            depotRevision: 4,
-            operation: Status.EDIT
+    // these are functions, so that a new version StubFile is returned every time
+    // mainly because uri.toString() mutates the Uri object and makes it harder to match
+    const basicFiles: { [key: string]: () => StubFile } = {
+        edit: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
+                depotPath: "//depot/testArea/testFolder/a.txt",
+                depotRevision: 4,
+                operation: Status.EDIT
+            };
         },
-        delete: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "deleted.txt"),
-            depotPath: "//depot/testArea/testFolder/deleted.txt",
-            depotRevision: 2,
-            operation: Status.DELETE
+        delete: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "deleted.txt"),
+                depotPath: "//depot/testArea/testFolder/deleted.txt",
+                depotRevision: 2,
+                operation: Status.DELETE
+            };
         },
-        add: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "new.txt"),
-            depotPath: "//depot/testArea/testFolder/new.txt",
-            depotRevision: 3,
-            operation: Status.ADD
+        add: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "new.txt"),
+                depotPath: "//depot/testArea/testFolder/new.txt",
+                depotRevision: 3,
+                operation: Status.ADD
+            };
         },
-        moveAdd: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "moved.txt"),
-            depotPath: "//depot/testArea/testFolder/moved.txt",
-            depotRevision: 1,
-            operation: Status.MOVE_ADD,
-            resolveFromDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
-            resolveEndFromRev: 4
+        moveAdd: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "moved.txt"),
+                depotPath: "//depot/testArea/testFolder/moved.txt",
+                depotRevision: 1,
+                operation: Status.MOVE_ADD,
+                resolveFromDepotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
+                resolveEndFromRev: 4
+            };
         },
-        moveDelete: {
-            localFile: getLocalFile(workspaceUri, "testFolderOld", "movedFrom.txt"),
-            depotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
-            depotRevision: 3,
-            operation: Status.MOVE_DELETE
+        moveDelete: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolderOld", "movedFrom.txt"),
+                depotPath: "//depot/testArea/testFolderOld/movedFrom.txt",
+                depotRevision: 3,
+                operation: Status.MOVE_DELETE
+            };
         },
-        branch: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "branched.txt"),
-            depotPath: "//depot/testArea/testFolder/branched.txt",
-            depotRevision: 1,
-            operation: Status.BRANCH,
-            resolveFromDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt",
-            resolveEndFromRev: 1
+        branch: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "branched.txt"),
+                depotPath: "//depot/testArea/testFolder/branched.txt",
+                depotRevision: 1,
+                operation: Status.BRANCH,
+                resolveFromDepotPath: "//depot/testAreaOld/testFolder/branchedFrom.txt",
+                resolveEndFromRev: 1
+            };
         },
-        integrate: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "integrated.txt"),
-            depotPath: "//depot/testArea/testFolder/integrated.txt",
-            depotRevision: 7,
-            operation: Status.INTEGRATE,
-            resolveFromDepotPath: "//depot/testAreaOld/testFolder/integrated.txt",
-            resolveEndFromRev: 5
+        integrate: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "integrated.txt"),
+                depotPath: "//depot/testArea/testFolder/integrated.txt",
+                depotRevision: 7,
+                operation: Status.INTEGRATE,
+                resolveFromDepotPath: "//depot/testAreaOld/testFolder/integrated.txt",
+                resolveEndFromRev: 5
+            };
         },
-        outOfWorkspaceAdd: {
-            localFile: getLocalFile(workspaceUri, "..", "outOfWorkspaceAdd.txt"),
-            depotPath: "//depot/outOfWorkspaceAdd.txt",
-            depotRevision: 1,
-            operation: Status.ADD
+        outOfWorkspaceAdd: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "..", "outOfWorkspaceAdd.txt"),
+                depotPath: "//depot/outOfWorkspaceAdd.txt",
+                depotRevision: 1,
+                operation: Status.ADD
+            };
         },
-        outOfWorkspaceEdit: {
-            localFile: getLocalFile(workspaceUri, "..", "outOfWorkspace.txt"),
-            depotPath: "//depot/outOfWorkspace.txt",
-            depotRevision: 99,
-            operation: Status.EDIT
+        outOfWorkspaceEdit: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "..", "outOfWorkspace.txt"),
+                depotPath: "//depot/outOfWorkspace.txt",
+                depotRevision: 99,
+                operation: Status.EDIT
+            };
         },
-        shelveNoWorkspace: {
-            depotPath: "//depot/testArea/testFolder/none.txt",
-            localFile: getLocalFile(workspaceUri, "testFolder", "none.txt"),
-            depotRevision: 1,
-            operation: Status.ADD
+        shelveNoWorkspace: () => {
+            return {
+                depotPath: "//depot/testArea/testFolder/none.txt",
+                localFile: getLocalFile(workspaceUri, "testFolder", "none.txt"),
+                depotRevision: 1,
+                operation: Status.ADD
+            };
         },
-        shelveEdit: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
-            depotPath: "//depot/testArea/testFolder/a.txt",
-            depotRevision: 1,
-            operation: Status.EDIT
+        shelveEdit: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
+                depotPath: "//depot/testArea/testFolder/a.txt",
+                depotRevision: 1,
+                operation: Status.EDIT
+            };
         },
-        shelveDelete: {
-            localFile: getLocalFile(workspaceUri, "testFolder", "deleted.txt"),
-            depotPath: "//depot/testArea/testFolder/deleted.txt",
-            depotRevision: 2,
-            operation: Status.DELETE
+        shelveDelete: () => {
+            return {
+                localFile: getLocalFile(workspaceUri, "testFolder", "deleted.txt"),
+                depotPath: "//depot/testArea/testFolder/deleted.txt",
+                depotRevision: 2,
+                operation: Status.DELETE
+            };
         }
     };
 
@@ -179,8 +211,13 @@ describe("Model & ScmProvider modules (integration)", () => {
         let stubService: StubPerforceService;
         let instance: PerforceSCMProvider;
         let workspaceConfig: WorkspaceConfigAccessor;
+        let emitter: vscode.EventEmitter<ActiveStatusEvent>;
+
         this.beforeEach(function() {
             this.timeout(4000);
+
+            emitter = new vscode.EventEmitter<ActiveStatusEvent>();
+            sinon.replace(Display, "onActiveFileStatusKnown", emitter.event);
 
             stubService = new StubPerforceService();
             stubService.changelists = [];
@@ -194,9 +231,11 @@ describe("Model & ScmProvider modules (integration)", () => {
             instance = new PerforceSCMProvider(config, workspaceUri, workspaceConfig);
             subscriptions.push(instance);
         });
-        this.afterEach(() => {
+        this.afterEach(async () => {
             subscriptions.forEach(sub => sub.dispose());
+            emitter.dispose();
             sinon.restore();
+            await vscode.commands.executeCommand("workbench.action.closeAllEditors");
         });
         it("Handles no changelists", async () => {
             stubService.changelists = [];
@@ -229,22 +268,22 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch, basicFiles.outOfWorkspaceEdit]
+                    files: [basicFiles.branch(), basicFiles.outOfWorkspaceEdit()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
                     files: [
-                        basicFiles.edit,
-                        basicFiles.delete,
-                        basicFiles.add,
-                        basicFiles.outOfWorkspaceAdd
+                        basicFiles.edit(),
+                        basicFiles.delete(),
+                        basicFiles.add(),
+                        basicFiles.outOfWorkspaceAdd()
                     ]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete]
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()]
                 }
             ];
 
@@ -254,22 +293,22 @@ describe("Model & ScmProvider modules (integration)", () => {
 
             expect(instance.resources[0].id).to.equal("default");
             expect(instance.resources[0].resourceStates).to.be.resources([
-                basicFiles.branch,
-                basicFiles.outOfWorkspaceEdit
+                basicFiles.branch(),
+                basicFiles.outOfWorkspaceEdit()
             ]);
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: changelist 1");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.edit,
-                basicFiles.delete,
-                basicFiles.add,
-                basicFiles.outOfWorkspaceAdd
+                basicFiles.edit(),
+                basicFiles.delete(),
+                basicFiles.add(),
+                basicFiles.outOfWorkspaceAdd()
             ]);
             expect(instance.resources[2].id).to.equal("pending:2");
             expect(instance.resources[2].label).to.equal("#2: changelist 2");
             expect(instance.resources[2].resourceStates).to.be.resources([
-                basicFiles.moveAdd,
-                basicFiles.moveDelete
+                basicFiles.moveAdd(),
+                basicFiles.moveDelete()
             ]);
         });
         it("Handles shelved files with no open files", async () => {
@@ -278,13 +317,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "3",
                     description: "shelved changelist 1",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "4",
                     description: "shelved changelist 2",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveDelete]
+                    shelvedFiles: [basicFiles.shelveDelete()]
                 }
             ];
 
@@ -298,13 +337,13 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].id).to.equal("pending:3");
             expect(instance.resources[1].label).to.equal("#3: shelved changelist 1");
             expect(instance.resources[1].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveEdit
+                basicFiles.shelveEdit()
             ]);
 
             expect(instance.resources[2].id).to.equal("pending:4");
             expect(instance.resources[2].label).to.equal("#4: shelved changelist 2");
             expect(instance.resources[2].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveDelete
+                basicFiles.shelveDelete()
             ]);
         });
         it("Handles open and shelved files", async () => {
@@ -312,14 +351,14 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "5",
                     description: "mixed changelist 1",
-                    files: [basicFiles.edit, basicFiles.add],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    files: [basicFiles.edit(), basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "6",
                     description: "mixed changelist 2",
-                    files: [basicFiles.delete],
-                    shelvedFiles: [basicFiles.shelveDelete]
+                    files: [basicFiles.delete()],
+                    shelvedFiles: [basicFiles.shelveDelete()]
                 }
             ];
 
@@ -334,19 +373,19 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].label).to.equal("#5: mixed changelist 1");
             expect(
                 instance.resources[1].resourceStates.slice(0, 1)
-            ).to.be.shelvedResources([basicFiles.shelveEdit]);
+            ).to.be.shelvedResources([basicFiles.shelveEdit()]);
             expect(instance.resources[1].resourceStates.slice(1)).to.be.resources([
-                basicFiles.edit,
-                basicFiles.add
+                basicFiles.edit(),
+                basicFiles.add()
             ]);
 
             expect(instance.resources[2].id).to.equal("pending:6");
             expect(instance.resources[2].label).to.equal("#6: mixed changelist 2");
             expect(
                 instance.resources[2].resourceStates.slice(0, 1)
-            ).to.be.shelvedResources([basicFiles.shelveDelete]);
+            ).to.be.shelvedResources([basicFiles.shelveDelete()]);
             expect(instance.resources[2].resourceStates.slice(1)).to.be.resources([
-                basicFiles.delete
+                basicFiles.delete()
             ]);
         });
         it("Includes new files open for shelve and not in the workspace", async () => {
@@ -355,7 +394,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "7",
                     description: "changelist 1",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveNoWorkspace]
+                    shelvedFiles: [basicFiles.shelveNoWorkspace()]
                 }
             ];
 
@@ -368,7 +407,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].label).to.equal("#7: changelist 1");
 
             expect(instance.resources[1].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveNoWorkspace
+                basicFiles.shelveNoWorkspace()
             ]);
         });
         it("Handles the same file shelved in two changelists", async () => {
@@ -377,13 +416,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "8",
                     description: "changelist 1",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "9",
                     description: "changelist 2",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 }
             ];
 
@@ -398,14 +437,14 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].label).to.equal("#8: changelist 1");
 
             expect(instance.resources[1].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveEdit
+                basicFiles.shelveEdit()
             ]);
 
             expect(instance.resources[2].id).to.equal("pending:9");
             expect(instance.resources[2].label).to.equal("#9: changelist 2");
 
             expect(instance.resources[2].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveEdit
+                basicFiles.shelveEdit()
             ]);
         });
         it("Can sort changelists ascending", async () => {
@@ -414,17 +453,17 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete]
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()]
                 }
             ];
 
@@ -434,20 +473,20 @@ describe("Model & ScmProvider modules (integration)", () => {
 
             expect(instance.resources[0].id).to.equal("default");
             expect(instance.resources[0].resourceStates).to.be.resources([
-                basicFiles.branch
+                basicFiles.branch()
             ]);
             expect(instance.resources[1].id).to.equal("pending:2");
             expect(instance.resources[1].label).to.equal("#2: changelist 2");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.moveAdd,
-                basicFiles.moveDelete
+                basicFiles.moveAdd(),
+                basicFiles.moveDelete()
             ]);
             expect(instance.resources[2].id).to.equal("pending:1");
             expect(instance.resources[2].label).to.equal("#1: changelist 1");
             expect(instance.resources[2].resourceStates).to.be.resources([
-                basicFiles.edit,
-                basicFiles.delete,
-                basicFiles.add
+                basicFiles.edit(),
+                basicFiles.delete(),
+                basicFiles.add()
             ]);
         });
         it("Handles shelved files with no open files", async () => {
@@ -456,13 +495,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "3",
                     description: "shelved changelist 1",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "4",
                     description: "shelved changelist 2",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveDelete]
+                    shelvedFiles: [basicFiles.shelveDelete()]
                 }
             ];
 
@@ -476,13 +515,13 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].id).to.equal("pending:3");
             expect(instance.resources[1].label).to.equal("#3: shelved changelist 1");
             expect(instance.resources[1].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveEdit
+                basicFiles.shelveEdit()
             ]);
 
             expect(instance.resources[2].id).to.equal("pending:4");
             expect(instance.resources[2].label).to.equal("#4: shelved changelist 2");
             expect(instance.resources[2].resourceStates).to.be.shelvedResources([
-                basicFiles.shelveDelete
+                basicFiles.shelveDelete()
             ]);
         });
         it("Has decorations for files", async () => {
@@ -490,8 +529,8 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete],
-                    shelvedFiles: [basicFiles.shelveEdit, basicFiles.shelveDelete]
+                    files: [basicFiles.edit(), basicFiles.delete()],
+                    shelvedFiles: [basicFiles.shelveEdit(), basicFiles.shelveDelete()]
                 }
             ];
 
@@ -524,18 +563,18 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add],
-                    shelvedFiles: [basicFiles.shelveDelete, basicFiles.shelveEdit]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveDelete(), basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete]
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()]
                 }
             ];
 
@@ -545,23 +584,26 @@ describe("Model & ScmProvider modules (integration)", () => {
 
             expect(instance.resources[0].id).to.equal("default");
             expect(instance.resources[0].resourceStates).to.be.resources([
-                basicFiles.branch
+                basicFiles.branch()
             ]);
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: changelist 1");
             expect(
                 instance.resources[1].resourceStates.slice(0, 2)
-            ).to.be.shelvedResources([basicFiles.shelveDelete, basicFiles.shelveEdit]);
+            ).to.be.shelvedResources([
+                basicFiles.shelveDelete(),
+                basicFiles.shelveEdit()
+            ]);
             expect(instance.resources[1].resourceStates.slice(2)).to.be.resources([
-                basicFiles.edit,
-                basicFiles.delete,
-                basicFiles.add
+                basicFiles.edit(),
+                basicFiles.delete(),
+                basicFiles.add()
             ]);
             expect(instance.resources[2].id).to.equal("pending:2");
             expect(instance.resources[2].label).to.equal("#2: changelist 2");
             expect(instance.resources[2].resourceStates).to.be.resources([
-                basicFiles.moveAdd,
-                basicFiles.moveDelete
+                basicFiles.moveAdd(),
+                basicFiles.moveDelete()
             ]);
         });
         it("Can be refreshed", async () => {
@@ -576,12 +618,12 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.edit]
+                    files: [basicFiles.edit()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.add]
+                    files: [basicFiles.add()]
                 }
             ];
 
@@ -590,12 +632,12 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[0].id).to.equal("default");
             expect(instance.resources[0].label).to.equal("Default Changelist");
             expect(instance.resources[0].resourceStates).to.be.resources([
-                basicFiles.edit
+                basicFiles.edit()
             ]);
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: changelist 1");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.add
+                basicFiles.add()
             ]);
         });
         it("Can be refreshed multiple times without duplication", async () => {
@@ -603,12 +645,12 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.edit]
+                    files: [basicFiles.edit()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.add]
+                    files: [basicFiles.add()]
                 }
             ];
 
@@ -621,12 +663,12 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[0].id).to.equal("default");
             expect(instance.resources[0].label).to.equal("Default Changelist");
             expect(instance.resources[0].resourceStates).to.be.resources([
-                basicFiles.edit
+                basicFiles.edit()
             ]);
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: changelist 1");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.add
+                basicFiles.add()
             ]);
         });
         it("Can ignore shelved files", async () => {
@@ -636,8 +678,8 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "1",
                     description: "mixed changelist 1",
-                    files: [basicFiles.add],
-                    shelvedFiles: [basicFiles.shelveEdit]
+                    files: [basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveEdit()]
                 }
             ];
 
@@ -651,7 +693,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: mixed changelist 1");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.add
+                basicFiles.add()
             ]);
         });
         it("Can hide non-workspace files", async () => {
@@ -662,9 +704,9 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "1",
                     description: "mixed changelist 1",
                     files: [
-                        basicFiles.add,
-                        basicFiles.outOfWorkspaceAdd,
-                        basicFiles.outOfWorkspaceEdit
+                        basicFiles.add(),
+                        basicFiles.outOfWorkspaceAdd(),
+                        basicFiles.outOfWorkspaceEdit()
                     ]
                 }
             ];
@@ -679,7 +721,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: mixed changelist 1");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.add
+                basicFiles.add()
             ]);
         });
         it("Can ignore changelists with a defined prefix", async () => {
@@ -689,12 +731,12 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "1",
                     description: "ignore:me",
-                    files: [basicFiles.add]
+                    files: [basicFiles.add()]
                 },
                 {
                     chnum: "2",
                     description: "noignore:me",
-                    files: [basicFiles.edit]
+                    files: [basicFiles.edit()]
                 }
             ];
 
@@ -708,7 +750,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             expect(instance.resources[1].id).to.equal("pending:2");
             expect(instance.resources[1].label).to.equal("#2: noignore:me");
             expect(instance.resources[1].resourceStates).to.be.resources([
-                basicFiles.edit
+                basicFiles.edit()
             ]);
         });
         it("Counts open files but not shelved files", async () => {
@@ -717,18 +759,18 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add],
-                    shelvedFiles: [basicFiles.shelveDelete, basicFiles.shelveEdit]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveDelete(), basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete] // move add and move delete count as one operation
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()] // move add and move delete count as one operation
                 }
             ];
 
@@ -742,18 +784,18 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add],
-                    shelvedFiles: [basicFiles.shelveDelete, basicFiles.shelveEdit]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveDelete(), basicFiles.shelveEdit()]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete] // move add and move delete count as one operation
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()] // move add and move delete count as one operation
                 }
             ];
 
@@ -767,13 +809,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
                     files: [],
-                    shelvedFiles: [basicFiles.shelveDelete]
+                    shelvedFiles: [basicFiles.shelveDelete()]
                 }
             ];
 
@@ -788,12 +830,12 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch]
+                    files: [basicFiles.branch()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()]
                 }
             ];
 
@@ -804,21 +846,116 @@ describe("Model & ScmProvider modules (integration)", () => {
                 {
                     chnum: "default",
                     description: "n/a",
-                    files: [basicFiles.branch, basicFiles.integrate]
+                    files: [basicFiles.branch(), basicFiles.integrate()]
                 },
                 {
                     chnum: "1",
                     description: "changelist 1",
-                    files: [basicFiles.edit, basicFiles.delete, basicFiles.add]
+                    files: [basicFiles.edit(), basicFiles.delete(), basicFiles.add()]
                 },
                 {
                     chnum: "2",
                     description: "changelist 2",
-                    files: [basicFiles.moveAdd, basicFiles.moveDelete]
+                    files: [basicFiles.moveAdd(), basicFiles.moveDelete()]
                 }
             ];
             await PerforceSCMProvider.RefreshAll();
             expect(instance.count).to.equal(6);
+        });
+        describe("State conflicts", () => {
+            it("Marks open files as conflicting when the display indicates they are not open", async () => {
+                stubService.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit()]
+                    }
+                ];
+                await instance.Initialize();
+                const uri = basicFiles.edit().localFile;
+
+                emitter.fire({ file: uri, status: ActiveEditorStatus.NOT_OPEN });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.true;
+            });
+            it("Does not mark files as conflicting if states match", async () => {
+                stubService.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit()]
+                    }
+                ];
+                await instance.Initialize();
+                const uri = basicFiles.edit().localFile;
+
+                emitter.fire({ file: uri, status: ActiveEditorStatus.OPEN });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.false;
+            });
+            it("Considers everything open as potentially conflicting during a refresh", async () => {
+                stubService.changelists = [
+                    {
+                        chnum: "1",
+                        description: "change 1",
+                        files: [basicFiles.edit()]
+                    }
+                ];
+                await instance.Initialize();
+
+                const uri = basicFiles.edit().localFile;
+
+                const prom = PerforceSCMProvider.RefreshAll();
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.true;
+                expect(
+                    PerforceSCMProvider.mayHaveConflictForFile(basicFiles.add().localFile)
+                ).to.be.false;
+                await prom;
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.false;
+            });
+            it("Ignores shelved files", async () => {
+                stubService.changelists = [
+                    {
+                        chnum: "1",
+                        description: "change 1",
+                        files: [],
+                        shelvedFiles: [basicFiles.shelveEdit()]
+                    }
+                ];
+                await instance.Initialize();
+
+                const uri = basicFiles.shelveEdit().localFile;
+
+                emitter.fire({ file: uri, status: ActiveEditorStatus.OPEN });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.false;
+            });
+            it("Ignores files where the active status is not NOT_OPEN", async () => {
+                stubService.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit()]
+                    }
+                ];
+                await instance.Initialize();
+                const uri = basicFiles.edit().localFile;
+                const notOpenUri = basicFiles.add().localFile;
+
+                emitter.fire({ file: uri, status: ActiveEditorStatus.OPEN });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.false;
+
+                emitter.fire({ file: uri, status: ActiveEditorStatus.NOT_IN_WORKSPACE });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(uri)).to.be.false;
+
+                emitter.fire({ file: notOpenUri, status: ActiveEditorStatus.OPEN });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(notOpenUri)).to.be
+                    .false;
+
+                emitter.fire({
+                    file: notOpenUri,
+                    status: ActiveEditorStatus.NOT_IN_WORKSPACE
+                });
+                expect(PerforceSCMProvider.mayHaveConflictForFile(notOpenUri)).to.be
+                    .false;
+            });
         });
     });
     describe("Actions", function() {
@@ -833,15 +970,15 @@ describe("Model & ScmProvider modules (integration)", () => {
                     chnum: "1",
                     description: "Changelist 1",
                     files: [
-                        basicFiles.edit,
-                        basicFiles.delete,
-                        basicFiles.add,
-                        basicFiles.moveAdd,
-                        basicFiles.moveDelete,
-                        basicFiles.branch,
-                        basicFiles.integrate
+                        basicFiles.edit(),
+                        basicFiles.delete(),
+                        basicFiles.add(),
+                        basicFiles.moveAdd(),
+                        basicFiles.moveDelete(),
+                        basicFiles.branch(),
+                        basicFiles.integrate()
                     ],
-                    shelvedFiles: [basicFiles.shelveEdit, basicFiles.shelveDelete]
+                    shelvedFiles: [basicFiles.shelveEdit(), basicFiles.shelveDelete()]
                 },
                 {
                     chnum: "2",
@@ -903,11 +1040,11 @@ describe("Model & ScmProvider modules (integration)", () => {
         describe("Provide original resource", () => {
             it("Diffs against the have revision", async () => {
                 const out = await items.instance.provideOriginalResource(
-                    basicFiles.add.localFile
+                    basicFiles.add().localFile
                 );
 
                 expect(out).to.deep.equal(
-                    basicFiles.add.localFile.with({
+                    basicFiles.add().localFile.with({
                         scheme: "perforce",
                         fragment: "have",
                         query: "p4args=-q&command=print"
@@ -916,7 +1053,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Does not diff non-file resources", async () => {
                 const inUri = Utils.makePerforceDocUri(
-                    basicFiles.edit.localFile,
+                    basicFiles.edit().localFile,
                     "print"
                 );
                 const out = await items.instance.provideOriginalResource(inUri);
@@ -924,11 +1061,11 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             it("Diffs moved files against the original file", async () => {
                 const out = await items.instance.provideOriginalResource(
-                    basicFiles.moveAdd.localFile
+                    basicFiles.moveAdd().localFile
                 );
 
                 expect(out).to.deep.equal(
-                    vscode.Uri.parse(basicFiles.moveDelete.depotPath).with({
+                    vscode.Uri.parse(basicFiles.moveDelete().depotPath).with({
                         scheme: "perforce",
                         fragment: "4",
                         query: "p4args=-q&command=print&depot"
@@ -1150,7 +1287,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveDelete
+                    basicFiles.shelveDelete()
                 );
 
                 await PerforceSCMProvider.DeleteShelvedFile(resource as Resource);
@@ -1166,7 +1303,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveDelete
+                    basicFiles.shelveDelete()
                 );
 
                 await PerforceSCMProvider.DeleteShelvedFile(resource as Resource);
@@ -1175,7 +1312,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "shelve",
                     sinon.match.any,
-                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                    '-d -c 1 "' + basicFiles.shelveDelete().depotPath + '"'
                 );
             });
             it("Can delete multiple shelved files", async () => {
@@ -1185,11 +1322,11 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource1 = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveDelete
+                    basicFiles.shelveDelete()
                 );
                 const resource2 = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveEdit
+                    basicFiles.shelveEdit()
                 );
 
                 await PerforceSCMProvider.DeleteShelvedFile(
@@ -1202,13 +1339,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "shelve",
                     sinon.match.any,
-                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                    '-d -c 1 "' + basicFiles.shelveDelete().depotPath + '"'
                 );
                 expect(items.execute).to.have.been.calledWithMatch(
                     workspaceUri,
                     "shelve",
                     sinon.match.any,
-                    '-d -c 1 "' + basicFiles.shelveEdit.depotPath + '"'
+                    '-d -c 1 "' + basicFiles.shelveEdit().depotPath + '"'
                 );
             });
             it("Cannot be used on normal files", async () => {
@@ -1218,11 +1355,11 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource1 = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveDelete
+                    basicFiles.shelveDelete()
                 );
                 const resource2 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.add
+                    basicFiles.add()
                 );
 
                 await PerforceSCMProvider.DeleteShelvedFile(
@@ -1238,7 +1375,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "shelve",
                     sinon.match.any,
-                    '-d -c 1 "' + basicFiles.shelveDelete.depotPath + '"'
+                    '-d -c 1 "' + basicFiles.shelveDelete().depotPath + '"'
                 );
                 expect(items.execute).not.to.have.been.calledWithMatch(
                     workspaceUri,
@@ -1258,7 +1395,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
             describe("When opening a file", () => {
                 it("Opens the underlying workspace file", async () => {
-                    const file = basicFiles.edit;
+                    const file = basicFiles.edit();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1270,13 +1407,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     expect(execCommand.lastCall).to.be.vscodeOpenCall(file.localFile);
                 });
                 it("Can open multiple files", async () => {
-                    const file1 = basicFiles.edit;
+                    const file1 = basicFiles.edit();
                     const resource1 = findResourceForFile(
                         items.instance.resources[1],
                         file1
                     );
 
-                    const file2 = basicFiles.add;
+                    const file2 = basicFiles.add();
                     const resource2 = findResourceForFile(
                         items.instance.resources[1],
                         file2
@@ -1289,7 +1426,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             });
             describe("When opening an scm resource", () => {
                 it("Diffs a local file against the depot file", async () => {
-                    const file = basicFiles.edit;
+                    const file = basicFiles.edit();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1311,13 +1448,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                 });
                 it("Can open multiple resources", async () => {
                     const td = sinon.stub(vscode.window, "showTextDocument");
-                    const file1 = basicFiles.edit;
+                    const file1 = basicFiles.edit();
                     const resource1 = findResourceForFile(
                         items.instance.resources[1],
                         file1
                     );
 
-                    const file2 = basicFiles.delete;
+                    const file2 = basicFiles.delete();
                     const resource2 = findResourceForFile(
                         items.instance.resources[1],
                         file2
@@ -1343,7 +1480,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 it("Displays the depot version of a deleted file", async () => {
                     const td = sinon.stub(vscode.window, "showTextDocument");
 
-                    const file = basicFiles.delete;
+                    const file = basicFiles.delete();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1356,7 +1493,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Diffs a new file against an empty file", async () => {
-                    const file = basicFiles.add;
+                    const file = basicFiles.add();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1371,7 +1508,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Diffs a moved file against the original file", async () => {
-                    const file = basicFiles.moveAdd;
+                    const file = basicFiles.moveAdd();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1394,7 +1531,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 it("Displays the depot version for a move / delete", async () => {
                     const td = sinon.stub(vscode.window, "showTextDocument");
 
-                    const file = basicFiles.moveDelete;
+                    const file = basicFiles.moveDelete();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1407,7 +1544,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Diffs a file opened for branch against an empty file", async () => {
-                    const file = basicFiles.branch;
+                    const file = basicFiles.branch();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1422,7 +1559,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Diffs an integration/merge against the target depot file", async () => {
-                    const file = basicFiles.integrate;
+                    const file = basicFiles.integrate();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1444,7 +1581,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Diffs a shelved file against the depot file", async () => {
-                    const file = basicFiles.shelveEdit;
+                    const file = basicFiles.shelveEdit();
                     const resource = findResourceForShelvedFile(
                         items.instance.resources[1],
                         file
@@ -1471,7 +1608,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Can diff a local file against the shelved file (from the shelved file)", async () => {
-                    const file = basicFiles.shelveEdit;
+                    const file = basicFiles.shelveEdit();
                     const resource = findResourceForShelvedFile(
                         items.instance.resources[1],
                         file
@@ -1492,7 +1629,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
                 });
                 it("Can diff a local file against the shelved file (from the local file)", async () => {
-                    const file = basicFiles.shelveEdit;
+                    const file = basicFiles.shelveEdit();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1514,7 +1651,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 });
                 it("Displays the depot version for a shelved deletion", async () => {
                     const td = sinon.stub(vscode.window, "showTextDocument");
-                    const file = basicFiles.shelveDelete;
+                    const file = basicFiles.shelveDelete();
                     const resource = findResourceForFile(
                         items.instance.resources[1],
                         file
@@ -1535,7 +1672,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 items.stubService.changelists = [
                     {
                         chnum: "default",
-                        files: [basicFiles.add, basicFiles.edit],
+                        files: [basicFiles.add(), basicFiles.edit()],
                         description: "n/a"
                     }
                 ];
@@ -1544,10 +1681,10 @@ describe("Model & ScmProvider modules (integration)", () => {
                     Description: "\tMy new changelist\n\tline 2\n\tline 3",
                     Files:
                         "\t" +
-                        basicFiles.add.depotPath +
+                        basicFiles.add().depotPath +
                         "\t# add" +
                         "\n\t" +
-                        basicFiles.edit.depotPath +
+                        basicFiles.edit().depotPath +
                         "\t# edit"
                 });
             });
@@ -1571,7 +1708,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 items.stubService.changelists = [
                     {
                         chnum: "1",
-                        files: [basicFiles.add, basicFiles.edit],
+                        files: [basicFiles.add(), basicFiles.edit()],
                         description: "changelist 1"
                     }
                 ];
@@ -1580,10 +1717,10 @@ describe("Model & ScmProvider modules (integration)", () => {
                     Description: "\tMy updated changelist",
                     Files:
                         "\t" +
-                        basicFiles.add.depotPath +
+                        basicFiles.add().depotPath +
                         "\t# add" +
                         "\n\t" +
-                        basicFiles.edit.depotPath +
+                        basicFiles.edit().depotPath +
                         "\t# edit"
                 });
             });
@@ -1610,7 +1747,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     .resolves(undefined);
                 const resource = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.ReopenFile(resource as Resource);
@@ -1641,11 +1778,11 @@ describe("Model & ScmProvider modules (integration)", () => {
                 });
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
                 const resource2 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.add
+                    basicFiles.add()
                 );
 
                 await PerforceSCMProvider.ReopenFile(resource1 as Resource, resource2);
@@ -1655,13 +1792,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "reopen",
                     sinon.match.any,
-                    '-c 2 "' + basicFiles.edit.localFile.fsPath + '"'
+                    '-c 2 "' + basicFiles.edit().localFile.fsPath + '"'
                 );
                 expect(items.execute).to.have.been.calledWithMatch(
                     workspaceUri,
                     "reopen",
                     sinon.match.any,
-                    '-c 2 "' + basicFiles.add.localFile.fsPath + '"'
+                    '-c 2 "' + basicFiles.add().localFile.fsPath + '"'
                 );
             });
             it("Can move files to the default changelist", async () => {
@@ -1670,7 +1807,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                 });
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.ReopenFile(resource1 as Resource);
@@ -1680,7 +1817,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "reopen",
                     sinon.match.any,
-                    '-c default "' + basicFiles.edit.localFile.fsPath + '"'
+                    '-c default "' + basicFiles.edit().localFile.fsPath + '"'
                 );
             });
             it("Can move files to a new changelist", async () => {
@@ -1692,11 +1829,11 @@ describe("Model & ScmProvider modules (integration)", () => {
                     .resolves("My selective changelist\nLine 2\nLine 3");
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
                 const resource2 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.add
+                    basicFiles.add()
                 );
 
                 await PerforceSCMProvider.ReopenFile(resource1 as Resource, resource2);
@@ -1710,24 +1847,24 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "reopen",
                     sinon.match.any,
-                    '-c 99 "' + basicFiles.edit.localFile.fsPath + '"'
+                    '-c 99 "' + basicFiles.edit().localFile.fsPath + '"'
                 );
 
                 expect(items.execute).to.have.been.calledWithMatch(
                     workspaceUri,
                     "reopen",
                     sinon.match.any,
-                    '-c 99 "' + basicFiles.add.localFile.fsPath + '"'
+                    '-c 99 "' + basicFiles.add().localFile.fsPath + '"'
                 );
             });
             it("Cannot move shelved files", async () => {
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
                 const resource2 = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveEdit
+                    basicFiles.shelveEdit()
                 );
 
                 await expect(
@@ -1749,7 +1886,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.ReopenFile(resource1 as Resource);
@@ -1884,7 +2021,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.Revert(resource as Resource);
@@ -1900,7 +2037,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.Revert(resource as Resource);
@@ -1909,7 +2046,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "revert",
                     sinon.match.any,
-                    '"' + basicFiles.edit.localFile.fsPath + '"'
+                    '"' + basicFiles.edit().localFile.fsPath + '"'
                 );
             });
             it("Can revert multiple files", async () => {
@@ -1919,12 +2056,12 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.add
+                    basicFiles.add()
                 );
 
                 const resource2 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.delete
+                    basicFiles.delete()
                 );
 
                 await PerforceSCMProvider.Revert(resource1 as Resource, resource2);
@@ -1935,13 +2072,13 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "revert",
                     sinon.match.any,
-                    '"' + basicFiles.add.localFile.fsPath + '"'
+                    '"' + basicFiles.add().localFile.fsPath + '"'
                 );
                 expect(items.execute).to.have.been.calledWithMatch(
                     workspaceUri,
                     "revert",
                     sinon.match.any,
-                    '"' + basicFiles.delete.localFile.fsPath + '"'
+                    '"' + basicFiles.delete().localFile.fsPath + '"'
                 );
             });
             it("Cannot revert a shelved file", async () => {
@@ -1949,12 +2086,12 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource1 = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.moveAdd
+                    basicFiles.moveAdd()
                 );
 
                 const resource2 = findResourceForShelvedFile(
                     items.instance.resources[1],
-                    basicFiles.shelveEdit
+                    basicFiles.shelveEdit()
                 );
 
                 await PerforceSCMProvider.Revert(resource1 as Resource, resource2);
@@ -1963,7 +2100,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "revert",
                     sinon.match.any,
-                    '"' + basicFiles.moveAdd.localFile.fsPath + '"'
+                    '"' + basicFiles.moveAdd().localFile.fsPath + '"'
                 );
 
                 expect(items.execute).not.to.have.been.calledWithMatch(
@@ -1984,7 +2121,7 @@ describe("Model & ScmProvider modules (integration)", () => {
 
                 const resource = findResourceForFile(
                     items.instance.resources[1],
-                    basicFiles.edit
+                    basicFiles.edit()
                 );
 
                 await PerforceSCMProvider.RevertUnchanged(resource as Resource);
@@ -1994,7 +2131,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     workspaceUri,
                     "revert",
                     sinon.match.any,
-                    '-a  "' + basicFiles.edit.localFile.fsPath + '"'
+                    '-a  "' + basicFiles.edit().localFile.fsPath + '"'
                 );
             });
         });

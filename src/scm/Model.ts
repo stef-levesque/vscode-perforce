@@ -13,7 +13,7 @@ import {
 } from "vscode";
 import { WorkspaceConfigAccessor } from "../ConfigService";
 import { Utils } from "../Utils";
-import { Display } from "../Display";
+import { Display, ActiveStatusEvent, ActiveEditorStatus } from "../Display";
 import { Resource } from "./Resource";
 
 import * as Path from "path";
@@ -61,10 +61,7 @@ export class Model implements Disposable {
         return this._onDidChange.event;
     }
 
-    private _onRefreshStarted = new EventEmitter<void>();
-    public get onRefreshStarted(): Event<void> {
-        return this._onRefreshStarted.event;
-    }
+    private _refreshInProgress = false;
 
     public dispose() {
         this.clean();
@@ -82,6 +79,15 @@ export class Model implements Disposable {
         { description: string; group: ResourceGroup }
     >();
     private _openResourcesByPath = new Map<string, Resource>();
+    /**
+     * Stores the set of files where the display has checked
+     * if the file is open and returned that it is not, but
+     * the model believes it is open - so that we know there may
+     * be a conflict when trying to perform automatic operations
+     * like opening a modified filed to edit, after it was just
+     * submitted externally
+     */
+    private _conflictsByPath = new Set<string>();
 
     private _refresh: DebouncedFunction<any[], Promise<void>>;
 
@@ -123,9 +129,41 @@ export class Model implements Disposable {
     ) {
         this._refresh = debounce<(boolean | undefined)[], Promise<void>>(
             this.RefreshImpl.bind(this),
-            _workspaceConfig.refreshDebounceTime
+            _workspaceConfig.refreshDebounceTime,
+            () => (this._refreshInProgress = true)
         );
         this._disposables.push(this._refresh);
+        this._disposables.push(
+            Display.onActiveFileStatusKnown(this.checkForConflicts.bind(this))
+        );
+    }
+
+    public mayHaveConflictForFile(uri: Uri) {
+        return (
+            this._conflictsByPath.has(uri.fsPath) ||
+            (this._refreshInProgress && this._openResourcesByPath.has(uri.fsPath))
+        );
+    }
+
+    private checkForConflicts(event: ActiveStatusEvent) {
+        if (this._refreshInProgress || this._conflictsByPath.has(event.file.fsPath)) {
+            // don't check anything while a refresh is in progress
+            return;
+        }
+        if (event.status === ActiveEditorStatus.NOT_OPEN) {
+            const openFile = this.getOpenResource(event.file);
+            if (openFile) {
+                Display.channel.appendLine(
+                    "Detected conflicting status for file " +
+                        event.file +
+                        "\nSCM provider believes the file is open, but latest 'opened' call does not.\n" +
+                        "This is probably caused by an external change such as submitting or reverting the file from another application."
+                );
+                // does not refresh immediately to prevent the possibility of infinite refreshing
+                // only stores the fact that there is a conflict to override checks in other places (file system watcher)
+                this._conflictsByPath.add(event.file.fsPath);
+            }
+        }
     }
 
     public async Sync(): Promise<void> {
@@ -166,7 +204,7 @@ export class Model implements Disposable {
     private async RefreshImpl(refreshClientInfo?: boolean): Promise<void> {
         // don't clean the changelists now - this will be done by updateStatus
         // seeing an empty scm view and waiting for it to populate makes it feel slower.
-        this._onRefreshStarted.fire();
+        this._refreshInProgress = true;
 
         const loggedin = await Utils.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
@@ -972,6 +1010,7 @@ export class Model implements Disposable {
 
     private clean() {
         this._openResourcesByPath.clear();
+        this._conflictsByPath.clear();
 
         if (this._defaultGroup) {
             this._defaultGroup.dispose();
@@ -1027,6 +1066,7 @@ export class Model implements Disposable {
         ]);
         this.createResourceGroups(changelists, shelvedResources.concat(openResources));
 
+        this._refreshInProgress = false;
         this._onDidChange.fire();
     }
 

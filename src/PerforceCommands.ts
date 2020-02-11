@@ -99,7 +99,7 @@ export namespace PerforceCommands {
                 "edit",
                 (err, stdout, stderr) => {
                     PerforceService.handleCommonServiceResponse(err, stdout, stderr);
-                    if (!err) {
+                    if (!err && !stderr) {
                         Display.showMessage("file opened for edit");
                     }
                     resolve(!err);
@@ -162,7 +162,7 @@ export namespace PerforceCommands {
             "revert",
             (err, stdout, stderr) => {
                 PerforceService.handleCommonServiceResponse(err, stdout, stderr);
-                if (!err) {
+                if (!err && !stderr) {
                     Display.showMessage("file reverted");
                 }
             },
@@ -608,7 +608,7 @@ export namespace PerforceCommands {
 
     export function checkFolderOpened() {
         if (workspace.workspaceFolders === undefined) {
-            Display.showMessage("No folder selected\n");
+            Display.showMessage("No folder selected");
             return false;
         }
 

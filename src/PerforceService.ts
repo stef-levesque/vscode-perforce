@@ -253,7 +253,7 @@ export namespace PerforceService {
         stdout: string,
         stderr: string
     ) {
-        if (err) {
+        if (err || stderr) {
             Display.showError(stderr.toString());
         } else {
             Display.channel.append(stdout.toString());

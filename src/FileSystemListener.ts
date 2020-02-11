@@ -9,7 +9,8 @@ import {
     TextDocumentChangeEvent,
     RelativePattern,
     Uri,
-    WorkspaceFolder
+    WorkspaceFolder,
+    TextDocumentSaveReason
 } from "vscode";
 
 import * as micromatch from "micromatch";
@@ -18,11 +19,12 @@ const parseignore = require("parse-gitignore"); // (this module should be remove
 
 import { Display } from "./Display";
 import { PerforceCommands } from "./PerforceCommands";
-import { PerforceService } from "./PerforceService";
+import { PerforceSCMProvider } from "./ScmProvider";
 
 export default class FileSystemListener {
     private static _eventRegistered: boolean = false;
     private static _lastCheckedFileUri?: Uri = undefined;
+    private static _lastSavedFileUri?: Uri = undefined;
 
     private _disposable: Disposable;
     private _watcher?: FileSystemWatcher;
@@ -39,7 +41,9 @@ export default class FileSystemListener {
             if (!FileSystemListener._eventRegistered) {
                 if (config["editOnFileSave"]) {
                     workspace.onWillSaveTextDocument(e => {
-                        e.waitUntil(FileSystemListener.onWillSaveFile(e.document));
+                        e.waitUntil(
+                            FileSystemListener.onWillSaveFile(e.document, e.reason)
+                        );
                     });
                 }
 
@@ -104,12 +108,28 @@ export default class FileSystemListener {
         this._disposable.dispose();
     }
 
-    private static onWillSaveFile(doc: TextDocument): Promise<boolean> {
-        return FileSystemListener.tryEditFile(doc.uri);
+    private static onWillSaveFile(
+        doc: TextDocument,
+        reason: TextDocumentSaveReason
+    ): Promise<boolean> {
+        if (
+            FileSystemListener._lastSavedFileUri?.fsPath === doc.uri.fsPath &&
+            reason !== TextDocumentSaveReason.Manual
+        ) {
+            // don't keep trying when auto-saving (e.g. if the file isn't intended for perforce)
+            return Promise.resolve(true);
+        } else {
+            FileSystemListener._lastSavedFileUri = doc.uri;
+            return FileSystemListener.tryEditFile(doc.uri);
+        }
     }
 
     private static onFileModified(docChange: TextDocumentChangeEvent) {
         const docUri = docChange.document.uri;
+
+        if (docUri.scheme !== "file") {
+            return;
+        }
 
         //If this doc has already been checked, just returned
         if (
@@ -139,7 +159,15 @@ export default class FileSystemListener {
     // in future releases.
     // https://github.com/stef-levesque/vscode-perforce/issues/110
     private static tryEditFile(uri: Uri): Promise<boolean> {
-        return PerforceCommands.edit(uri);
+        if (
+            PerforceSCMProvider.hasOpenFile(uri) &&
+            !PerforceSCMProvider.mayHaveConflictForFile(uri)
+        ) {
+            return Promise.resolve(true);
+        } else {
+            return PerforceCommands.edit(uri);
+        }
+
         // return new Promise((resolve) => {
         //     //Check if this file is in client root first
         //     FileSystemListener.fileInClientRoot(uri).then((inClientRoot) => {
@@ -185,40 +213,5 @@ export default class FileSystemListener {
         if (editor && editor.document && editor.document.uri.fsPath === uri.fsPath) {
             PerforceCommands.add(uri);
         }
-    }
-
-    private static fileInClientRoot(uri: Uri): Promise<boolean> {
-        const docPath = uri.fsPath;
-        return new Promise((resolve, reject) => {
-            PerforceService.getClientRoot(uri)
-                .then(clientRoot => {
-                    //Convert to lower and Strip newlines from paths
-                    clientRoot = clientRoot.toLowerCase().replace(/(\r\n|\n|\r)/gm, "");
-                    const filePath = docPath.toLowerCase().replace(/(\r\n|\n|\r)/gm, "");
-
-                    //Check if p4 Client Root is in uri's path
-                    if (filePath.includes(clientRoot)) {
-                        resolve(true);
-                    } else {
-                        resolve(false);
-                    }
-                })
-                .catch(err => {
-                    reject(err);
-                });
-        });
-    }
-
-    private static fileIsOpened(fileUri: Uri): Promise<boolean> {
-        return new Promise(resolve => {
-            //opened stdout is set if file open, stderr set if not opened
-            PerforceService.executeAsPromise(fileUri, "opened", fileUri.fsPath)
-                .then(() => {
-                    resolve(true);
-                })
-                .catch(() => {
-                    resolve(false);
-                });
-        });
     }
 }
