@@ -33,7 +33,6 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.opened", opened);
         commands.registerCommand("perforce.logout", logout);
         commands.registerCommand("perforce.login", login);
-        commands.registerCommand("perforce.showOutput", showOutput);
         commands.registerCommand("perforce.menuFunctions", menuFunctions);
     }
 
@@ -517,10 +516,6 @@ export namespace PerforceCommands {
             },
             "-s"
         );
-    }
-
-    export function showOutput() {
-        Display.channel.show();
     }
 
     export function menuFunctions() {

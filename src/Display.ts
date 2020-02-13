@@ -4,7 +4,8 @@ import {
     StatusBarItem,
     workspace,
     EventEmitter,
-    Uri
+    Uri,
+    commands
 } from "vscode";
 
 import * as Path from "path";
@@ -32,6 +33,7 @@ export namespace Display {
 
     const _onActiveFileStatusKnown = new EventEmitter<ActiveStatusEvent>();
     export const onActiveFileStatusKnown = _onActiveFileStatusKnown.event;
+    let _initialisedChannel = false;
 
     export const updateEditor = debounce(updateEditorImpl, 1000, () => {
         if (_statusBarItem) {
@@ -41,7 +43,6 @@ export namespace Display {
     });
 
     export function initialize(subscriptions: { dispose(): any }[]) {
-        initializeChannel(subscriptions);
         _statusBarItem = window.createStatusBarItem(
             StatusBarAlignment.Left,
             Number.MIN_VALUE
@@ -54,7 +55,17 @@ export namespace Display {
     }
 
     export function initializeChannel(subscriptions: { dispose(): any }[]) {
-        subscriptions.push(channel);
+        if (!_initialisedChannel) {
+            _initialisedChannel = true;
+            subscriptions.push(
+                commands.registerCommand("perforce.showOutput", showOutput)
+            );
+            subscriptions.push(channel);
+        }
+    }
+
+    function showOutput() {
+        Display.channel.show();
     }
 
     function updateEditorImpl() {
