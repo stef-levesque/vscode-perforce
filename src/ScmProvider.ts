@@ -7,7 +7,6 @@ import {
     SourceControl,
     SourceControlResourceState,
     Event,
-    ProviderResult,
     workspace
 } from "vscode";
 import { Model, ResourceGroup } from "./scm/Model";
@@ -470,13 +469,14 @@ export class PerforceSCMProvider {
         }
     }
 
-    provideOriginalResource(uri: Uri): ProviderResult<Uri> {
+    async provideOriginalResource(uri: Uri): Promise<Uri | undefined> {
         if (uri.scheme !== "file") {
             return;
         }
 
         // for a MOVE operation, diff against the original file
         const resource = this._model.getOpenResource(uri);
+
         if (
             resource &&
             resource.status === Status.MOVE_ADD &&
@@ -490,8 +490,12 @@ export class PerforceSCMProvider {
             });
         }
 
-        // otherwise diff against the have revision
-        return Utils.makePerforceDocUri(uri, "print", "-q").with({ fragment: "have" });
+        //otherwise diff against the have revision
+        if (await this._model.haveFile(uri)) {
+            return Utils.makePerforceDocUri(uri, "print", "-q").with({
+                fragment: "have"
+            });
+        }
     }
 
     public static hasOpenFile(uri: Uri) {

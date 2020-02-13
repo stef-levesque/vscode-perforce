@@ -1,5 +1,8 @@
 {
     "perforce.client": "",
     "perforce.user": "",
-    "perforce.bottleneck.maxConcurrent": 1000
+    "perforce.bottleneck.maxConcurrent": 1000,
+    "perforce.hideNonWorkspaceFiles": false,
+    "perforce.hideShelvedFiles": false,
+    "perforce.activationMode": "autodetect"
 }

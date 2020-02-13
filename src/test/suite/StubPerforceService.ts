@@ -21,6 +21,7 @@ type PerforceCommand =
     | "unshelve"
     | "revert"
     | "fstat"
+    | "have"
     | "print";
 type PerforceResponseCallback = (
     err: Error | null,
@@ -408,7 +409,8 @@ export const makeResponses = (
                   return [stdout.join("\n\n"), sterr.join("\n\n")];
               },
               print: returnStdOut("print not implemented"),
-              fix: returnStdOut("fix not implemented")
+              fix: returnStdOut("fix not implemented"),
+              have: returnStdOut("have not implemented")
           };
     if (responses) {
         Object.keys(responses).forEach(key => {

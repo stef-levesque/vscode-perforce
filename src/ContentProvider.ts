@@ -1,5 +1,5 @@
 import { window, workspace, Uri, Disposable, Event, EventEmitter } from "vscode";
-import { Utils } from "./Utils";
+import { Utils, UriArguments } from "./Utils";
 import { Display } from "./Display";
 
 export class PerforceContentProvider {
@@ -19,72 +19,58 @@ export class PerforceContentProvider {
         );
     }
 
-    public provideTextDocumentContent(uri: Uri): Promise<string> {
-        return new Promise<string>(resolve => {
-            if (uri.path === "EMPTY") {
-                resolve("");
-                return;
-            }
+    private getResourceAndFileForUri(
+        uri: Uri,
+        allArgs: UriArguments
+    ): [Uri | undefined, string | Uri | undefined] {
+        if (allArgs["depot"]) {
+            // depot-based uri should always have a path
+            const resource =
+                allArgs["workspace"] && typeof (allArgs["workspace"] === "string")
+                    ? Uri.file(allArgs["workspace"] as string)
+                    : workspace.workspaceFolders?.[0].uri;
+            const file = Utils.getDepotPathFromDepotUri(uri);
+            return [resource, file];
+        }
+        if (uri.fsPath) {
+            // a file is supplied
+            const resource = Uri.file(uri.fsPath);
+            return [resource, resource];
+        }
+        // just for printing the output of a command that doesn't relate to a specific file
+        if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
+            return [window.activeTextEditor.document.uri, undefined];
+        }
+        return [workspace.workspaceFolders?.[0].uri, undefined];
+    }
 
-            let revision: string = uri.fragment;
-            if (revision && !revision.startsWith("@")) {
-                revision = "#" + uri.fragment;
-            }
-
-            const allArgs = Utils.decodeUriQuery(uri.query ?? "");
-
-            const args = (allArgs["p4args"] as string) ?? "-q";
-            const command = (allArgs["command"] as string) ?? "print";
-
-            if (allArgs["depot"]) {
-                const resource =
-                    allArgs["workspace"] && typeof (allArgs["workspace"] === "string")
-                        ? Uri.file(allArgs["workspace"] as string)
-                        : workspace.workspaceFolders?.[0].uri;
-                if (!resource) {
-                    throw new Error("A resource is required");
-                }
-                Utils.runCommand(
-                    resource,
-                    command,
-                    Utils.getDepotPathFromDepotUri(uri),
-                    revision,
-                    args
-                ).then(resolve);
-                return;
-            }
-
-            const file = uri.fsPath ? Uri.file(uri.fsPath) : null;
-
-            if (!file) {
-                // Try to guess the proper workspace to use
-                if (
-                    window.activeTextEditor &&
-                    !window.activeTextEditor.document.isUntitled
-                ) {
-                    Utils.runCommand(
-                        window.activeTextEditor.document.uri,
-                        command,
-                        null,
-                        revision,
-                        args
-                    ).then(resolve);
-                } else if (workspace.workspaceFolders) {
-                    const resource = workspace.workspaceFolders[0].uri;
-                    Utils.runCommand(resource, command, null, revision, args).then(
-                        resolve
-                    );
-                } else {
-                    throw new Error(
-                        `Can't find proper workspace for command ${command} `
-                    );
-                }
-            } else {
-                Utils.runCommandForFile(command, file, revision, args).then(resolve);
-            }
-        }).catch(reason => {
-            Display.showError(reason.toString());
+    public async provideTextDocumentContent(uri: Uri): Promise<string> {
+        if (uri.path === "EMPTY") {
             return "";
+        }
+
+        let revision: string = uri.fragment;
+        if (revision && !revision.startsWith("@")) {
+            revision = "#" + uri.fragment;
+        }
+
+        const allArgs = Utils.decodeUriQuery(uri.query ?? "");
+        const args = (allArgs["p4args"] as string) ?? "-q";
+        const command = (allArgs["command"] as string) ?? "print";
+
+        const [resource, file] = this.getResourceAndFileForUri(uri, allArgs);
+
+        if (!resource) {
+            Display.channel.appendLine(
+                `Can't find proper workspace to provide content for ${uri}`
+            );
+            throw new Error(`Can't find proper workspace for command ${command} `);
+        }
+        return Utils.runCommand(resource, command, {
+            file,
+            revision,
+            prefixArgs: args,
+            hideStdErr: true
         });
     }
 }
