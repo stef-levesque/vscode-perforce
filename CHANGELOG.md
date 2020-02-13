@@ -1,5 +1,11 @@
 # Change log
 
+## [3.5.2] - 2020-02-13
+* Fix "p4" status icon appearing on all workspaces, even without a perforce client
+* Fix gutter decorations not being applied after a file was added to the depot (#42)
+* Prevent `edit on file save` and `edit on file modified` from continually trying to open the same file when auto save was enabled (#39)
+* Fix the extension saying "file opened for edit" event if it wasn't
+
 ## [3.5.1] - 2020-02-10
 * Gutter decorations for a moved file now show the diff against the file it was moved from, if known (#29)
 * Correct the revision used for the scm provider diff if a file is moved (#29)
@@ -190,6 +196,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.5.2]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.1...3.5.2
 [3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.0...3.5.1
 [3.5.0]: https://github.com/mjcrouch/vscode-perforce/compare/6807513579057a52292f87d3ca58babf012cb906...33d036413600eaeeecd1425898d7615e472a7a6b
 [3.1.0]: https://github.com/stef-levesque/vscode-perforce/compare/1fca898f1bceacf1135f044bee87983c59cbc87e...4af0dc0242d2e05f447c75420e76768f30d89469
