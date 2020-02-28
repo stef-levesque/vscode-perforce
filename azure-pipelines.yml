@@ -46,6 +46,12 @@ steps:
   env:
     DISPLAY: ':99.0'
 
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '**/junit-integration.xml'
+    testRunTitle: 'All Tests'
+
 - bash: |
     echo ">>> Install vsce"
     npm install -g vsce
