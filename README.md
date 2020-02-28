@@ -1,10 +1,12 @@
 # vscode-perforce
 
-[![GitHub issues](https://img.shields.io/github/issues/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/issues)
-[![Dependency Status](https://img.shields.io/david/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce)  
-[![Dev Dependency Status](https://img.shields.io/david/dev/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce?type=dev)  
-[![GitHub license button](https://img.shields.io/github/license/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/blob/master/LICENSE.txt)
 [![VS Code marketplace button](https://vsmarketplacebadge.apphb.com/installs/mjcrouch.perforce.svg)](https://marketplace.visualstudio.com/items/mjcrouch.perforce)
+[![GitHub issues](https://img.shields.io/github/issues/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/issues)
+[![GitHub license button](https://img.shields.io/github/license/mjcrouch/vscode-perforce.svg)](https://github.com/mjcrouch/vscode-perforce/blob/master/LICENSE.txt)  
+[![Build Status](https://dev.azure.com/mjcrouch/vscode-perforce/_apis/build/status/mjcrouch.vscode-perforce?branchName=master)](https://dev.azure.com/mjcrouch/vscode-perforce/_build/latest?definitionId=1&branchName=master)
+[![Test Status](https://img.shields.io/azure-devops/tests/mjcrouch/vscode-perforce/1/master)](https://dev.azure.com/mjcrouch/vscode-perforce/_build/latest?definitionId=1&branchName=master)  
+[![Dependency Status](https://img.shields.io/david/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce)
+[![Dev Dependency Status](https://img.shields.io/david/dev/mjcrouch/vscode-perforce.svg)](https://david-dm.org/mjcrouch/vscode-perforce?type=dev)  
 
 Perforce integration for Visual Studio Code
 
@@ -40,7 +42,6 @@ If you install this extension, please uninstall or disable `slevesque.perforce` 
 |&nbsp; 
 |`perforce.dir`                     |`string`   |Overrides any PWD setting (current working directory) and replaces it with the specified directory
 |`perforce.command`                 |`string`   |Configure a path to p4 or an alternate command if needed
-|`perforce.maxBuffer`               |`number`   |Specify the largest amount of data allowed for commands, including file comparison. Default is 1048576 (1MB)
 |`perforce.realpath`                |`boolean`  |**Experimental** Try to resolve real file path before executing command
 |&nbsp; 
 |`perforce.activationMode`          |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
@@ -64,9 +65,9 @@ You must properly configure a perforce depot area before the extension activates
 
 You can specify how you want the extension to activate by setting the parameter `perforce.activationMode`
 
-* `always` - Always try to activate the extension (old behavior)
-* `autodetect` - Only activate when detecting a valid depot or `.p4config` file (default)
-* `off` - Don't try to activate
+* `autodetect` (default) - The extension will only activate if it detects a valid perforce client that contains the workspace root, or a `.p4config` file in the workspace. If one is not detected, perforce commands will not be registered with VSCode, but you will be able to view the perforce output log to see why the extension did not activate
+* `always` - Always try to activate the extension, even if a valid client was not found. This may be useful if you want to use perforce commands on files outside of the workspace, **and** you either have perforce set up properly with .p4config files for that area, or you have manually specified a user / client / port etc in your vscode configuration. Otherwise, you should probably avoid this setting
+* `off` - Don't try to activate the extension. No perforce log output will be produced
 
 The following can be set in VSCode user or workspace settings to properly detect the perforce depot
 ```json
@@ -87,7 +88,7 @@ More detail in [Perforce Documentation](https://www.perforce.com/perforce/r17.1/
 
 ## Multi-root support
 
-You can now specify the following settings per workspace:
+You can specify the following settings per workspace:
 * `perforce.client`
 * `perforce.user`
 * `perforce.port`
@@ -99,7 +100,7 @@ See [Multi-root Workspaces - Settings](https://code.visualstudio.com/docs/editor
 
 ## Status bar icons
 
-* ![check](images/check.png) opened in add or edit
+* ![check](images/check.png) opened for add or edit
 * ![file-text](images/file-text.png) not opened on this client
 * ![circle-slash](images/circle-slash.png) not under client's root
 
@@ -117,18 +118,11 @@ Explore and leave your comments on [GitHub](https://github.com/mjcrouch/vscode-p
 #### **Q:** Something is not working
 **A:** Here are a few steps you should try first:
 1. Look at the logs with `Perforce: Show Output`
-1. Search the [existing issue on GitHub](https://github.com/mjcrouch/vscode-perforce/issues?utf8=✓&q=is%3Aissue)
+1. Search for the [existing issue on GitHub](https://github.com/mjcrouch/vscode-perforce/issues?utf8=✓&q=is%3Aissue)
 1. If you can't find your problem, [create an issue](https://github.com/mjcrouch/vscode-perforce/issues/new), and please include the logs when possible
-  
-  
-#### **Q:** Operations on a large files fail
-**A:** Increase `perforce.maxBuffer` in your user settings.  
-[more...](https://github.com/stef-levesque/vscode-perforce/issues/116)
-  
-  
-#### **Q:** There is a lot of duplicated changelists showing up in the `Source Control` viewlet
-**A:** Please provide your Perforce Output logs in [issue #62](https://github.com/stef-levesque/vscode-perforce/issues/62)
-  
+
+#### **Q:** Does it work with Remote-SSH?
+**A:** Yes - you will need to install the extension on the remote instance of VSCode, using the normal extensions view
   
 #### **Q:** I'm using this old thing called *Source Depot*...
 **A:** I don't think you exist, since Microsoft has migrated to git. Compatibility mode has been removed.

@@ -13,6 +13,7 @@
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
+            "skipFiles": ["${workspaceFolder}/node_modules/**/*.js"],
             "preLaunchTask": "npm: watch"
         },
         {

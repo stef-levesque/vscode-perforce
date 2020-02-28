@@ -49,8 +49,16 @@ steps:
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'JUnit'
+    testResultsFiles: '**/junit-unit.xml'
+    testRunTitle: $(Agent.JobName) - Unit Tests
+  displayName: Publish unit test results
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
     testResultsFiles: '**/junit-integration.xml'
-    testRunTitle: 'All Tests'
+    testRunTitle: $(Agent.JobName) - All Tests
+  displayName: Publish integration test results
 
 - bash: |
     echo ">>> Install vsce"

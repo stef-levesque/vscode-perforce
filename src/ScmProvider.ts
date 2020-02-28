@@ -59,9 +59,8 @@ export class PerforceSCMProvider {
     }
     public get count(): number {
         const countBadge = this._workspaceConfig.countBadge;
-        const resources: Resource[] = this._model.ResourceGroups.reduce(
-            (a, b) => a.concat(b.resourceStates as Resource[]),
-            [] as Resource[]
+        const resources: Resource[] = this._model.ResourceGroups.flatMap(
+            g => g.resourceStates as Resource[]
         );
 
         // Don't count MOVE_DELETE as we already count MOVE_ADD

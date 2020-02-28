@@ -7,6 +7,12 @@ export function run(): Promise<void> {
     const mocha = new Mocha({
         ui: "bdd"
     });
+    mocha.reporter("cypress-multi-reporters", {
+        reporterEnabled: "mocha-junit-reporter, spec",
+        mochaJunitReporterReporterOptions: {
+            mochaFile: "./reports/junit-unit.xml"
+        }
+    });
     mocha.useColors(true);
 
     const testsRoot = __dirname;

@@ -6,12 +6,13 @@ import * as sinonChai from "sinon-chai";
 import * as vscode from "vscode";
 
 import * as sinon from "sinon";
-import { StubPerforceService, getLocalFile } from "./StubPerforceService";
+import { stubExecute } from "../helpers/StubPerforceModel";
 import p4Commands from "../helpers/p4Commands";
 import { PerforceCommands } from "../../PerforceCommands";
 import { Utils } from "../../Utils";
 import { PerforceContentProvider } from "../../ContentProvider";
 import { Display } from "../../Display";
+import { getLocalFile } from "../helpers/testUtils";
 
 chai.use(sinonChai);
 chai.use(p4Commands);
@@ -22,7 +23,6 @@ describe("Perforce Command Module (integration)", () => {
         throw new Error("No workspace folders open");
     }
     const workspaceUri = vscode.workspace.workspaceFolders[0].uri;
-    let stubService: StubPerforceService;
     let execCommand: sinon.SinonSpy<[string, ...any[]], Thenable<unknown>>;
     const subscriptions: vscode.Disposable[] = [];
 
@@ -37,8 +37,7 @@ describe("Perforce Command Module (integration)", () => {
 
     beforeEach(() => {
         Display.initialize(subscriptions);
-        stubService = new StubPerforceService();
-        stubService.stubExecute();
+        stubExecute();
         execCommand = sinon.spy(vscode.commands, "executeCommand");
     });
     afterEach(() => {

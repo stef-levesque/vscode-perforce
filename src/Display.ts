@@ -86,7 +86,7 @@ export namespace Display {
         }
 
         if (!doc.isUntitled) {
-            const args = '"' + Utils.expansePath(doc.uri.fsPath) + '"';
+            const args = [Utils.expansePath(doc.uri.fsPath)];
             PerforceService.execute(
                 doc.uri,
                 "opened",

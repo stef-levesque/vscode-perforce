@@ -8,6 +8,12 @@ export function run(): Promise<void> {
         ui: "bdd"
     });
     mocha.useColors(true);
+    mocha.reporter("cypress-multi-reporters", {
+        reporterEnabled: "mocha-junit-reporter, spec",
+        mochaJunitReporterReporterOptions: {
+            mochaFile: "./reports/junit-integration.xml"
+        }
+    });
 
     const testsRoot = path.resolve(__dirname, "..");
 

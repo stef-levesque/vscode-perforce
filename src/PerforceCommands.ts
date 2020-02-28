@@ -16,6 +16,7 @@ import {
 import * as Path from "path";
 
 import { PerforceService } from "./PerforceService";
+import * as p4 from "./api/PerforceApi";
 import { Display } from "./Display";
 import { Utils } from "./Utils";
 
@@ -55,7 +56,7 @@ export namespace PerforceCommands {
     }
 
     export function add(fileUri: Uri, directoryOverride?: string) {
-        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        const args = [Utils.expansePath(fileUri.fsPath)];
         PerforceService.execute(
             fileUri,
             "add",
@@ -92,7 +93,7 @@ export namespace PerforceCommands {
 
     export function edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
         return new Promise(resolve => {
-            const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+            const args = [Utils.expansePath(fileUri.fsPath)];
             PerforceService.execute(
                 fileUri,
                 "edit",
@@ -125,7 +126,7 @@ export namespace PerforceCommands {
     }
 
     export function p4delete(fileUri: Uri) {
-        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        const args = [Utils.expansePath(fileUri.fsPath)];
         PerforceService.execute(
             fileUri,
             "delete",
@@ -155,7 +156,7 @@ export namespace PerforceCommands {
             ? Path.dirname(fileUri.fsPath)
             : undefined;
 
-        const args = '"' + Utils.expansePath(fileUri.fsPath) + '"';
+        const args = [Utils.expansePath(fileUri.fsPath)];
         PerforceService.execute(
             fileUri,
             "revert",
@@ -218,7 +219,7 @@ export namespace PerforceCommands {
 
         const doc = editor.document;
 
-        const args = '-s "' + Utils.expansePath(doc.uri.fsPath) + '"';
+        const args = ["-s", Utils.expansePath(doc.uri.fsPath)];
         PerforceService.execute(
             doc.uri,
             "filelog",
@@ -273,12 +274,12 @@ export namespace PerforceCommands {
         const cl = conf.get("annotate.changelist");
         const usr = conf.get("annotate.user");
         const swarmHost = conf.get("swarmHost");
-        let args = "-q";
+        const args = ["-q"];
         if (cl) {
-            args += "c";
+            args.push("-c");
         }
         if (usr) {
-            args += "u";
+            args.push("-u");
         }
 
         const decorationType = window.createTextEditorDecorationType({
@@ -422,7 +423,7 @@ export namespace PerforceCommands {
             }
 
             const resource = Uri.file(file);
-            const args = '"' + file + '"';
+            const args = [file];
             PerforceService.execute(
                 resource,
                 "where",
@@ -460,62 +461,41 @@ export namespace PerforceCommands {
         }
     }
 
-    export function logout() {
+    export async function logout() {
         const resource = guessWorkspaceUri();
-        PerforceService.execute(resource, "logout", (err, stdout, stderr) => {
-            if (err) {
-                Display.showError(err.message);
-                return false;
-            } else if (stderr) {
-                Display.showError(stderr.toString());
-                return false;
-            } else {
-                Display.showMessage("Logout successful");
-                Display.updateEditor();
-                return true;
-            }
-        });
+        try {
+            await p4.logout(resource, {});
+            Display.showMessage("Logout successful");
+            Display.updateEditor();
+            return true;
+        } catch {}
+        return false;
     }
 
-    export function login() {
+    export async function login() {
         const resource = guessWorkspaceUri();
-        PerforceService.execute(
-            resource,
-            "login",
-            (err, stdout, stderr) => {
-                if (err || stderr) {
-                    window
-                        .showInputBox({ prompt: "Enter password", password: true })
-                        .then(passwd => {
-                            PerforceService.execute(
-                                resource,
-                                "login",
-                                (err, stdout, stderr) => {
-                                    if (err) {
-                                        Display.showError(err.message);
-                                        return false;
-                                    } else if (stderr) {
-                                        Display.showError(stderr.toString());
-                                        return false;
-                                    } else {
-                                        Display.showMessage("Login successful");
-                                        Display.updateEditor();
-                                        return true;
-                                    }
-                                },
-                                undefined,
-                                undefined,
-                                passwd
-                            );
-                        });
-                } else {
+
+        let loggedIn = await p4.isLoggedIn(resource);
+        if (!loggedIn) {
+            const password = await window.showInputBox({
+                prompt: "Enter password",
+                password: true
+            });
+            if (password) {
+                try {
+                    await p4.login(resource, { password });
+
                     Display.showMessage("Login successful");
                     Display.updateEditor();
-                    return true;
-                }
-            },
-            "-s"
-        );
+                    loggedIn = true;
+                } catch {}
+            }
+        } else {
+            Display.showMessage("Login successful");
+            Display.updateEditor();
+            loggedIn = true;
+        }
+        return loggedIn;
     }
 
     export function menuFunctions() {

@@ -11,3 +11,4 @@ tsconfig.json
 node_modules
 out/
 webpack.config.js
+reports/

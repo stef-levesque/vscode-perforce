@@ -97,81 +97,14 @@ export namespace Utils {
         return allArgs;
     }
 
-    export function processInfo(output: string): Map<string, string> {
-        const map = new Map<string, string>();
-        const lines = output.trim().split("\n");
-
-        for (let i = 0, n = lines.length; i < n; ++i) {
-            // Property Name: Property Value
-            const matches = new RegExp(/([^:]+): (.+)/).exec(lines[i]);
-
-            if (matches) {
-                map.set(matches[1], matches[2]);
-            }
-        }
-
-        return map;
-    }
-
-    export function isLoggedIn(resource: Uri): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            PerforceService.execute(
-                resource,
-                "login",
-                (err, stdout, stderr) => {
-                    err && Display.showError(err.toString());
-                    stderr && Display.showError(stderr.toString());
-                    if (err) {
-                        reject(err);
-                    } else if (stderr) {
-                        reject(stderr);
-                    } else {
-                        resolve(true);
-                    }
-                },
-                "-s"
-            );
-        });
-    }
-
-    export function getSimpleOutput(resource: Uri, command: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            PerforceService.execute(resource, command, (err, stdout, stderr) => {
-                err && Display.showError(err.toString());
-                stderr && Display.showError(stderr.toString());
-                if (err) {
-                    reject(err);
-                } else if (stderr) {
-                    reject(stderr);
-                } else {
-                    resolve(stdout);
-                }
-            });
-        });
-    }
-
-    export function getOutputs(
-        resource: Uri,
-        command: string
-    ): Promise<[string, string]> {
-        return new Promise((resolve, reject) => {
-            PerforceService.execute(resource, command, (err, stdout, stderr) => {
-                err && Display.showError(err.toString());
-                if (err) {
-                    reject(err);
-                }
-                resolve([stdout, stderr]);
-            });
-        });
-    }
-
     export interface CommandParams {
         file?: Uri | string;
         revision?: string;
-        prefixArgs?: string;
+        prefixArgs?: string[];
         gOpts?: string;
         input?: string;
         hideStdErr?: boolean; // just from the status bar - not from the log output
+        stdErrIsOk?: boolean;
     }
 
     // Get a string containing the output of the command
@@ -181,8 +114,16 @@ export namespace Utils {
         params: CommandParams
     ): Promise<string> {
         return new Promise((resolve, reject) => {
-            const { file, revision, prefixArgs, gOpts, input, hideStdErr } = params;
-            let args = prefixArgs ?? "";
+            const {
+                file,
+                revision,
+                prefixArgs,
+                gOpts,
+                input,
+                hideStdErr,
+                stdErrIsOk
+            } = params;
+            const args = prefixArgs ?? [];
 
             if (gOpts !== undefined) {
                 command = gOpts + " " + command;
@@ -194,7 +135,7 @@ export namespace Utils {
                 let path = typeof file === "string" ? file : file.fsPath;
                 path = expansePath(path);
 
-                args += ' "' + path + revisionString + '"';
+                args.push(path + revisionString);
             }
 
             PerforceService.execute(
@@ -209,7 +150,7 @@ export namespace Utils {
                     }
                     if (err) {
                         reject(err);
-                    } else if (stderr) {
+                    } else if (stderr && !stdErrIsOk) {
                         reject(stderr);
                     } else {
                         resolve(stdout);
@@ -227,7 +168,7 @@ export namespace Utils {
         command: string,
         file: Uri,
         revision?: string,
-        prefixArgs?: string,
+        prefixArgs?: string[],
         gOpts?: string,
         input?: string
     ): Promise<string> {

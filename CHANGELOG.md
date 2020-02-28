@@ -1,10 +1,15 @@
 # Change log
 
+## [n.n.n] - 2020-mm-dd (TBD)
+* Fix an issue where user input in changelist descriptions could be interpreted by the shell
+* The `perforce.maxBuffer` setting has been removed, because the internal method of running perforce commands has changed, and no longer uses this buffer
+* Internally, there has been a large amount of code refactoring to make it easier to implement and test upcoming features. As usual, please [raise an issue](https://github.com/mjcrouch/vscode-perforce/issues) on GitHub if there are any problems!
+
 ## [3.5.2] - 2020-02-13
 * Fix "p4" status icon appearing on all workspaces, even without a perforce client
 * Fix gutter decorations not being applied after a file was added to the depot (#42)
 * Prevent `edit on file save` and `edit on file modified` from continually trying to open the same file when auto save was enabled (#39)
-* Fix the extension saying "file opened for edit" event if it wasn't
+* Fix the extension saying "file opened for edit" even if it wasn't
 
 ## [3.5.1] - 2020-02-10
 * Gutter decorations for a moved file now show the diff against the file it was moved from, if known (#29)

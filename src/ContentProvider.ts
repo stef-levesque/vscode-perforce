@@ -55,7 +55,7 @@ export class PerforceContentProvider {
         }
 
         const allArgs = Utils.decodeUriQuery(uri.query ?? "");
-        const args = (allArgs["p4args"] as string) ?? "-q";
+        const args = ((allArgs["p4args"] as string) ?? "-q").split(" ");
         const command = (allArgs["command"] as string) ?? "print";
 
         const [resource, file] = this.getResourceAndFileForUri(uri, allArgs);

@@ -1,4 +1,4 @@
-import { PerforceService, IPerforceConfig } from "./../PerforceService";
+import { IPerforceConfig } from "./../PerforceService";
 import {
     Uri,
     EventEmitter,
@@ -19,9 +19,11 @@ import { Resource } from "./Resource";
 import * as Path from "path";
 import * as vscode from "vscode";
 import { DebouncedFunction, debounce } from "../Debounce";
+import * as p4 from "../api/PerforceApi";
+import { ChangeInfo } from "../api/CommonTypes";
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
-    return arg.id !== undefined;
+    return arg && arg.id !== undefined;
 }
 
 export type FstatInfo = {
@@ -29,28 +31,10 @@ export type FstatInfo = {
     [key: string]: string;
 };
 
-type ChangeInfo = { chnum: number; description: string };
-type ShelvedChangeInfo = { chnum: number; paths: string[] };
-
-type ChangeFieldRaw = {
-    name: string;
-    value: string[];
-};
-
-type ChangeSpecFile = {
-    depotPath: string;
-    action: string;
-};
-
-type ChangeSpec = {
-    description?: string;
-    files?: ChangeSpecFile[];
-    change?: string;
-    rawFields: ChangeFieldRaw[];
-};
-
 export interface ResourceGroup extends SourceControlResourceGroup {
     model: Model;
+    chnum: string;
+    isDefault: boolean;
 }
 
 export class Model implements Disposable {
@@ -144,6 +128,22 @@ export class Model implements Disposable {
         );
     }
 
+    private assertIsNotDefault(input: ResourceGroup) {
+        if (input.isDefault) {
+            throw new Error("The default changelist is not valid for this operation");
+        }
+    }
+
+    private assertIsDefault(input: ResourceGroup) {
+        if (!input.isDefault) {
+            throw new Error(
+                "The non-default changelist '" +
+                    input.chnum +
+                    "' is not valid for this operation"
+            );
+        }
+    }
+
     public mayHaveConflictForFile(uri: Uri) {
         return (
             this._conflictsByPath.has(uri.fsPath) ||
@@ -173,7 +173,7 @@ export class Model implements Disposable {
     }
 
     public async Sync(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
+        const loggedin = await p4.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -217,17 +217,7 @@ export class Model implements Disposable {
         if (cachedHave !== undefined) {
             return cachedHave;
         }
-        let ret = false;
-        try {
-            const [, stderr] = await Utils.getOutputs(uri, 'have "' + uri.fsPath + '"');
-            if (stderr) {
-                ret = false;
-            } else {
-                ret = true;
-            }
-        } catch (err) {
-            ret = false;
-        }
+        const ret = await p4.haveFile(uri, { file: { fsPath: uri.fsPath } });
 
         this._knownHaveListByPath.set(uri.fsPath, ret);
 
@@ -239,7 +229,7 @@ export class Model implements Disposable {
         // seeing an empty scm view and waiting for it to populate makes it feel slower.
         this._refreshInProgress = true;
 
-        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
+        const loggedin = await p4.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -266,111 +256,13 @@ export class Model implements Disposable {
         const resource = this._sourceControl.rootUri;
         if (resource) {
             Display.channel.show();
-            try {
-                const output = await PerforceService.executeAsPromise(resource, "info");
-                Display.channel.append(output);
-            } catch (err) {
-                Display.showError(err.toString());
-            }
+
+            const output = await p4.info(resource, {});
+            Display.channel.append(output);
         }
     }
-
-    private parseRawField(value: string) {
-        if (value.startsWith("\n")) {
-            value = value.slice(1);
-        }
-        return value.split("\n").map(line => line.replace(/^\t/, ""));
-    }
-
-    private getBasicField(fields: ChangeFieldRaw[], field: string) {
-        return fields.find(i => i.name === field)?.value;
-    }
-
-    private async getChangeSpec(existingChangelist?: string): Promise<ChangeSpec> {
-        const args = `-o ${existingChangelist ? existingChangelist : ""}`;
-        const spec: string = await Utils.runCommand(this._workspaceUri, "change", {
-            prefixArgs: args
-        });
-        const fields = spec.trim().split(/\n\r?\n/);
-        const rawFields = fields
-            .filter(field => !field.startsWith("#"))
-            .map(field => {
-                const colPos = field.indexOf(":");
-                const name = field.slice(0, colPos);
-                const value = this.parseRawField(field.slice(colPos + 1));
-                return { name, value };
-            });
-        return {
-            change: this.getBasicField(rawFields, "Change")?.[0],
-            description: this.getBasicField(rawFields, "Description")?.join("\n"),
-            files: this.getBasicField(rawFields, "Files")?.map(file => {
-                const endOfFileStr = file.indexOf("#");
-                return {
-                    depotPath: file.slice(0, endOfFileStr).trim(),
-                    action: file.slice(endOfFileStr + 2)
-                };
-            }),
-            rawFields
-        };
-    }
-
-    private async getChangelistFileInfo(
-        fileList: ChangeSpecFile[]
-    ): Promise<(FstatInfo | undefined)[]> {
-        const depotFiles = fileList.map(f => f.depotPath);
-        return await this.getFstatInfoForFiles(depotFiles);
-    }
-
     private isInWorkspace(clientFile?: string): boolean {
         return !!clientFile && !!workspace.getWorkspaceFolder(Uri.file(clientFile));
-    }
-
-    private getDefinedFields(spec: ChangeSpec): ChangeFieldRaw[] {
-        const outFields: ChangeFieldRaw[] = [];
-
-        // add defined fields
-        if (spec.change) {
-            outFields.push({ name: "Change", value: [spec.change] });
-        }
-        if (spec.description) {
-            outFields.push({ name: "Description", value: spec.description.split("\n") });
-        }
-        if (spec.files) {
-            outFields.push({
-                name: "Files",
-                value: spec.files.map(file => file.depotPath + "\t# " + file.action)
-            });
-        }
-
-        return outFields;
-    }
-
-    private async inputChangeSpec(spec: ChangeSpec): Promise<string> {
-        const outFields = this.getDefinedFields(spec).concat(
-            spec.rawFields.filter(
-                field => !spec[field.name.toLowerCase() as keyof ChangeSpec]
-            )
-        );
-
-        const newSpec = outFields
-            .map(field => {
-                const value = field.value.join("\n\t");
-                return field.name + ":\t" + value;
-            })
-            .join("\n\n");
-
-        const output = await Utils.runCommand(this._workspaceUri, "change", {
-            prefixArgs: "-i",
-            input: newSpec
-        });
-        Display.channel.append(output);
-        return output;
-    }
-
-    private getChangelistNumber(changeCreatedStr: string) {
-        const matches = new RegExp(/Change\s(\d+)\screated/).exec(changeCreatedStr);
-        // Change #### created with ...
-        return matches?.[1];
     }
 
     public async SaveToChangelist(
@@ -381,12 +273,16 @@ export class Model implements Disposable {
             descStr = "<saved by VSCode>";
         }
 
-        const changeFields = await this.getChangeSpec(existingChangelist);
+        const changeFields = await p4.getChangeSpec(this._workspaceUri, {
+            existingChangelist
+        });
 
         if (this._workspaceConfig.hideNonWorkspaceFiles && changeFields.files) {
-            const infos = await this.getChangelistFileInfo(changeFields.files);
+            const infos = await p4.getFstatInfo(this._workspaceUri, {
+                depotPaths: changeFields.files.map(file => file.depotPath)
+            });
 
-            changeFields.files = changeFields.files.filter((file, i) =>
+            changeFields.files = changeFields.files.filter((_file, i) =>
                 this.isInWorkspace(infos[i]?.["clientFile"])
             );
         }
@@ -394,10 +290,12 @@ export class Model implements Disposable {
 
         let newChangelistNumber: string | undefined;
         try {
-            const createdStr = await this.inputChangeSpec(changeFields);
+            const created = await p4.inputChangeSpec(this._workspaceUri, {
+                spec: changeFields
+            });
 
-            newChangelistNumber = this.getChangelistNumber(createdStr);
-            Display.channel.append(createdStr);
+            newChangelistNumber = created.chnum;
+            Display.channel.append(created.rawOutput);
             this.Refresh();
         } catch (err) {
             Display.showError(err.toString());
@@ -408,11 +306,13 @@ export class Model implements Disposable {
 
     private async createEmptyChangelist(descStr: string) {
         try {
-            const changeFields = await this.getChangeSpec();
+            const changeFields = await p4.getChangeSpec(this._workspaceUri, {});
             changeFields.files = [];
             changeFields.description = descStr;
-            const createdStr = await this.inputChangeSpec(changeFields);
-            return this.getChangelistNumber(createdStr);
+            const created = await p4.inputChangeSpec(this._workspaceUri, {
+                spec: changeFields
+            });
+            return created.chnum;
         } catch (err) {
             Display.showImportantError(err.toString());
         }
@@ -432,46 +332,27 @@ export class Model implements Disposable {
         await this.SaveToChangelist(description, existingChangelist);
     }
 
-    public async EditChangelist(input: SourceControlResourceGroup): Promise<void> {
-        let descStr = "";
-        const id = input.id;
-        let args = "-o ";
-        if (id.startsWith("pending")) {
-            const chnum = id.substr(id.indexOf(":") + 1);
-            descStr = `#${chnum}\n`;
-            args += chnum;
-        }
+    public async EditChangelist(input: ResourceGroup): Promise<void> {
+        const id = input.chnum;
 
-        const output: string = await Utils.runCommand(this._workspaceUri, "change", {
-            prefixArgs: args
+        const change = await p4.getChangeSpec(this._workspaceUri, {
+            existingChangelist: id
         });
-        const changeFields = output.trim().split(/\n\r?\n/);
-        for (const field of changeFields) {
-            if (field.startsWith("Description:")) {
-                descStr += field
-                    .substr(field.indexOf("\n"))
-                    .replace(/\n\t/g, "\n")
-                    .trim();
-                break;
-            }
-        }
 
-        this._sourceControl.inputBox.value = descStr;
+        this._sourceControl.inputBox.value = "#" + id + "\n" + change.description ?? "";
     }
 
-    public async Describe(input: SourceControlResourceGroup): Promise<void> {
-        const id = input.id;
-
-        if (id.startsWith("default")) {
+    public async Describe(input: ResourceGroup): Promise<void> {
+        if (input.isDefault) {
             const command = "change";
             const args = "-o";
             const uri: Uri = Uri.parse("perforce:").with({
                 query: Utils.makePerforceUriQuery(command, args)
             });
             await commands.executeCommand<void>("vscode.open", uri);
-        } else if (id.startsWith("pending")) {
+        } else {
             const command = "describe";
-            const args = id.substr(id.indexOf(":") + 1);
+            const args = input.chnum;
 
             const uri: Uri = Uri.parse("perforce:").with({
                 query: Utils.makePerforceUriQuery(command, args)
@@ -481,40 +362,26 @@ export class Model implements Disposable {
     }
 
     public async SubmitDefault(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
+        const loggedin = await p4.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
 
-        const noFiles = "File(s) not opened on this client.";
-        let fileListStr;
         try {
-            fileListStr = await Utils.runCommand(this._workspaceUri, "opened", {
-                prefixArgs: "-c default"
+            const files = await p4.getOpenedFiles(this._workspaceUri, {
+                chnum: "default"
             });
-            if (fileListStr === noFiles) {
-                Display.showError(noFiles);
-                return;
+            if (files.length === 0) {
+                throw new Error("The default changelist is empty");
             }
         } catch (err) {
             Display.showError(err.toString());
             return;
         }
 
-        const descStr = await vscode.window.showInputBox({
-            placeHolder: "New changelist description",
-            validateInput: (value: string) => {
-                if (!value || value.trim().length === 0) {
-                    return "Cannot set empty description";
-                }
-                return null;
-            },
-            ignoreFocusOut: true
-        });
+        const descStr = await this.requestChangelistDescription();
 
-        if (descStr === undefined || descStr.trim().length === 0) {
-            // pressing enter with no other input will still submit the empty string
-            Display.showError("Cannot set empty description");
+        if (descStr === undefined) {
             return;
         }
 
@@ -531,56 +398,31 @@ export class Model implements Disposable {
 
         if (pick === "Submit") {
             if (this._workspaceConfig.hideNonWorkspaceFiles) {
+                // TODO - relies on state - i.e. that savetochangelist applies hideNonWorkspaceFiles
                 const changeListNr = await this.SaveToChangelist(descStr);
 
                 if (changeListNr !== undefined) {
-                    this.Submit(parseInt(changeListNr, 10));
+                    await p4.submitChangelist(this._workspaceUri, {
+                        chnum: changeListNr
+                    });
                 }
             } else {
-                this.Submit(descStr);
+                await p4.submitChangelist(this._workspaceUri, {
+                    description: descStr
+                });
             }
-            return;
+        } else {
+            await this.SaveToChangelist(descStr);
         }
-
-        this.SaveToChangelist(descStr);
+        this.Refresh();
     }
 
-    public async Submit(
-        input: SourceControlResourceGroup | string | number
-    ): Promise<void> {
-        const command = "submit";
-        let args = "";
+    public async Submit(input: ResourceGroup): Promise<void> {
+        this.assertIsNotDefault(input);
 
-        if (typeof input === "string") {
-            args = `-d "${input}"`;
-        } else if (typeof input === "number") {
-            args = `-c ${input}`;
-        } else {
-            const group = input;
-            const id = group.id;
-            if (id) {
-                const chnum = id.substr(id.indexOf(":") + 1);
-                if (id.startsWith("pending")) {
-                    args = "-c " + chnum;
-                } else if (id.startsWith("shelved")) {
-                    args = "-e " + chnum;
-                } else {
-                    return;
-                }
-            } else {
-                return;
-            }
-        }
-
-        await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args })
-            .then(output => {
-                Display.channel.append(output);
-                Display.showMessage("Changelist Submitted");
-                this.Refresh();
-            })
-            .catch(reason => {
-                Display.showError(reason.toString());
-            });
+        await p4.submitChangelist(this._workspaceUri, { chnum: input.chnum });
+        Display.showMessage("Changelist Submitted");
+        this.Refresh();
     }
 
     private hasShelvedFiles(group: SourceControlResourceGroup) {
@@ -588,13 +430,12 @@ export class Model implements Disposable {
     }
 
     public async Revert(
-        input: Resource | SourceControlResourceGroup,
+        input: Resource | ResourceGroup,
         unchanged?: boolean
     ): Promise<void> {
-        const command = "revert";
-        let file;
-        let args = unchanged ? "-a " : "";
         let needRefresh = false;
+
+        const opts: p4.RevertOptions = { paths: [], unchanged };
 
         let message = "Are you sure you want to revert the changes ";
         if (input instanceof Resource) {
@@ -605,19 +446,15 @@ export class Model implements Disposable {
                 );
                 return;
             }
-            file = Uri.file(input.resourceUri.fsPath);
+            opts.paths = [{ fsPath: input.resourceUri.fsPath }];
             message += "to file " + Path.basename(input.resourceUri.fsPath) + "?";
         } else if (isResourceGroup(input)) {
-            const id = input.id;
-            if (id.startsWith("default")) {
-                args += "-c default //...";
+            opts.paths = ["//..."];
+            opts.chnum = input.chnum;
+            if (input.isDefault) {
                 message += "in the default changelist?";
-            } else if (id.startsWith("pending")) {
-                const chnum = id.substr(id.indexOf(":") + 1);
-                args += "-c " + chnum + " //...";
-                message += "in the changelist " + chnum + "?";
             } else {
-                return;
+                message += "in the changelist " + input.chnum + "?";
             }
         } else {
             return;
@@ -631,33 +468,26 @@ export class Model implements Disposable {
             }
         }
 
-        await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args, file })
-            .then(output => {
+        try {
+            const output = await p4.revert(this._workspaceUri, opts);
+            Display.updateEditor();
+            Display.channel.append(output);
+            needRefresh = true;
+        } catch {
+            // p4 shows error
+        }
+
+        // delete changelist after
+        if (isResourceGroup(input) && !this.hasShelvedFiles(input) && !input.isDefault) {
+            try {
+                const output = await p4.deleteChangelist(this._workspaceUri, {
+                    chnum: input.chnum
+                });
                 Display.updateEditor();
                 Display.channel.append(output);
                 needRefresh = true;
-            })
-            .catch(reason => {
-                Display.showError(reason.toString());
-            });
-
-        // delete changelist after
-        if (isResourceGroup(input) && !this.hasShelvedFiles(input)) {
-            const command = "change";
-            const id = input.id;
-            const chnum = id.substr(id.indexOf(":") + 1);
-            if (id.startsWith("pending")) {
-                args = "-d " + chnum;
-
-                await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args })
-                    .then(output => {
-                        Display.updateEditor();
-                        Display.channel.append(output);
-                        needRefresh = true;
-                    })
-                    .catch(reason => {
-                        Display.showError(reason.toString());
-                    });
+            } catch {
+                // p4 shows error
             }
         }
 
@@ -667,34 +497,23 @@ export class Model implements Disposable {
     }
 
     public async QuietlyRevertChangelist(chnum: string): Promise<void> {
-        const command = "revert";
-        const args = "-c " + chnum + " //...";
-
-        const output = await Utils.runCommand(this._workspaceUri, command, {
-            prefixArgs: args
+        const output = await p4.revert(this._workspaceUri, {
+            chnum: chnum,
+            paths: ["//..."]
         });
         Display.updateEditor();
         Display.channel.append(output);
     }
 
-    public async ShelveChangelist(
-        input: SourceControlResourceGroup,
-        revert?: boolean
-    ): Promise<void> {
-        const id = input.id;
-        const chnum = id.substr(id.indexOf(":") + 1);
-
-        if (chnum === "default") {
+    public async ShelveChangelist(input: ResourceGroup, revert?: boolean): Promise<void> {
+        if (input.isDefault) {
             throw new Error("Cannot shelve the default changelist");
         }
 
-        const command = "shelve";
-        const args = "-f -c " + chnum;
-
         try {
-            await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args });
+            await p4.shelve(this._workspaceUri, { chnum: input.chnum, force: true });
             if (revert) {
-                await this.QuietlyRevertChangelist(chnum);
+                await this.QuietlyRevertChangelist(input.chnum);
             }
             Display.showMessage("Changelist shelved");
         } catch (err) {
@@ -703,19 +522,17 @@ export class Model implements Disposable {
         this.Refresh();
     }
 
-    public async UnshelveChangelist(input: SourceControlResourceGroup): Promise<void> {
-        const id = input.id;
-        const chnum = id.substr(id.indexOf(":") + 1);
-
-        if (chnum === "default") {
+    public async UnshelveChangelist(input: ResourceGroup): Promise<void> {
+        if (input.isDefault) {
             throw new Error("Cannot unshelve the default changelist");
         }
 
-        const command = "unshelve";
-        const args = "-f -s " + chnum + " -c " + chnum;
-
         try {
-            await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args });
+            await p4.unshelve(this._workspaceUri, {
+                shelvedChnum: input.chnum,
+                toChnum: input.chnum,
+                force: true
+            });
             this.Refresh();
             Display.showMessage("Changelist unshelved");
         } catch (err) {
@@ -723,19 +540,14 @@ export class Model implements Disposable {
         }
     }
 
-    public async DeleteShelvedChangelist(
-        input: SourceControlResourceGroup
-    ): Promise<void> {
-        const id = input.id;
-        const chnum = id.substr(id.indexOf(":") + 1);
-
-        if (chnum === "default") {
+    public async DeleteShelvedChangelist(input: ResourceGroup): Promise<void> {
+        if (input.isDefault) {
             throw new Error("Cannot delete shelved files from the default changelist");
         }
 
         const message =
             "Are you sure you want to delete the shelved files from changelist " +
-            chnum +
+            input.chnum +
             "?";
 
         const yes = "Delete Shelved Files";
@@ -744,11 +556,11 @@ export class Model implements Disposable {
             return;
         }
 
-        const command = "shelve";
-        const args = "-d -c " + chnum;
-
         try {
-            await Utils.runCommand(this._workspaceUri, command, { prefixArgs: args });
+            await p4.shelve(this._workspaceUri, {
+                chnum: input.chnum,
+                delete: true
+            });
             this.Refresh();
             Display.showMessage("Shelved files deleted");
         } catch (err) {
@@ -758,46 +570,35 @@ export class Model implements Disposable {
 
     public async ShelveOrUnshelve(input: Resource): Promise<void> {
         if (input.isShelved) {
-            const args = "-c " + input.change + " -s " + input.change;
-            const command = "unshelve";
-            await Utils.runCommand(this._workspaceUri, command, {
-                prefixArgs: args,
-                file: input.depotPath
-            })
-                .then(() => {
-                    const args = "-d -c " + input.change;
-                    Utils.runCommand(this._workspaceUri, "shelve", {
-                        prefixArgs: args,
-                        file: input.depotPath
-                    })
-                        .then(output => {
-                            Display.updateEditor();
-                            Display.channel.append(output);
-
-                            this.Refresh();
-                        })
-                        .catch(reason => {
-                            Display.showImportantError(reason.toString());
-
-                            this.Refresh();
-                        });
-                })
-                .catch(reason => {
-                    Display.showImportantError(reason.toString());
+            try {
+                await p4.unshelve(this._workspaceUri, {
+                    toChnum: input.change,
+                    shelvedChnum: input.change,
+                    paths: [input.depotPath]
                 });
+                const output = await p4.shelve(this._workspaceUri, {
+                    chnum: input.change,
+                    delete: true,
+                    paths: [input.depotPath]
+                });
+                Display.updateEditor();
+                Display.channel.append(output);
+            } catch (reason) {
+                Display.showImportantError(reason.toString());
+            }
+            this.Refresh();
         } else {
-            const args = "-f -c " + input.change;
-            const command = "shelve";
-            await Utils.runCommand(this._workspaceUri, command, {
-                prefixArgs: args,
-                file: input.resourceUri
-            })
-                .then(() => {
-                    this.Revert(input);
-                })
-                .catch(reason => {
-                    Display.showImportantError(reason.toString());
+            try {
+                await p4.shelve(this._workspaceUri, {
+                    chnum: input.change,
+                    force: true,
+                    paths: [{ fsPath: input.resourceUri.fsPath }]
                 });
+                await this.Revert(input);
+            } catch (reason) {
+                Display.showImportantError(reason.toString());
+            }
+            this.Refresh();
         }
     }
 
@@ -820,12 +621,11 @@ export class Model implements Disposable {
             return;
         }
 
-        const command = "shelve";
-        const args = "-d -c " + input.change + ' "' + input.depotPath + '"';
-
         try {
-            const ret = await Utils.runCommand(this._workspaceUri, command, {
-                prefixArgs: args
+            const ret = await p4.shelve(this._workspaceUri, {
+                delete: true,
+                chnum: input.change,
+                paths: [input.depotPath]
             });
             this.Refresh();
             Display.showMessage(ret);
@@ -851,24 +651,17 @@ export class Model implements Disposable {
     }
 
     public async FixJob(input: ResourceGroup) {
-        const id = input.id;
-        const chnum = id.substr(id.indexOf(":") + 1);
-        if (chnum === "default") {
+        if (input.isDefault) {
             throw new Error("The default changelist cannot fix a job");
         }
 
-        const jobId = await this.requestJobId(chnum);
+        const jobId = await this.requestJobId(input.chnum);
         if (jobId === undefined) {
             return;
         }
 
-        const command = "fix";
-        const args = "-c " + chnum + " " + jobId;
-
         try {
-            await Utils.runCommand(this._workspaceUri, command, {
-                prefixArgs: args
-            });
+            await p4.fixJob(this._workspaceUri, { chnum: input.chnum, jobId });
             this.Refresh();
             Display.showMessage("Job " + jobId + " added");
         } catch (err) {
@@ -877,7 +670,7 @@ export class Model implements Disposable {
     }
 
     private async pickJobFromChangelist(chnum: string) {
-        const allJobs = await this.getFixedJobs(chnum);
+        const allJobs = await p4.getFixedJobs(this._workspaceUri, { chnum });
 
         const items = allJobs.map(
             (job): vscode.QuickPickItem => {
@@ -906,25 +699,23 @@ export class Model implements Disposable {
     }
 
     public async UnfixJob(input: ResourceGroup) {
-        const id = input.id;
-        const chnum = id.substr(id.indexOf(":") + 1);
-        if (chnum === "default") {
+        if (input.isDefault) {
             throw new Error("The default changelist cannot fix a job");
         }
 
-        const job = await this.pickJobFromChangelist(chnum);
+        const job = await this.pickJobFromChangelist(input.chnum);
 
         if (job === undefined) {
             return;
         }
 
         const jobId = job.label;
-        const command = "fix";
-        const args = "-c " + chnum + " -d " + jobId;
 
         try {
-            await Utils.runCommand(this._workspaceUri, command, {
-                prefixArgs: args
+            await p4.fixJob(this._workspaceUri, {
+                chnum: input.chnum,
+                jobId,
+                removeFix: true
             });
             this.Refresh();
             Display.showMessage("Job " + jobId + " removed");
@@ -957,7 +748,7 @@ export class Model implements Disposable {
             throw new Error("Cannot reopen shelved file");
         }
 
-        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
+        const loggedin = await p4.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -995,23 +786,18 @@ export class Model implements Disposable {
             return;
         }
 
-        // TODO - ideally this should be a single command instead of many
-        for (const resource of resources) {
-            const file = Uri.file(resource.resourceUri.fsPath);
-            const args = "-c " + chnum;
-
-            Utils.runCommand(this._workspaceUri, "reopen", {
-                prefixArgs: args,
-                file
-            })
-                .then(output => {
-                    Display.channel.append(output);
-                    this.Refresh();
+        try {
+            const output = await p4.reopenFiles(this._workspaceUri, {
+                chnum: chnum,
+                files: resources.map(resource => {
+                    return { fsPath: resource.resourceUri.fsPath };
                 })
-                .catch(reason => {
-                    Display.showImportantError(reason.toString());
-                });
+            });
+            Display.channel.append(output);
+        } catch (reason) {
+            Display.showImportantError(reason.toString());
         }
+        this.Refresh();
     }
 
     private clean() {
@@ -1043,25 +829,23 @@ export class Model implements Disposable {
             pathToSync = vscode.Uri.file(p4Dir + "...");
         }
 
-        await Utils.runCommand(this._workspaceUri, "sync", {
-            file: pathToSync
-        })
-            .then(output => {
-                Display.channel.append(output);
-                this.Refresh();
-            })
-            .catch(reason => {
-                Display.showImportantError(reason.toString());
+        try {
+            const output = await p4.sync(this._workspaceUri, {
+                files: pathToSync ? [{ fsPath: pathToSync.fsPath }] : []
             });
+            Display.channel.append(output);
+            this.Refresh();
+        } catch (reason) {
+            Display.showImportantError(reason.toString());
+        }
     }
 
     private async updateInfo(): Promise<void> {
-        const resource = Uri.file(this._config.localDir);
-        this._infos = Utils.processInfo(await Utils.getSimpleOutput(resource, "info"));
+        this._infos = await p4.getInfo(Uri.file(this._config.localDir), {});
     }
 
     private async updateStatus(): Promise<void> {
-        const loggedin = await Utils.isLoggedIn(this._workspaceUri);
+        const loggedin = await p4.isLoggedIn(this._workspaceUri);
         if (!loggedin) {
             return;
         }
@@ -1119,7 +903,9 @@ export class Model implements Disposable {
             "default",
             "Default Changelist"
         ) as ResourceGroup;
+        this._defaultGroup.isDefault = true;
         this._defaultGroup.model = this;
+        this._defaultGroup.chnum = "default";
         this._defaultGroup.resourceStates = resources.filter(
             (resource): resource is Resource =>
                 !!resource && resource.change === "default"
@@ -1130,7 +916,9 @@ export class Model implements Disposable {
                 "pending:" + c.chnum,
                 "#" + c.chnum + ": " + c.description
             ) as ResourceGroup;
-            group["model"] = this;
+            group.model = this;
+            group.isDefault = false;
+            group.chnum = c.chnum.toString();
             group.resourceStates = resources.filter(
                 (resource): resource is Resource =>
                     !!resource && resource.change === c.chnum.toString()
@@ -1145,7 +933,7 @@ export class Model implements Disposable {
         });
 
         groups.forEach((group, i) => {
-            this._pendingGroups.set(changelists[i].chnum, {
+            this._pendingGroups.set(parseInt(changelists[i].chnum), {
                 description: changelists[i].description,
                 group: group
             });
@@ -1153,23 +941,16 @@ export class Model implements Disposable {
     }
 
     private async getChanges(): Promise<ChangeInfo[]> {
-        const pendingArgs = "-c " + this.clientName + " -s pending";
-        const output: string = await Utils.runCommand(this._workspaceUri, "changes", {
-            prefixArgs: pendingArgs
-        });
-        let changeNumbers = output.trim().split("\n");
-
-        if (this._workspaceConfig.changelistOrder === "ascending") {
-            changeNumbers = changeNumbers.reverse();
-        }
-
-        const changelists = this.filterIgnoredChangelists(
-            changeNumbers
-                .map(c => this.parseChangelistDescription(c))
-                .filter((c): c is ChangeInfo => c !== undefined)
+        const changes = this.filterIgnoredChangelists(
+            await p4.getChangelists(this._workspaceUri, {
+                client: this.clientName,
+                status: p4.ChangelistStatus.PENDING
+            })
         );
 
-        return changelists;
+        return this._workspaceConfig.changelistOrder === "ascending"
+            ? changes.reverse()
+            : changes;
     }
 
     private filterIgnoredChangelists(changelists: ChangeInfo[]): ChangeInfo[] {
@@ -1180,32 +961,13 @@ export class Model implements Disposable {
         return changelists;
     }
 
-    private parseChangelistDescription(value: string): ChangeInfo | undefined {
-        // Change num on date by user@client [status] description
-        const matches = new RegExp(
-            /Change\s(\d+)\son\s(.+)\sby\s(.+)@(.+)\s\*(.+)\*\s\'(.*)\'/
-        ).exec(value);
-
-        if (matches) {
-            const num = matches[1];
-            // const date = matches[2];
-            // const user = matches[3];
-            // const client = matches[4];
-            // const status = matches[5];
-            const description = matches[6];
-
-            const chnum: number = parseInt(num.toString());
-            return { chnum, description };
-        }
-    }
-
     private async getAllShelvedResources(changes: ChangeInfo[]): Promise<Resource[]> {
         if (this._workspaceConfig.hideShelvedFiles) {
             return [];
         }
-        const allFileInfo = await this.getDepotShelvedFilePaths(
-            changes.map(c => c.chnum)
-        );
+        const allFileInfo = await p4.getShelvedFiles(this._workspaceUri, {
+            chnums: changes.map(c => c.chnum)
+        });
         return this.getShelvedResources(allFileInfo);
     }
 
@@ -1224,29 +986,32 @@ export class Model implements Disposable {
         return resource;
     }
 
-    private async getShelvedResources(files: ShelvedChangeInfo[]): Promise<Resource[]> {
+    private async getShelvedResources(
+        files: p4.ShelvedChangeInfo[]
+    ): Promise<Resource[]> {
         const proms = files.map(f =>
-            this.getFstatInfoForFiles(f.paths, "-Or -Rs -e " + f.chnum)
+            p4.getFstatInfo(this._workspaceUri, {
+                depotPaths: f.paths,
+                limitToShelved: true,
+                outputPendingRecord: true,
+                chnum: f.chnum.toString()
+            })
         );
         const fstatInfo = await Promise.all(proms);
 
-        return fstatInfo.reduce((all, cur, i) => {
-            return all.concat(
-                cur
-                    .filter((f): f is FstatInfo => !!f)
-                    .map(f =>
-                        this.makeResourceForShelvedFile(files[i].chnum.toString(), f)
-                    )
-            );
-        }, [] as Resource[]);
+        return fstatInfo.flatMap((cur, i) =>
+            cur
+                .filter((f): f is FstatInfo => !!f)
+                .map(f => this.makeResourceForShelvedFile(files[i].chnum.toString(), f))
+        );
     }
 
     private async getDepotOpenedResources(): Promise<Resource[]> {
-        const depotOpenedFilePromises = this.getDepotOpenedFilePaths();
-        const fstatInfo = await this.getFstatInfoForFiles(
-            await depotOpenedFilePromises,
-            "-Or"
-        );
+        const depotPaths = await this.getDepotOpenedFilePaths();
+        const fstatInfo = await p4.getFstatInfo(this._workspaceUri, {
+            depotPaths,
+            outputPendingRecord: true
+        });
         return fstatInfo
             .filter((info): info is FstatInfo => !!info) // in case fstat doesn't have output for this file
             .map(info => this.makeResourceForOpenFile(info))
@@ -1254,160 +1019,6 @@ export class Model implements Disposable {
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
-        const resource = Uri.file(this._config.localDir);
-        let opened: string[] = [];
-        try {
-            const output = await Utils.getSimpleOutput(resource, "opened");
-            opened = output.trim().split("\n");
-        } catch (err) {
-            // perforce writes to stderr if no files are opened.
-            //console.log("ERROR: " + err);
-        }
-
-        const files: string[] = [];
-        opened.forEach(open => {
-            const matches = new RegExp(
-                /(.+)#(\d+)\s-\s([\w\/]+)\s(default\schange|change\s\d+)\s\(([\w\+]+)\)/
-            ).exec(open);
-            if (matches) {
-                files.push(matches[1]);
-            }
-        });
-
-        return files;
-    }
-
-    private async getFixedJobs(chnum: string) {
-        const resource = Uri.file(this._config.localDir);
-        const output = await Utils.getSimpleOutput(resource, "describe -s " + chnum);
-
-        type FixedJob = { id: string; description: string[] };
-
-        const allLines = output.trim().split("\n");
-        const startIndex = allLines.findIndex(line => line.startsWith("Jobs fixed ..."));
-        if (startIndex >= 0) {
-            const endIndex = allLines.findIndex(
-                line => !line.startsWith("\t") && line.includes("files ...")
-            );
-            const subLines =
-                endIndex > 0
-                    ? allLines.slice(startIndex + 1, endIndex)
-                    : allLines.slice(startIndex + 1);
-
-            let curJob: FixedJob;
-            const allJobs: FixedJob[] = [];
-            subLines.forEach(line => {
-                line = line.replace(/\r/g, "");
-                if (!line.startsWith("\t")) {
-                    const matches = new RegExp(/^(.*?) on/).exec(line);
-                    if (matches) {
-                        curJob = { id: matches[1], description: [] };
-                        if (curJob) {
-                            allJobs.push(curJob);
-                        }
-                    }
-                } else if (curJob) {
-                    curJob.description.push(line.slice(1));
-                }
-            });
-
-            return allJobs;
-        }
-
-        return [];
-    }
-
-    private async getDepotShelvedFilePaths(
-        chnums: number[]
-    ): Promise<ShelvedChangeInfo[]> {
-        if (chnums.length === 0) {
-            return [];
-        }
-        const resource = Uri.file(this._config.localDir);
-        const output = await Utils.getSimpleOutput(
-            resource,
-            "describe -Ss " + chnums.join(" ")
-        );
-        const shelved = output.trim().split("\n");
-        if (shelved.length === 0) {
-            return [];
-        }
-
-        const files: ShelvedChangeInfo[] = [];
-        shelved.forEach(open => {
-            const chMatch = new RegExp(/^Change (\d+) by/).exec(open);
-            if (chMatch) {
-                files.push({ chnum: parseInt(chMatch[1]), paths: [] });
-            } else if (files.length > 0) {
-                const matches = new RegExp(/(\.+)\ (.*)#(.*) (.*)/).exec(open);
-                if (matches) {
-                    files[files.length - 1].paths.push(matches[2]);
-                }
-            }
-        });
-
-        return files.filter(c => c.paths.length > 0);
-    }
-
-    private splitArray<T>(arr: T[], chunkSize: number): T[][] {
-        const ret: T[][] = [];
-        for (let i = 0; i < arr.length; i += chunkSize) {
-            ret.push(arr.slice(i, i + chunkSize));
-        }
-        return ret;
-    }
-
-    private async getFstatInfoForFiles(
-        files: string[],
-        additionalParams?: string
-    ): Promise<(FstatInfo | undefined)[]> {
-        const promises = this.splitArray(
-            files,
-            this._workspaceConfig.maxFilePerCommand
-        ).map(fs => this.getFstatInfoForChunk(fs, additionalParams));
-
-        const result = await Promise.all(promises);
-
-        return result.reduce((prev, cur) => prev.concat(cur), []);
-    }
-
-    private async getFstatInfoForChunk(
-        files: string[],
-        additionalParams?: string
-    ): Promise<(FstatInfo | undefined)[]> {
-        const resource = Uri.file(this._config.localDir);
-
-        if (additionalParams === undefined) {
-            additionalParams = "";
-        }
-
-        // a shelved file may write to stderr if it doesn't exist in the workspace - so don't complain for stderr
-        const [fstatOutput] = await Utils.getOutputs(
-            resource,
-            `fstat ${additionalParams} "${files.join('" "')}"`
-        );
-
-        // Windows will have lines end with \r\n.
-        // Each file has multiple lines of output separated by a blank line.
-        // Splitting on \n\r?\n will find newlines followed immediately by a newline
-        // which will split the output for each file.
-        const fstatFiles = fstatOutput.trim().split(/\n\r?\n/);
-        const all = fstatFiles.map(file => {
-            const lines = file.split("\n");
-            const lineMap: FstatInfo = { depotFile: "" };
-            lines.forEach(line => {
-                // ... Key Value
-                const matches = new RegExp(/[.]{3} (\w+)[ ]*(.+)?/).exec(line);
-                if (matches) {
-                    // A key may not have a value (e.g. `isMapped`).
-                    // Treat these as flags and map them to 'true'.
-                    lineMap[matches[1]] = matches[2] ? matches[2] : "true";
-                }
-            });
-            return lineMap;
-        });
-
-        // there may be gaps due to missing shelved files - map to the correct positions
-        return files.map(file => all.find(fs => fs["depotFile"] === file));
+        return await p4.getOpenedFiles(this._workspaceUri, {});
     }
 }
