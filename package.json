@@ -22,7 +22,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.19.0"
+        "vscode": "^1.40.0"
     },
     "enableProposedApi": false,
     "keywords": [
@@ -753,6 +753,7 @@
         "@types/node": "^12.12.25",
         "@types/sinon": "^7.5.1",
         "@types/sinon-chai": "^3.2.3",
+        "@types/vscode": "^1.42.0",
         "@typescript-eslint/eslint-plugin": "^2.16.0",
         "@typescript-eslint/parser": "^2.16.0",
         "chai": "^4.2.0",
@@ -775,7 +776,6 @@
         "ts-loader": "^6.2.1",
         "tsc-watch": "^4.1.0",
         "typescript": "^3.7.5",
-        "vscode": "^1.1.36",
         "vscode-test": "^1.3.0",
         "webpack": "^4.41.5",
         "webpack-cli": "^3.3.10"
@@ -790,7 +790,6 @@
         "eslint-check": "eslint --print-config path/to/main.js | eslint-config-prettier-check",
         "prettier-write": "prettier --write src/**/*.ts src/**/*.js",
         "compile": "tsc -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
         "pretest": "npm run compile",
         "test": "npm run unittest-nocompile && npm run integrationtest-nocompile",
         "unittest-nocompile": "node ./out/test/runUnitTest.js",

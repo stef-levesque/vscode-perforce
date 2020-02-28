@@ -144,7 +144,7 @@ If i'm wrong, and you do exist, the original slevesque version of this extension
 
 ## Requirements
 
-Visual Studio Code v1.19
+Visual Studio Code v1.40
 
 ## Credits
 

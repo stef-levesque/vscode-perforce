@@ -4,6 +4,7 @@
 * Fix an issue where user input in changelist descriptions could be interpreted by the shell
 * The `perforce.maxBuffer` setting has been removed, because the internal method of running perforce commands has changed, and no longer uses this buffer
 * Internally, there has been a large amount of code refactoring to make it easier to implement and test upcoming features. As usual, please [raise an issue](https://github.com/mjcrouch/vscode-perforce/issues) on GitHub if there are any problems!
+* The minimum VS Code version is now 1.40.0
 
 ## [3.5.2] - 2020-02-13
 * Fix "p4" status icon appearing on all workspaces, even without a perforce client
