@@ -341,7 +341,9 @@ export namespace PerforceService {
                     }
 
                     //Resolve with client root as string
-                    resolve(stdout.substring(clientRootIndex, endClientRootIndex));
+                    resolve(
+                        stdout.substring(clientRootIndex, endClientRootIndex).trimRight()
+                    );
                 })
                 .catch(err => {
                     reject(err);
@@ -368,7 +370,7 @@ export namespace PerforceService {
                     }
 
                     //Resolve with p4 config filename as string
-                    resolve(stdout.substring(configIndex, endConfigIndex));
+                    resolve(stdout.substring(configIndex, endConfigIndex).trimRight());
                 })
                 .catch(err => {
                     reject(err);
