@@ -962,7 +962,7 @@ export class Model implements Disposable {
     }
 
     private async getAllShelvedResources(changes: ChangeInfo[]): Promise<Resource[]> {
-        if (this._workspaceConfig.hideShelvedFiles) {
+        if (this._workspaceConfig.hideShelvedFiles || changes.length === 0) {
             return [];
         }
         const allFileInfo = await p4.getShelvedFiles(this._workspaceUri, {

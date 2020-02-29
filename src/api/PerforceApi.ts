@@ -420,7 +420,13 @@ function parseShelvedDescribeOuput(output: string): ShelvedChangeInfo[] {
         .filter(c => c.paths.length > 0);
 }
 
-export async function getShelvedFiles(resource: vscode.Uri, options: GetShelvedOptions) {
+export async function getShelvedFiles(
+    resource: vscode.Uri,
+    options: GetShelvedOptions
+): Promise<ShelvedChangeInfo[]> {
+    if (options.chnums.length === 0) {
+        return [];
+    }
     const output = await describe(resource, {
         chnums: options.chnums,
         omitDiffs: true,

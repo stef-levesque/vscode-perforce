@@ -58,7 +58,9 @@ describe("Perforce API", () => {
         execute = sinon.stub(PerforceService, "execute").callsFake(basicExecuteStub);
     });
     afterEach(() => {
-        expect(execute).to.always.have.been.calledWith(ws);
+        if (execute.getCalls().length > 0) {
+            expect(execute).to.always.have.been.calledWith(ws);
+        }
         sinon.restore();
     });
     describe("Flag mapper", () => {
@@ -508,6 +510,10 @@ describe("Perforce API", () => {
         });
     });
     describe("getShelvedFiles", () => {
+        it("Returns an empty list when no changelists are specified", async () => {
+            await expect(p4.getShelvedFiles(ws, { chnums: [] })).to.eventually.eql([]);
+            expect(execute).not.to.have.been.called;
+        });
         it("Returns the list of shelved files", async () => {
             execute.callsFake(
                 execWithStdOut(
