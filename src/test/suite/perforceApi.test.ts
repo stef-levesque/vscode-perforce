@@ -392,10 +392,39 @@ describe("Perforce API", () => {
         });
     });
     describe("submit", () => {
-        it("uses the correct arguments", async () => {
+        it("Returns the new changelist number and the raw output", async () => {
+            const output =
+                "Submitting change 76." +
+                "Locking 1 files ..." +
+                "edit //depot/testArea/a file#4" +
+                "Change 76 submitted.";
+            execute.callsFake(execWithStdOut(output));
+
             await expect(
                 p4.submitChangelist(ws, { chnum: "1", description: "my description" })
-            ).to.eventually.equal("submit -c 1 -d my description");
+            ).to.eventually.eql({
+                rawOutput: output,
+                chnum: "76"
+            });
+
+            expect(execute).to.have.been.calledWith(ws, "submit", sinon.match.any, [
+                "-c",
+                "1",
+                "-d",
+                "my description"
+            ]);
+        });
+        it("Can submit a single specified file", async () => {
+            await p4.submitChangelist(ws, {
+                description: "my description",
+                file: { fsPath: "C:\\MyFile.txt" }
+            });
+
+            expect(execute).to.have.been.calledWith(ws, "submit", sinon.match.any, [
+                "-d",
+                "my description",
+                "C:\\MyFile.txt"
+            ]);
         });
     });
     describe("revert", () => {

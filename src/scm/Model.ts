@@ -20,7 +20,7 @@ import * as Path from "path";
 import * as vscode from "vscode";
 import { DebouncedFunction, debounce } from "../Debounce";
 import * as p4 from "../api/PerforceApi";
-import { ChangeInfo } from "../api/CommonTypes";
+import { ChangeInfo, ChangeSpec } from "../api/CommonTypes";
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg && arg.id !== undefined;
@@ -423,6 +423,49 @@ export class Model implements Disposable {
         await p4.submitChangelist(this._workspaceUri, { chnum: input.chnum });
         Display.showMessage("Changelist Submitted");
         this.Refresh();
+    }
+
+    private async createAndSubmitFromSpec(spec: ChangeSpec) {
+        const newChange = await p4.inputChangeSpec(this.workspaceUri, { spec });
+
+        if (!newChange.chnum) {
+            throw new Error("Couldn't find the new changelist number");
+        }
+
+        const output = await p4.submitChangelist(this.workspaceUri, {
+            chnum: newChange.chnum
+        });
+
+        Display.showMessage("Change " + output.chnum + " submitted");
+        this.Refresh();
+    }
+
+    public async SubmitSelectedFile(resources: Resource[]) {
+        if (resources.some(r => r.change !== "default")) {
+            Display.showModalMessage(
+                "Only files from the default changelist can be submitted selectively"
+            );
+            return;
+        }
+
+        const spec = await p4.getChangeSpec(this.workspaceUri, {});
+        spec.files = spec.files?.filter(file =>
+            resources.some(r => r.depotPath === file.depotPath)
+        );
+        if (spec.files?.length !== resources.length) {
+            Display.showModalMessage(
+                "Unable to submit. The selection is inconsistent with the actual default changelist. Perhaps the perforce view needs refreshing?"
+            );
+            return;
+        }
+
+        const desc = await this.requestChangelistDescription();
+        if (!desc) {
+            return;
+        }
+        spec.description = desc;
+
+        this.createAndSubmitFromSpec(spec);
     }
 
     private hasShelvedFiles(group: SourceControlResourceGroup) {

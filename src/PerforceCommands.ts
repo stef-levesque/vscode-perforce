@@ -19,6 +19,7 @@ import { PerforceService } from "./PerforceService";
 import * as p4 from "./api/PerforceApi";
 import { Display } from "./Display";
 import { Utils } from "./Utils";
+import { PerforceSCMProvider } from "./ScmProvider";
 
 // TODO resolve
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -28,6 +29,7 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.edit", editOpenFile);
         commands.registerCommand("perforce.delete", deleteOpenFile);
         commands.registerCommand("perforce.revert", revert);
+        commands.registerCommand("perforce.submitSingle", submitSingle);
         commands.registerCommand("perforce.diff", diff);
         commands.registerCommand("perforce.diffRevision", diffRevision);
         commands.registerCommand("perforce.annotate", annotate);
@@ -169,6 +171,39 @@ export namespace PerforceCommands {
             args,
             directoryOverride
         );
+    }
+
+    export async function submitSingle() {
+        const file = window.activeTextEditor?.document.uri;
+        if (!file || file.scheme !== "file") {
+            Display.showError("No open file to submit");
+            return;
+        }
+
+        if (window.activeTextEditor?.document.isDirty) {
+            Display.showModalMessage(
+                "The active document has unsaved changes. Save the file first!"
+            );
+            return;
+        }
+        const description = await window.showInputBox({
+            prompt:
+                "Enter a changelist description to submit '" +
+                Path.basename(file.fsPath) +
+                "'",
+            validateInput: input => {
+                if (!input.trim()) {
+                    return "Description must not be empty";
+                }
+            }
+        });
+        if (!description) {
+            return;
+        }
+
+        const output = await p4.submitChangelist(file, { description, file });
+        PerforceSCMProvider.RefreshAll();
+        Display.showMessage("Changelist " + output.chnum + " submitted");
     }
 
     export async function diff(revision?: number) {
@@ -510,6 +545,10 @@ export namespace PerforceCommands {
             description: "Discard changes from an opened file"
         });
         items.push({
+            label: "submit single file",
+            description: "Submit the open file, ONLY if it is in the default changelist"
+        });
+        items.push({
             label: "diff",
             description: "Display diff of client file with depot file"
         });
@@ -547,6 +586,9 @@ export namespace PerforceCommands {
                         break;
                     case "revert":
                         revert();
+                        break;
+                    case "submit single file":
+                        submitSingle();
                         break;
                     case "diff":
                         diff();

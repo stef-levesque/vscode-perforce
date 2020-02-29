@@ -965,6 +965,7 @@ describe("Model & ScmProvider modules (integration)", () => {
         });
     });
     describe("Actions", function() {
+        let skipInitialise = false;
         beforeEach(async function() {
             this.timeout(4000);
             const showMessage = sinon.spy(Display, "showMessage");
@@ -1008,7 +1009,10 @@ describe("Model & ScmProvider modules (integration)", () => {
                 workspaceConfig
             );
             subscriptions.push(instance);
-            await instance.Initialize();
+
+            if (!skipInitialise) {
+                await instance.Initialize();
+            }
 
             const showImportantError = sinon.spy(Display, "showImportantError");
             const showModalMessage = sinon.stub(Display, "showModalMessage"); // stub because modal gets in the way
@@ -2016,6 +2020,148 @@ describe("Model & ScmProvider modules (integration)", () => {
                         chnum: "1"
                     }
                 );
+            });
+        });
+        describe("Submit selected files", () => {
+            before(() => {
+                // need to override the files in the scm provider without having to refresh
+                skipInitialise = true;
+            });
+            after(() => {
+                skipInitialise = false;
+            });
+            it("Cannot submit files not in the default changelist", async () => {
+                await items.instance.Initialize();
+                sinon.resetHistory();
+
+                const file = findResourceForFile(
+                    items.instance.resources[1],
+                    basicFiles.edit()
+                );
+                await PerforceSCMProvider.SubmitSelectedFiles(file);
+                expect(items.showModalMessage).to.have.been.calledWithMatch(
+                    "default changelist"
+                );
+                expect(items.stubModel.inputChangeSpec).not.to.have.been.called;
+                expect(items.stubModel.submitChangelist).not.to.have.been.called;
+            });
+            it("Does not submit if the default changelist is inconsistent", async () => {
+                items.stubModel.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit(), basicFiles.add(), basicFiles.delete()]
+                    }
+                ];
+
+                await items.instance.Initialize();
+                sinon.resetHistory();
+
+                const showInput = sinon
+                    .stub(vscode.window, "showInputBox")
+                    .resolves(undefined);
+
+                const resource = findResourceForFile(
+                    items.instance.resources[0],
+                    basicFiles.edit()
+                );
+
+                // pretend we've submitted outside of vs code
+                items.stubModel.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.add(), basicFiles.delete()]
+                    }
+                ];
+
+                await PerforceSCMProvider.SubmitSelectedFiles(resource);
+
+                expect(items.showModalMessage).to.have.been.calledWithMatch(
+                    "inconsistent"
+                );
+                expect(showInput).not.to.have.been.called;
+                expect(items.stubModel.inputChangeSpec).not.to.have.been.called;
+                expect(items.stubModel.submitChangelist).not.to.have.been.called;
+            });
+            it("Prompts for a changelist description", async () => {
+                items.stubModel.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit(), basicFiles.add(), basicFiles.delete()]
+                    }
+                ];
+
+                await items.instance.Initialize();
+                sinon.resetHistory();
+
+                const showInput = sinon
+                    .stub(vscode.window, "showInputBox")
+                    .resolves(undefined);
+
+                const resource = findResourceForFile(
+                    items.instance.resources[0],
+                    basicFiles.edit()
+                );
+
+                await PerforceSCMProvider.SubmitSelectedFiles(resource);
+
+                expect(showInput).to.have.been.called;
+
+                expect(items.stubModel.inputChangeSpec).not.to.have.been.called;
+                expect(items.stubModel.submitChangelist).not.to.have.been.called;
+            });
+            it("Submits the changelist with the selected files and description", async () => {
+                items.stubModel.changelists = [
+                    {
+                        chnum: "default",
+                        description: "n/a",
+                        files: [basicFiles.edit(), basicFiles.add(), basicFiles.delete()]
+                    }
+                ];
+
+                await items.instance.Initialize();
+                sinon.resetHistory();
+
+                sinon
+                    .stub(vscode.window, "showInputBox")
+                    .resolves("my changelist description");
+
+                const resource1 = findResourceForFile(
+                    items.instance.resources[0],
+                    basicFiles.edit()
+                );
+
+                const resource2 = findResourceForFile(
+                    items.instance.resources[0],
+                    basicFiles.delete()
+                );
+
+                await PerforceSCMProvider.SubmitSelectedFiles(resource1, resource2);
+
+                expect(items.stubModel.inputChangeSpec).to.have.been.called;
+                expect(
+                    items.stubModel.inputChangeSpec.lastCall.args[1].spec
+                ).to.deep.include({
+                    files: [
+                        { action: "edit", depotPath: basicFiles.edit().depotPath },
+                        { action: "delete", depotPath: basicFiles.delete().depotPath }
+                    ],
+                    description: "my changelist description"
+                });
+                expect(
+                    items.stubModel.inputChangeSpec.lastCall.args[1].spec.files
+                ).to.have.length(2);
+
+                expect(items.stubModel.submitChangelist).to.have.been.calledWith(
+                    workspaceUri,
+                    {
+                        chnum: "99" // stubbed value
+                    }
+                );
+
+                expect(items.refresh).to.have.been.called;
             });
         });
         describe("Describe", () => {

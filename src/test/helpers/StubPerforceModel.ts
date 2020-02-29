@@ -116,7 +116,10 @@ export class StubPerforceModel {
         this.reopenFiles = sinon.stub(p4, "reopenFiles").resolves("reopened");
         this.revert = sinon.stub(p4, "revert").resolves("reverted");
         this.shelve = sinon.stub(p4, "shelve").resolves("shelved");
-        this.submitChangelist = sinon.stub(p4, "submitChangelist").resolves("submitted");
+        this.submitChangelist = sinon.stub(p4, "submitChangelist").resolves({
+            rawOutput: "submitting...\n change 250 submitted",
+            chnum: "250"
+        });
         this.sync = sinon.stub(p4, "sync").resolves("synced");
         this.unshelve = sinon.stub(p4, "unshelve").resolves("unshelved");
         this.inputChangeSpec = sinon

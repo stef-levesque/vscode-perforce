@@ -103,7 +103,13 @@ export namespace Utils {
         prefixArgs?: string[];
         gOpts?: string;
         input?: string;
-        hideStdErr?: boolean; // just from the status bar - not from the log output
+        /**
+         * hides std-err from the status bar (not from the log output)
+         */
+        hideStdErr?: boolean;
+        /**
+         * When set to true, will not reject if stderr is present
+         */
         stdErrIsOk?: boolean;
     }
 

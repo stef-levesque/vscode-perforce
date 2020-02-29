@@ -304,6 +304,16 @@
                 }
             },
             {
+                "command": "perforce.submitSelectedFiles",
+                "title": "Submit selected files...",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.submitSingle",
+                "title": "Submit the currently open file...",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.openResource",
                 "title": "Open changes",
                 "category": "Perforce"
@@ -431,6 +441,10 @@
             "commandPalette": [
                 {
                     "command": "perforce.submitChangelist",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.submitSelectedFiles",
                     "when": "0"
                 },
                 {
@@ -675,6 +689,11 @@
                     "command": "perforce.reopenFile",
                     "when": "scmProvider == perforce",
                     "group": "1_modification@3"
+                },
+                {
+                    "command": "perforce.submitSelectedFiles",
+                    "when": "scmProvider == perforce && scmResourceGroup == default",
+                    "group": "1_modification@4"
                 },
                 {
                     "command": "perforce.shelveunshelve",

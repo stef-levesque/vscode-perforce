@@ -167,6 +167,10 @@ export class PerforceSCMProvider {
             PerforceSCMProvider.Submit.bind(this)
         );
         commands.registerCommand(
+            "perforce.submitSelectedFiles",
+            PerforceSCMProvider.SubmitSelectedFiles.bind(this)
+        );
+        commands.registerCommand(
             "perforce.revertChangelist",
             PerforceSCMProvider.Revert.bind(this)
         );
@@ -336,6 +340,13 @@ export class PerforceSCMProvider {
         if (model) {
             await model.Submit(input);
         }
+    }
+
+    public static async SubmitSelectedFiles(
+        ...resourceStates: SourceControlResourceState[]
+    ) {
+        const resources = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        await resources[0].model.SubmitSelectedFile(resources);
     }
 
     public static async Revert(
