@@ -1,7 +1,11 @@
 # Change log
 
-## [n.n.n] - 2020-mm-dd (TBD)
-* Fix an issue where user input in changelist descriptions could be interpreted by the shell
+## [3.6.0] - 2020-02-29
+* Add context item to submit selected files from the default changelist (#20)
+* Add command palette and status bar menu option to submit the currently  open file (only if it is currently open in the default changelist) (#20)
+* Fix issues with escaping of perforce commands:
+  * Previously shell characters in changelist descriptions and other places could be interpreted by the shell, leading to unexpected results
+  * "Personal" perforce servers did not work because of incorrect escaping. These now work as long as the P4PORT (E.g. in the default .p4config file) does **not** include unexpanded variables, like `$configdir`
 * The `perforce.maxBuffer` setting has been removed, because the internal method of running perforce commands has changed, and no longer uses this buffer
 * Internally, there has been a large amount of code refactoring to make it easier to implement and test upcoming features. As usual, please [raise an issue](https://github.com/mjcrouch/vscode-perforce/issues) on GitHub if there are any problems!
 * The minimum VS Code version is now 1.40.0
@@ -202,6 +206,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.6.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.2...3.6.0
 [3.5.2]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.1...3.5.2
 [3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.0...3.5.1
 [3.5.0]: https://github.com/mjcrouch/vscode-perforce/compare/6807513579057a52292f87d3ca58babf012cb906...33d036413600eaeeecd1425898d7615e472a7a6b
