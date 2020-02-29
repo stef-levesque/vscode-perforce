@@ -1,5 +1,8 @@
 # Change log
 
+## [3.6.1] - 2020-02-29
+* Fix an issue where perforce client roots may not be correctly detected on windows, because of line ending differences
+
 ## [3.6.0] - 2020-02-29
 * Add context item to submit selected files from the default changelist (#20)
 * Add command palette and status bar menu option to submit the currently  open file (only if it is currently open in the default changelist) (#20)
@@ -206,6 +209,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.6.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.0...3.6.1
 [3.6.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.2...3.6.0
 [3.5.2]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.1...3.5.2
 [3.5.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.0...3.5.1
