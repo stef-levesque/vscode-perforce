@@ -1015,7 +1015,9 @@ export class Model implements Disposable {
     }
 
     private makeResourceForShelvedFile(chnum: string, fstatInfo: FstatInfo) {
-        const underlyingUri = Uri.file(fstatInfo["clientFile"]);
+        const underlyingUri = fstatInfo["clientFile"]
+            ? Uri.file(fstatInfo["clientFile"])
+            : undefined;
 
         const resource: Resource = new Resource(
             this,

@@ -169,6 +169,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             return {
                 depotPath: "//depot/testArea/testFolder/none.txt",
                 localFile: getLocalFile(workspaceUri, "testFolder", "none.txt"),
+                suppressFstatClientFile: true,
                 depotRevision: 1,
                 operation: Status.ADD
             };

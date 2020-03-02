@@ -29,6 +29,7 @@ export interface StubChangelist {
 
 export interface StubFile {
     localFile: vscode.Uri;
+    suppressFstatClientFile?: boolean;
     depotPath: string;
     depotRevision: number;
     operation: Status;
@@ -212,7 +213,9 @@ export class StubPerforceModel {
         if (file) {
             return {
                 depotFile: depotPath,
-                clientFile: file.localFile.fsPath,
+                clientFile: file.suppressFstatClientFile
+                    ? undefined
+                    : file.localFile.fsPath,
                 isMapped: "true",
                 haveRev: file.depotRevision.toString(),
                 headType: file.fileType ?? "text",
