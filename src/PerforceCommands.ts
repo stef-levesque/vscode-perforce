@@ -28,7 +28,7 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.add", addOpenFile);
         commands.registerCommand("perforce.edit", editOpenFile);
         commands.registerCommand("perforce.delete", deleteOpenFile);
-        commands.registerCommand("perforce.revert", revert);
+        commands.registerCommand("perforce.revert", revertOpenFile);
         commands.registerCommand("perforce.submitSingle", submitSingle);
         commands.registerCommand("perforce.diff", diff);
         commands.registerCommand("perforce.diffRevision", diffRevision);
@@ -51,13 +51,13 @@ export namespace PerforceCommands {
 
         const fileUri = editor.document.uri;
         if (checkFolderOpened()) {
-            add(fileUri);
+            p4add(fileUri);
         } else {
-            add(fileUri, Path.dirname(fileUri.fsPath));
+            p4add(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function add(fileUri: Uri, directoryOverride?: string) {
+    export function p4add(fileUri: Uri, directoryOverride?: string) {
         const args = [Utils.expansePath(fileUri.fsPath)];
         PerforceService.execute(
             fileUri,
@@ -87,13 +87,13 @@ export namespace PerforceCommands {
 
         //If folder not opened, run p4 in files folder.
         if (checkFolderOpened()) {
-            edit(fileUri);
+            p4edit(fileUri);
         } else {
-            edit(fileUri, Path.dirname(fileUri.fsPath));
+            p4edit(fileUri, Path.dirname(fileUri.fsPath));
         }
     }
 
-    export function edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
+    export function p4edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
         return new Promise(resolve => {
             const args = [Utils.expansePath(fileUri.fsPath)];
             PerforceService.execute(
@@ -122,27 +122,25 @@ export namespace PerforceCommands {
             return false;
         }
 
-        revert();
+        revertOpenFile();
         const fileUri = editor.document.uri;
         p4delete(fileUri);
     }
 
-    export function p4delete(fileUri: Uri) {
-        const args = [Utils.expansePath(fileUri.fsPath)];
-        PerforceService.execute(
-            fileUri,
-            "delete",
-            (err, stdout, stderr) => {
-                PerforceService.handleCommonServiceResponse(err, stdout, stderr);
-                if (!err) {
-                    Display.showMessage("file marked for delete");
-                }
-            },
-            args
-        );
+    export async function p4delete(fileUri: Uri) {
+        const deleteOpts: p4.DeleteOptions = { paths: [fileUri] };
+        try {
+            await p4.del(fileUri, deleteOpts);
+            Display.showMessage(fileUri.fsPath + " deleted.");
+            Display.updateEditor();
+            PerforceSCMProvider.RefreshAll();
+        } catch (err) {
+            // no work - just catch exception.  Error will be
+            // reported by perforce command code
+        }
     }
 
-    export function revert() {
+    export function revertOpenFile() {
         const editor = window.activeTextEditor;
         if (!checkFileSelected()) {
             return false;
@@ -152,25 +150,21 @@ export namespace PerforceCommands {
             return false;
         }
 
-        //If folder not opened, overrided p4 directory
         const fileUri = editor.document.uri;
-        const directoryOverride = !checkFolderOpened()
-            ? Path.dirname(fileUri.fsPath)
-            : undefined;
+        p4revert(fileUri);
+    }
 
-        const args = [Utils.expansePath(fileUri.fsPath)];
-        PerforceService.execute(
-            fileUri,
-            "revert",
-            (err, stdout, stderr) => {
-                PerforceService.handleCommonServiceResponse(err, stdout, stderr);
-                if (!err && !stderr) {
-                    Display.showMessage("file reverted");
-                }
-            },
-            args,
-            directoryOverride
-        );
+    export async function p4revert(fileUri: Uri) {
+        const revertOpts: p4.RevertOptions = { paths: [fileUri] };
+        try {
+            await p4.revert(fileUri, revertOpts);
+            Display.showMessage(fileUri.fsPath + " reverted.");
+            Display.updateEditor();
+            PerforceSCMProvider.RefreshAll();
+        } catch (err) {
+            // no work - just catch exception.  Error will be
+            // reported by perforce command code
+        }
     }
 
     export async function submitSingle() {
@@ -585,7 +579,7 @@ export namespace PerforceCommands {
                         editOpenFile();
                         break;
                     case "revert":
-                        revert();
+                        revertOpenFile();
                         break;
                     case "submit single file":
                         submitSingle();

@@ -22,7 +22,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.40.0"
+        "vscode": "^1.42.0"
     },
     "enableProposedApi": false,
     "keywords": [
@@ -772,7 +772,7 @@
         "@types/node": "^12.12.25",
         "@types/sinon": "^7.5.1",
         "@types/sinon-chai": "^3.2.3",
-        "@types/vscode": "^1.40.0",
+        "@types/vscode": "^1.42.0",
         "@typescript-eslint/eslint-plugin": "^2.16.0",
         "@typescript-eslint/parser": "^2.16.0",
         "chai": "^4.2.0",
@@ -788,7 +788,6 @@
         "micromatch": "^4.0.2",
         "mocha": "^7.1.0",
         "mocha-junit-reporter": "^1.23.3",
-        "parse-gitignore": "^0.4.0",
         "prettier": "1.19.1",
         "sinon": "^8.1.0",
         "sinon-chai": "^3.4.0",

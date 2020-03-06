@@ -284,6 +284,15 @@ const revertFlags = flagMapper<RevertOptions>(
 
 export const revert = makeSimpleCommand("revert", revertFlags);
 
+export interface DeleteOptions {
+    chnum?: string;
+    paths: PerforceFile[];
+}
+
+const deleteFlags = flagMapper<DeleteOptions>([["c", "chnum"]], "paths");
+
+export const del = makeSimpleCommand("delete", deleteFlags);
+
 //#region Shelving
 
 export interface ShelveOptions {
