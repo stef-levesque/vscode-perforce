@@ -739,4 +739,11 @@ describe("Perforce API", () => {
             await expect(p4.logout(ws, {})).to.eventually.equal("logout");
         });
     });
+    describe("delete", () => {
+        it("uses the correct arguments", async () => {
+            await expect(
+                p4.del(ws, { paths: ["//depot/hello", "//depot/bla"], chnum: "1" })
+            ).to.eventually.equal("delete -c 1 //depot/hello //depot/bla");
+        });
+    });
 });

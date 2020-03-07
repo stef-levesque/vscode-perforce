@@ -13,6 +13,7 @@ import { Utils } from "../../Utils";
 import { PerforceContentProvider } from "../../ContentProvider";
 import { Display } from "../../Display";
 import { getLocalFile } from "../helpers/testUtils";
+import { PerforceSCMProvider } from "../../ScmProvider";
 
 chai.use(sinonChai);
 chai.use(p4Commands);
@@ -28,6 +29,8 @@ describe("Perforce Command Module (integration)", () => {
 
     let stubModel: StubPerforceModel;
 
+    let refresh: sinon.SinonSpy;
+
     const doc = new PerforceContentProvider();
 
     before(async () => {
@@ -42,6 +45,7 @@ describe("Perforce Command Module (integration)", () => {
         stubExecute();
         stubModel = new StubPerforceModel();
         execCommand = sinon.spy(vscode.commands, "executeCommand");
+        refresh = sinon.stub(PerforceSCMProvider, "RefreshAll");
     });
     afterEach(async () => {
         await vscode.commands.executeCommand("workbench.action.files.revert");
@@ -72,6 +76,51 @@ describe("Perforce Command Module (integration)", () => {
                 localFile,
                 "new.txt#5 vs new.txt (workspace)"
             );
+        });
+    });
+    describe("Revert", () => {
+        it("Reverts the file open in the editor", async () => {
+            const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
+            await vscode.window.showTextDocument(localFile, {
+                preview: false
+            });
+
+            await PerforceCommands.revertOpenFile();
+
+            // this is ugly but sinon is not matching the Uris in a single call
+            expect(stubModel.revert).to.have.been.calledWithMatch({
+                fsPath: localFile.fsPath
+            });
+            expect(stubModel.revert.getCall(-1).args[1]).to.deep.equal({
+                paths: [localFile]
+            });
+
+            expect(refresh).to.have.been.called;
+        });
+    });
+    describe("Delete", () => {
+        it("Reverts and then deletes the file open in the editor", async () => {
+            const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
+            await vscode.window.showTextDocument(localFile, {
+                preview: false
+            });
+
+            await PerforceCommands.deleteOpenFile();
+
+            expect(stubModel.revert).to.have.been.calledWithMatch({
+                fsPath: localFile.fsPath
+            });
+            expect(stubModel.revert.getCall(-1).args[1]).to.deep.equal({
+                paths: [localFile]
+            });
+            expect(stubModel.del).to.have.been.calledWithMatch({
+                fsPath: localFile.fsPath
+            });
+            expect(stubModel.del.getCall(-1).args[1]).to.deep.equal({
+                paths: [localFile]
+            });
+
+            expect(refresh).to.have.been.called;
         });
     });
     describe("Submit single", () => {

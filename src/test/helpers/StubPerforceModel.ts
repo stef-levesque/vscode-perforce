@@ -85,6 +85,7 @@ export class StubPerforceModel {
     public sync: sinon.SinonStub<any>;
     public unshelve: sinon.SinonStub<any>;
     public inputChangeSpec: sinon.SinonStub<any>;
+    public del: sinon.SinonStub<any>;
 
     constructor() {
         this.changelists = [];
@@ -126,6 +127,7 @@ export class StubPerforceModel {
         this.inputChangeSpec = sinon
             .stub(p4, "inputChangeSpec")
             .resolves({ chnum: "99", rawOutput: "Change 99 created" });
+        this.del = sinon.stub(p4, "del").resolves("Files deleted");
     }
 
     resolveOpenFiles(

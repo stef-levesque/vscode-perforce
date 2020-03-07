@@ -112,7 +112,7 @@ export namespace PerforceCommands {
         });
     }
 
-    function deleteOpenFile() {
+    export async function deleteOpenFile() {
         const editor = window.activeTextEditor;
         if (!checkFileSelected()) {
             return false;
@@ -122,9 +122,9 @@ export namespace PerforceCommands {
             return false;
         }
 
-        revertOpenFile();
+        await revertOpenFile();
         const fileUri = editor.document.uri;
-        p4delete(fileUri);
+        await p4delete(fileUri);
     }
 
     export async function p4delete(fileUri: Uri) {
@@ -140,7 +140,7 @@ export namespace PerforceCommands {
         }
     }
 
-    export function revertOpenFile() {
+    export async function revertOpenFile() {
         const editor = window.activeTextEditor;
         if (!checkFileSelected()) {
             return false;
@@ -151,7 +151,7 @@ export namespace PerforceCommands {
         }
 
         const fileUri = editor.document.uri;
-        p4revert(fileUri);
+        await p4revert(fileUri);
     }
 
     export async function p4revert(fileUri: Uri) {
