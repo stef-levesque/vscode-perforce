@@ -4,5 +4,6 @@
     "perforce.bottleneck.maxConcurrent": 1000,
     "perforce.hideNonWorkspaceFiles": false,
     "perforce.hideShelvedFiles": false,
-    "perforce.activationMode": "autodetect"
+    "perforce.activationMode": "autodetect",
+    "perforce.promptBeforeSubmit": false
 }

@@ -420,6 +420,17 @@ export class Model implements Disposable {
     public async Submit(input: ResourceGroup): Promise<void> {
         this.assertIsNotDefault(input);
 
+        if (this._workspaceConfig.promptBeforeSubmit) {
+            if (
+                !(await this.requestConfirmation(
+                    "Are you sure you want to submit changelist " + input.chnum + "?",
+                    "Submit changelist"
+                ))
+            ) {
+                return;
+            }
+        }
+
         await p4.submitChangelist(this._workspaceUri, { chnum: input.chnum });
         Display.showMessage("Changelist Submitted");
         this.Refresh();
@@ -504,9 +515,7 @@ export class Model implements Disposable {
         }
 
         if (!unchanged) {
-            const yes = "Revert Changes";
-            const pick = await window.showWarningMessage(message, { modal: true }, yes);
-            if (pick !== yes) {
+            if (!(await this.requestConfirmation(message, "Revert Changes"))) {
                 return;
             }
         }
@@ -593,9 +602,7 @@ export class Model implements Disposable {
             input.chnum +
             "?";
 
-        const yes = "Delete Shelved Files";
-        const pick = await window.showWarningMessage(message, { modal: true }, yes);
-        if (pick !== yes) {
+        if (!(await this.requestConfirmation(message, "Delete Shelved Files"))) {
             return;
         }
 
@@ -653,14 +660,9 @@ export class Model implements Disposable {
             return;
         }
 
-        const yes = "Delete shelved file";
-        const answer = await window.showWarningMessage(
-            "Are you sure you want to delete the shelved file " + input.depotPath,
-            { modal: true },
-            yes
-        );
-
-        if (answer === undefined) {
+        const message =
+            "Are you sure you want to delete the shelved file " + input.depotPath;
+        if (!(await this.requestConfirmation(message, "Delete Shelved File"))) {
             return;
         }
 
@@ -765,6 +767,11 @@ export class Model implements Disposable {
         } catch (err) {
             Display.showImportantError(err.toString());
         }
+    }
+
+    private async requestConfirmation(message: string, yes: string) {
+        const result = await window.showWarningMessage(message, { modal: true }, yes);
+        return result === yes;
     }
 
     private async requestChangelistDescription() {

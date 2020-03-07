@@ -2022,6 +2022,35 @@ describe("Model & ScmProvider modules (integration)", () => {
                     }
                 );
             });
+            it("Prompts the user first when configured to do so", async () => {
+                sinon.stub(items.workspaceConfig, "promptBeforeSubmit").get(() => true);
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolves(undefined);
+
+                await PerforceSCMProvider.Submit(items.instance.resources[1]);
+
+                expect(warn).to.have.been.calledWithMatch("changelist 1");
+
+                expect(items.stubModel.submitChangelist).not.to.have.been.called;
+            });
+            it("Submits on confirmation", async () => {
+                sinon.stub(items.workspaceConfig, "promptBeforeSubmit").get(() => true);
+                const warn = sinon
+                    .stub(vscode.window, "showWarningMessage")
+                    .resolvesArg(2);
+
+                await PerforceSCMProvider.Submit(items.instance.resources[1]);
+
+                expect(warn).to.have.been.calledWithMatch("changelist 1");
+
+                expect(items.stubModel.submitChangelist).to.have.been.calledWith(
+                    workspaceUri,
+                    {
+                        chnum: "1"
+                    }
+                );
+            });
         });
         describe("Submit selected files", () => {
             before(() => {

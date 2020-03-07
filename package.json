@@ -204,6 +204,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Don't show the submit icon next to the changelist description."
+                },
+                "perforce.promptBeforeSubmit": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to prompt for confirmation, before submitting a saved changelist"
                 }
             }
         },

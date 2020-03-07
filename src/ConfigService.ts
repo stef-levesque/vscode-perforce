@@ -33,6 +33,10 @@ export class ConfigAccessor {
         return this.getConfigItem<string>("countBadge") ?? "all-but-shelved";
     }
 
+    public get promptBeforeSubmit(): boolean {
+        return this.getConfigItem("promptBeforeSubmit") ?? false;
+    }
+
     public get refreshDebounceTime(): number {
         return 1000;
     }
