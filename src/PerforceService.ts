@@ -7,6 +7,7 @@ import { PerforceSCMProvider } from "./ScmProvider";
 import * as CP from "child_process";
 import * as spawn from "cross-spawn";
 import { CommandLimiter } from "./CommandLimiter";
+import * as Path from "path";
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IPerforceConfig {
@@ -162,14 +163,12 @@ export namespace PerforceService {
         command: string,
         responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         args?: string[],
-        directoryOverride?: string | null,
         input?: string
     ): void {
         if (debugModeActive && !debugModeSetup) {
             limiter.debugMode = true;
             debugModeSetup = true;
         }
-        //execCommand(resource, command, responseCallback, args, directoryOverride, input);
         limiter.submit(onDone => {
             execCommand(
                 resource,
@@ -180,7 +179,6 @@ export namespace PerforceService {
                     responseCallback(...rest);
                 },
                 args,
-                directoryOverride,
                 input
             );
         }, `<JOB_ID:${++id}:${command}>`);
@@ -190,7 +188,6 @@ export namespace PerforceService {
         resource: Uri,
         command: string,
         args?: string[],
-        directoryOverride?: string,
         input?: string
     ): Promise<string> {
         return new Promise((resolve, reject) => {
@@ -207,7 +204,6 @@ export namespace PerforceService {
                     }
                 },
                 args,
-                directoryOverride,
                 input
             );
         });
@@ -218,18 +214,14 @@ export namespace PerforceService {
         command: string,
         responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         args?: string[],
-        directoryOverride?: string | null,
         input?: string
     ): void {
         const wksFolder = workspace.getWorkspaceFolder(resource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
-        const wksPath = wksFolder ? wksFolder.uri.fsPath : "";
+        const wksPath = wksFolder?.uri.fsPath;
         const cmd = getPerforceCmdPath();
 
         const allArgs: string[] = getPerforceCmdParams(resource);
-        if (directoryOverride !== null && directoryOverride !== undefined) {
-            allArgs.push("-d", directoryOverride);
-        }
         allArgs.push(command);
 
         if (args !== undefined) {
@@ -240,7 +232,9 @@ export namespace PerforceService {
             allArgs.push(...args);
         }
 
-        const spawnArgs: CP.SpawnOptions = { cwd: config ? config.localDir : wksPath };
+        const cwd = config?.localDir ?? wksPath ?? Path.dirname(resource.fsPath);
+        const env = { ...process.env, PWD: cwd };
+        const spawnArgs: CP.SpawnOptions = { cwd, env };
         spawnPerforceCommand(cmd, allArgs, spawnArgs, responseCallback, input);
     }
 
@@ -251,7 +245,7 @@ export namespace PerforceService {
         responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         input?: string
     ) {
-        logExecutedCommand(cmd, allArgs);
+        logExecutedCommand(cmd, allArgs, spawnArgs);
         const child = spawn(cmd, allArgs, spawnArgs);
 
         let called = false;
@@ -276,13 +270,13 @@ export namespace PerforceService {
         });
     }
 
-    function logExecutedCommand(cmd: string, args: string[]) {
+    function logExecutedCommand(cmd: string, args: string[], spawnArgs: CP.SpawnOptions) {
         // not necessarily using these escaped values, because cross-spawn does its own escaping,
         // but no sensible way of logging the unescaped array for a user. The output command line
         // should at least be copy-pastable and work
         const escapedArgs = args.map(arg => `'${arg.replace(/'/g, `'\\''`)}'`);
         const loggedCommand = [cmd].concat(escapedArgs);
-        Display.channel.appendLine(loggedCommand.join(" "));
+        Display.channel.appendLine(spawnArgs.cwd + ": " + loggedCommand.join(" "));
     }
 
     async function getResults(child: CP.ChildProcess): Promise<string[]> {

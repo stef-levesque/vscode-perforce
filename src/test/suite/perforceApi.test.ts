@@ -18,7 +18,6 @@ function basicExecuteStub(
     command: string,
     responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
     args?: string[],
-    _directoryOverride?: string | null,
     _input?: string
 ) {
     let out = command;
@@ -166,7 +165,6 @@ describe("Perforce API", () => {
                 "change",
                 sinon.match.any,
                 ["-i"],
-                null,
                 "Change:\tnew\n\n" +
                     "Description:\tmy change spec\n\there it is\n\n" +
                     "Files:\t//depot/testArea/myFile.txt\t# add"
@@ -195,7 +193,6 @@ describe("Perforce API", () => {
                 "change",
                 sinon.match.any,
                 ["-i"],
-                null,
                 "Change:\t1234\n\n" +
                     "Description:\ta spec\n\n" +
                     "Files:\t//depot/testArea/myEdit.txt\t# edit\n\n" +
@@ -222,7 +219,6 @@ describe("Perforce API", () => {
                 "change",
                 sinon.match.any,
                 ["-i"],
-                null,
                 "Change:\t1234\n\n" +
                     "Files:\t//depot/testArea/myEdit.txt\t# edit\n\n" +
                     "Description:\toverride"
@@ -717,7 +713,6 @@ describe("Perforce API", () => {
                 "login",
                 sinon.match.any,
                 [],
-                null,
                 "hunter2"
             );
         });

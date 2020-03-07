@@ -47,7 +47,6 @@ function executeStub(
     command: string,
     responseCallback: PerforceResponseCallback,
     _args?: string[],
-    _directoryOverride?: string | null,
     _input?: string
 ) {
     setImmediate(() => {

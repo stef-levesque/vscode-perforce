@@ -2,13 +2,10 @@ import {
     window,
     StatusBarAlignment,
     StatusBarItem,
-    workspace,
     EventEmitter,
     Uri,
     commands
 } from "vscode";
-
-import * as Path from "path";
 
 import { PerforceService } from "./PerforceService";
 import { Utils } from "./Utils";
@@ -79,12 +76,6 @@ export namespace Display {
 
         const doc = editor.document;
 
-        //If no folder is open, override the perforce directory to the files
-        let directoryOverride;
-        if (workspace.workspaceFolders === undefined) {
-            directoryOverride = Path.dirname(doc.uri.fsPath);
-        }
-
         if (!doc.isUntitled) {
             const args = [Utils.expansePath(doc.uri.fsPath)];
             PerforceService.execute(
@@ -111,8 +102,7 @@ export namespace Display {
 
                     _onActiveFileStatusKnown.fire({ file: doc.uri, status: active });
                 },
-                args,
-                directoryOverride
+                args
             );
             _statusBarItem.show();
         } else {

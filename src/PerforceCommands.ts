@@ -49,15 +49,10 @@ export namespace PerforceCommands {
             return false;
         }
 
-        const fileUri = editor.document.uri;
-        if (checkFolderOpened()) {
-            p4add(fileUri);
-        } else {
-            p4add(fileUri, Path.dirname(fileUri.fsPath));
-        }
+        p4add(editor.document.uri);
     }
 
-    export function p4add(fileUri: Uri, directoryOverride?: string) {
+    export function p4add(fileUri: Uri) {
         const args = [Utils.expansePath(fileUri.fsPath)];
         PerforceService.execute(
             fileUri,
@@ -68,8 +63,7 @@ export namespace PerforceCommands {
                     Display.showMessage("file opened for add");
                 }
             },
-            args,
-            directoryOverride
+            args
         );
     }
 
@@ -83,17 +77,10 @@ export namespace PerforceCommands {
             return false;
         }
 
-        const fileUri = editor.document.uri;
-
-        //If folder not opened, run p4 in files folder.
-        if (checkFolderOpened()) {
-            p4edit(fileUri);
-        } else {
-            p4edit(fileUri, Path.dirname(fileUri.fsPath));
-        }
+        p4edit(editor.document.uri);
     }
 
-    export function p4edit(fileUri: Uri, directoryOverride?: string): Promise<boolean> {
+    export function p4edit(fileUri: Uri): Promise<boolean> {
         return new Promise(resolve => {
             const args = [Utils.expansePath(fileUri.fsPath)];
             PerforceService.execute(
@@ -106,8 +93,7 @@ export namespace PerforceCommands {
                     }
                     resolve(!err);
                 },
-                args,
-                directoryOverride
+                args
             );
         });
     }
