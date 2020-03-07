@@ -199,6 +199,11 @@
                 "perforce.swarmHost": {
                     "type": "string",
                     "description": "Specifies the host of the Swarm server for annotation links"
+                },
+                "perforce.hideSubmitIcon": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Don't show the submit icon next to the changelist description."
                 }
             }
         },
@@ -565,12 +570,12 @@
             "scm/resourceGroup/context": [
                 {
                     "command": "perforce.submitDefault",
-                    "when": "scmProvider == perforce && scmResourceGroup == default",
+                    "when": "scmProvider == perforce && scmResourceGroup == default && config.perforce.hideSubmitIcon == false",
                     "group": "inline@1"
                 },
                 {
                     "command": "perforce.submitChangelist",
-                    "when": "scmProvider == perforce && scmResourceGroup != default",
+                    "when": "scmProvider == perforce && scmResourceGroup != default && config.perforce.hideSubmitIcon == false",
                     "group": "inline@1"
                 },
                 {
