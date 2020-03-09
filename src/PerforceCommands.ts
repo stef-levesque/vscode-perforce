@@ -153,6 +153,11 @@ export namespace PerforceCommands {
         }
     }
 
+    export async function p4revertAndDelete(uri: Uri) {
+        await PerforceCommands.p4revert(uri);
+        await PerforceCommands.p4delete(uri);
+    }
+
     export async function submitSingle() {
         const file = window.activeTextEditor?.document.uri;
         if (!file || file.scheme !== "file") {

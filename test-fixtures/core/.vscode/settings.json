@@ -5,5 +5,13 @@
     "perforce.hideNonWorkspaceFiles": false,
     "perforce.hideShelvedFiles": false,
     "perforce.activationMode": "autodetect",
-    "perforce.promptBeforeSubmit": false
+    "perforce.promptBeforeSubmit": false,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/excluded": true
+    }
 }

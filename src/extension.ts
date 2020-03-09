@@ -74,7 +74,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
             const scm = new PerforceSCMProvider(config, wksUri, workspaceConfig);
             scm.Initialize();
             _disposable.push(scm);
-            _disposable.push(new FileSystemActions());
+            _disposable.push(new FileSystemActions(vscode.workspace, workspaceConfig));
 
             doOneTimeRegistration();
 

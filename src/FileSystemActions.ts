@@ -5,11 +5,12 @@ import {
     workspace,
     Disposable,
     FileCreateEvent,
-    FileDeleteEvent,
     TextDocument,
     TextDocumentChangeEvent,
     Uri,
-    TextDocumentSaveReason
+    TextDocumentSaveReason,
+    FileType,
+    FileWillDeleteEvent
 } from "vscode";
 
 import * as micromatch from "micromatch";
@@ -17,6 +18,14 @@ import * as micromatch from "micromatch";
 import { Display } from "./Display";
 import { PerforceCommands } from "./PerforceCommands";
 import { PerforceSCMProvider } from "./ScmProvider";
+import { ConfigAccessor } from "./ConfigService";
+
+export interface FileSystemEventProvider {
+    onWillSaveTextDocument: typeof workspace.onWillSaveTextDocument;
+    onDidChangeTextDocument: typeof workspace.onDidChangeTextDocument;
+    onDidCreateFiles: typeof workspace.onDidCreateFiles;
+    onWillDeleteFiles: typeof workspace.onWillDeleteFiles;
+}
 
 export default class FileSystemActions {
     private static _eventRegistered: boolean = false;
@@ -24,48 +33,71 @@ export default class FileSystemActions {
     private static _lastSavedFileUri?: Uri = undefined;
 
     private _disposable: Disposable;
+    private static _eventsDisposable: Disposable;
 
-    constructor() {
+    constructor(workspace: FileSystemEventProvider, config: ConfigAccessor) {
         const subscriptions: Disposable[] = [];
+
         window.onDidChangeActiveTextEditor(Display.updateEditor, this, subscriptions);
 
-        const config = workspace.getConfiguration("perforce");
-
-        if (config && PerforceCommands.checkFolderOpened()) {
-            if (!FileSystemActions._eventRegistered) {
-                if (config["editOnFileSave"]) {
-                    workspace.onWillSaveTextDocument(e => {
-                        e.waitUntil(
-                            FileSystemActions.onWillSaveFile(e.document, e.reason)
-                        );
-                    });
-                }
-
-                if (config["editOnFileModified"]) {
-                    workspace.onDidChangeTextDocument(
-                        FileSystemActions.onFileModified.bind(this)
-                    );
-                }
-
-                if (config["addOnFileCreate"]) {
-                    workspace.onDidCreateFiles(FileSystemActions.onFilesAdded.bind(this));
-                }
-
-                if (config["deleteOnFileDelete"]) {
-                    workspace.onDidDeleteFiles(
-                        FileSystemActions.onFilesDeleted.bind(this)
-                    );
-                }
-
-                FileSystemActions._eventRegistered = true;
-            }
+        if (PerforceCommands.checkFolderOpened()) {
+            FileSystemActions.registerEvents(workspace, config);
         }
 
         this._disposable = Disposable.from.apply(this, subscriptions);
     }
 
+    private static registerEvents(
+        workspace: FileSystemEventProvider,
+        config: ConfigAccessor
+    ) {
+        if (!FileSystemActions._eventRegistered) {
+            FileSystemActions._eventsDisposable?.dispose();
+
+            const eventSubscriptions: Disposable[] = [];
+
+            if (config.editOnFileSave) {
+                workspace.onWillSaveTextDocument(e => {
+                    e.waitUntil(FileSystemActions.onWillSaveFile(e.document, e.reason));
+                }, eventSubscriptions);
+            }
+
+            if (config.editOnFileModified) {
+                workspace.onDidChangeTextDocument(
+                    FileSystemActions.onFileModified.bind(this),
+                    eventSubscriptions
+                );
+            }
+
+            if (config.addOnFileCreate) {
+                workspace.onDidCreateFiles(
+                    FileSystemActions.onFilesAdded.bind(this),
+                    eventSubscriptions
+                );
+            }
+
+            if (config.deleteOnFileDelete) {
+                workspace.onWillDeleteFiles(
+                    FileSystemActions.onFilesDeleted.bind(this),
+                    eventSubscriptions
+                );
+            }
+
+            FileSystemActions._eventRegistered = true;
+            FileSystemActions._eventsDisposable = Disposable.from.apply(
+                this,
+                eventSubscriptions
+            );
+        }
+    }
+
     public dispose() {
         this._disposable.dispose();
+    }
+
+    public static disposeEvents() {
+        this._eventRegistered = false;
+        this._eventsDisposable.dispose();
     }
 
     private static onWillSaveFile(
@@ -129,21 +161,40 @@ export default class FileSystemActions {
         }
     }
 
-    private static async onFilesDeleted(filesDeleted: FileDeleteEvent) {
-        for (const uri of filesDeleted.files) {
-            const fileExcludes = Object.keys(workspace.getConfiguration("files").exclude);
-
-            const shouldIgnore: boolean = micromatch.isMatch(uri.fsPath, fileExcludes, {
-                dot: true
-            });
-            if (!shouldIgnore) {
-                // revert before delete in case it's optn for add/edit.  At
-                // come point maybe dialog to warn user but this does
-                // match logic in PerforceCommands
-                await PerforceCommands.p4revert(uri);
-                await PerforceCommands.p4delete(uri);
-            }
+    private static async isDirectory(uri: Uri) {
+        try {
+            const stat = await workspace.fs.stat(uri);
+            return stat.type === FileType.Directory;
+        } catch (err) {
+            // still try to revert
+            Display.channel.appendLine(err);
         }
+        return false;
+    }
+
+    private static async deleteFileOrDirectory(uri: Uri) {
+        const isDirectory = await FileSystemActions.isDirectory(uri);
+
+        const fullUri = isDirectory ? uri.with({ path: uri.path + "/..." }) : uri;
+
+        // DO NOT AWAIT the revert, because we are holding up the deletion
+        PerforceCommands.p4revertAndDelete(fullUri);
+    }
+
+    private static shouldExclude(uri: Uri): boolean {
+        const fileExcludes = Object.keys(workspace.getConfiguration("files").exclude);
+
+        return micromatch.isMatch(uri.fsPath, fileExcludes, {
+            dot: true
+        });
+    }
+
+    private static onFilesDeleted(filesDeleted: FileWillDeleteEvent) {
+        const promises = filesDeleted.files
+            .filter(uri => !FileSystemActions.shouldExclude(uri))
+            .map(uri => FileSystemActions.deleteFileOrDirectory(uri));
+
+        filesDeleted.waitUntil(Promise.all(promises));
     }
 
     private static onFilesAdded(filesAdded: FileCreateEvent) {
