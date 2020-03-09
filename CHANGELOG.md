@@ -1,5 +1,12 @@
 # Change log
 
+## [3.7.0] - 2020-03-09
+* Add an option to hide the submit button from changelists, to prevent accidental submits
+* Add an option to prompt for confirmation before submitting a saved changelist, for the same reason. This option is enabled by default
+* Fix problems with files being incorrectly added or deleted during an external operation like p4 sync, when `deleteOnFileDelete` or `addOnFileCreate` were enabled (#52)
+  * Previously, the extension was watching for filesystem changes to perform these automatic actions. This meant external sync commands, and also things like changes to `node_modules` would be picked up by the extension. It now only attempts to perform the add or delete action when files are added or deleted from *within* the IDE, and not via an external tool.
+  * Previously, the extension would incorrectly use `.p4ignore` files to decide whether to delete a file or not. This was not actually correct behaviour, as deletions are not subject to p4ignore rules. We now leave it up to perforce to decide what to ignore (see #5)
+
 ## [3.6.2] - 2020-03-02
 * Fix an issue where shelved files that are not mapped in the client view would prevent the scm view from loading (#50)
 
@@ -212,6 +219,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.7.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.0...3.7.0
 [3.6.2]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.1...3.6.2
 [3.6.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.0...3.6.1
 [3.6.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.5.2...3.6.0
