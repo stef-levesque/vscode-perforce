@@ -326,7 +326,11 @@
             {
                 "command": "perforce.openResource",
                 "title": "Open changes",
-                "category": "Perforce"
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/diff.svg",
+                    "dark": "resources/icons/dark/diff.svg"
+                }
             },
             {
                 "command": "perforce.openResourcevShelved",
@@ -336,7 +340,11 @@
             {
                 "command": "perforce.openFile",
                 "title": "Open file",
-                "category": "Perforce"
+                "category": "Perforce",
+                "icon": {
+                    "light": "resources/icons/light/go-to-file.svg",
+                    "dark": "resources/icons/dark/go-to-file.svg"
+                }
             },
             {
                 "command": "perforce.revertFile",
@@ -655,6 +663,16 @@
                 }
             ],
             "scm/resourceState/context": [
+                {
+                    "command": "perforce.openFile",
+                    "when": "scmProvider == perforce && config.perforce.scmFileChanges == true",
+                    "group": "inline"
+                },
+                {
+                    "command": "perforce.openResource",
+                    "when": "scmProvider == perforce && config.perforce.scmFileChanges == false",
+                    "group": "inline"
+                },
                 {
                     "command": "perforce.revertFile",
                     "when": "scmProvider == perforce",
