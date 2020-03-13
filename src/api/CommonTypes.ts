@@ -1,3 +1,5 @@
+import { Uri } from "vscode";
+
 export type FixedJob = { id: string; description: string[] };
 
 export type ChangeInfo = {
@@ -31,15 +33,21 @@ export type FstatInfo = {
     [key: string]: string;
 };
 
-export type FileSpec = {
-    /** The filesystem path - without escaping special characters */
-    fsPath: string;
-    /** Optional suffix, e.g. #1, @=2 */
-    suffix?: string;
-};
+export type FileSpec =
+    | {
+          /** The filesystem path - without escaping special characters */
+          fsPath: string;
+          /** Optional suffix, e.g. 1 (converts to #1), @=2 */
+          fragment?: string;
+      }
+    | Uri;
 
 export type PerforceFile = FileSpec | string;
 
 export function isFileSpec(obj: any): obj is FileSpec {
     return obj && obj.fsPath;
+}
+
+export function isUri(obj: any): obj is Uri {
+    return obj && obj.fsPath && obj.scheme !== undefined;
 }

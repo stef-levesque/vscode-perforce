@@ -15,9 +15,11 @@ import * as fs from "fs";
 import * as Ini from "ini";
 import { Disposable } from "vscode";
 import { WorkspaceConfigAccessor } from "./ConfigService";
+import { AnnotationProvider } from "./annotations/AnnotationProvider";
 
 let _isRegistered = false;
 const _disposable: vscode.Disposable[] = [];
+let _perforceContentProvider: PerforceContentProvider | undefined;
 
 function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
     Display.channel.appendLine("\n----------------------------");
@@ -259,7 +261,14 @@ function doOneTimeRegistration() {
 
         Display.initialize(_disposable);
 
-        _disposable.push(new PerforceContentProvider());
+        _perforceContentProvider = new PerforceContentProvider();
+        _disposable.push(_perforceContentProvider);
+
+        _disposable.push(
+            AnnotationProvider.onWillLoadEditor(uri =>
+                _perforceContentProvider?.requestUpdatedDocument(uri)
+            )
+        );
 
         // todo: fix dependency / order of operations issues
         PerforceCommands.registerCommands();

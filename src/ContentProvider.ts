@@ -4,6 +4,7 @@ import { Display } from "./Display";
 
 export class PerforceContentProvider {
     private onDidChangeEmitter = new EventEmitter<Uri>();
+
     get onDidChange(): Event<Uri> {
         return this.onDidChangeEmitter.event;
     }
@@ -17,6 +18,10 @@ export class PerforceContentProvider {
         this.disposables.push(
             workspace.registerTextDocumentContentProvider("perforce", this)
         );
+    }
+
+    public requestUpdatedDocument(uri: Uri) {
+        this.onDidChangeEmitter.fire(uri);
     }
 
     private getResourceAndFileForUri(

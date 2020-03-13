@@ -88,20 +88,24 @@
                     "default": false,
                     "description": "Automatically delete a file from depot when deleted"
                 },
-                "perforce.annotate.changelist": {
+                "perforce.annotate.followBranches": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Output changelist numbers rather than revision numbers for each line"
+                    "default": true,
+                    "description": "Whether to follow branch actions when annotating a file"
                 },
-                "perforce.annotate.user": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Output the user who modified the line in the file and the date it was modified"
-                },
-                "perforce.annotate.enable": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Show annotation for every file"
+                "perforce.annotate.gutterColumns": {
+                    "type": "array",
+                    "default": [
+                        "{#}revision|3",
+                        "user|7",
+                        "description|22",
+                        "->timeAgo|14"
+                    ],
+                    "description": "EXPERIMENTAL - SUBJECT TO CHANGE\nThe format for displaying summary text for perforce annotations. Each line represents a column, followed by its default length. The following flags may appear before the column name, IN THIS ORDER:\n-> : align right,\n{text} : prefix text,\n... : truncate from the beginning, instead of the end\n\nThe following columns are supported:\nrevision, chnum, user, client, description, timeAgo",
+                    "items": {
+                        "type": "string",
+                        "pattern": "^(->)?(\\{.*?\\})?(\\.{3})?(revision|chnum|user|client|description|timeAgo)\\|\\d+$"
+                    }
                 },
                 "perforce.client": {
                     "type": "string",
@@ -261,6 +265,11 @@
             {
                 "command": "perforce.diffRevision",
                 "title": "Diff revision - Display diff of client file with depot file at a specific revision",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.diffFiles",
+                "title": "Diff two specific files / revisions",
                 "category": "Perforce"
             },
             {
@@ -536,6 +545,10 @@
                 {
                     "command": "perforce.deleteShelvedFile",
                     "when": "0"
+                },
+                {
+                    "command": "perforce.diffFiles",
+                    "when": "0"
                 }
             ],
             "scm/title": [
@@ -735,6 +748,44 @@
                 }
             ]
         },
+        "colors": [
+            {
+                "id": "perforce.gutterBackgroundColor",
+                "description": "Specifies the background color of the gutter blame annotations",
+                "defaults": {
+                    "dark": "#FFFFFF13",
+                    "light": "#0000000C",
+                    "highContrast": "#FFFFFF13"
+                }
+            },
+            {
+                "id": "perforce.gutterForegroundColor",
+                "description": "Specifies the foreground color of the gutter blame annotations",
+                "defaults": {
+                    "dark": "#BEBEBE",
+                    "light": "#747474",
+                    "highContrast": "#BEBEBE"
+                }
+            },
+            {
+                "id": "perforce.lineHighlightBackgroundColor",
+                "description": "Specifies the background color of the associated line highlights in annotations",
+                "defaults": {
+                    "dark": "#00BCF233",
+                    "light": "#00BCF233",
+                    "highContrast": "#00BCF233"
+                }
+            },
+            {
+                "id": "perforce.lineHighlightOverviewRulerColor",
+                "description": "Specifies the overview ruler color of the associated line highlights in annotations",
+                "defaults": {
+                    "dark": "#00BCF299",
+                    "light": "#00BCF299",
+                    "highContrast": "#00BCF299"
+                }
+            }
+        ],
         "keybindings": [
             {
                 "key": "alt+p space",
@@ -795,6 +846,7 @@
         "@types/cross-spawn": "^6.0.1",
         "@types/glob": "^7.1.1",
         "@types/ini": "^1.3.30",
+        "@types/javascript-time-ago": "^2.0.1",
         "@types/micromatch": "^4.0.1",
         "@types/mocha": "^7.0.2",
         "@types/node": "^12.12.29",
@@ -813,6 +865,7 @@
         "eslint-plugin-prettier": "^3.1.2",
         "glob": "^7.1.6",
         "ini": "^1.3.4",
+        "javascript-time-ago": "^2.0.7",
         "micromatch": "^4.0.2",
         "mocha": "^7.1.0",
         "mocha-junit-reporter": "^1.23.3",

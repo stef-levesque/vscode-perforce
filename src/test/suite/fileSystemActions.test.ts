@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { expect } from "chai";
-import * as chai from "chai";
-import * as chaiAsPromised from "chai-as-promised";
-import * as sinonChai from "sinon-chai";
+import chai from "chai";
+import chaiAsPromised from "chai-as-promised";
+import sinonChai from "sinon-chai";
 
 import * as vscode from "vscode";
 
-import * as sinon from "sinon";
+import sinon from "sinon";
 import p4Commands from "../helpers/p4Commands";
 import { PerforceCommands } from "../../PerforceCommands";
 import { WorkspaceConfigAccessor } from "../../ConfigService";

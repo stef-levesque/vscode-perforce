@@ -5,7 +5,7 @@ import { Display } from "./Display";
 import { PerforceSCMProvider } from "./ScmProvider";
 
 import * as CP from "child_process";
-import * as spawn from "cross-spawn";
+import spawn from "cross-spawn";
 import { CommandLimiter } from "./CommandLimiter";
 import * as Path from "path";
 

@@ -1,17 +1,6 @@
 "use strict";
 
-import {
-    commands,
-    workspace,
-    window,
-    Uri,
-    ThemableDecorationAttachmentRenderOptions,
-    DecorationInstanceRenderOptions,
-    DecorationOptions,
-    Range,
-    QuickPickItem,
-    MarkdownString
-} from "vscode";
+import { commands, workspace, window, Uri, QuickPickItem } from "vscode";
 
 import * as Path from "path";
 
@@ -20,6 +9,8 @@ import * as p4 from "./api/PerforceApi";
 import { Display } from "./Display";
 import { Utils } from "./Utils";
 import { PerforceSCMProvider } from "./ScmProvider";
+import * as AnnotationProvider from "./annotations/AnnotationProvider";
+import * as DiffProvider from "./DiffProvider";
 
 // TODO resolve
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -36,6 +27,7 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.opened", opened);
         commands.registerCommand("perforce.logout", logout);
         commands.registerCommand("perforce.login", login);
+        commands.registerCommand("perforce.diffFiles", diffFiles);
         commands.registerCommand("perforce.menuFunctions", menuFunctions);
     }
 
@@ -279,86 +271,34 @@ export namespace PerforceCommands {
         );
     }
 
-    export async function annotate() {
+    async function diffFiles(leftFile: string, rightFile: string) {
+        await DiffProvider.diffFiles(Uri.parse(leftFile), Uri.parse(rightFile));
+    }
+
+    function getOpenDocUri(): Uri | undefined {
         const editor = window.activeTextEditor;
         if (!checkFileSelected()) {
-            return false;
+            return;
         }
 
         if (!editor || !editor.document) {
-            return false;
+            return;
         }
 
         const doc = editor.document;
+        return doc.uri;
+    }
+
+    export async function annotate(file?: string) {
+        const uri = file ? Uri.parse(file) : getOpenDocUri();
+
+        if (!uri) {
+            return false;
+        }
+
         const conf = workspace.getConfiguration("perforce");
-        const cl = conf.get("annotate.changelist");
-        const usr = conf.get("annotate.user");
-        const swarmHost = conf.get("swarmHost");
-        const args = ["-q"];
-        if (cl) {
-            args.push("-c");
-        }
-        if (usr) {
-            args.push("-u");
-        }
-
-        const decorationType = window.createTextEditorDecorationType({
-            isWholeLine: true,
-            before: {
-                margin: "0 1.75em 0 0"
-            }
-        });
-        const decorateColors: string[] = ["rgb(153, 153, 153)", "rgb(103, 103, 103)"];
-        const decorations: DecorationOptions[] = [];
-        let colorIndex = 0;
-        let lastNum = "";
-
-        const output: string = await Utils.runCommandForFile(
-            "annotate",
-            doc.uri,
-            undefined,
-            args
-        );
-        const annotations = output.split(/\r?\n/);
-
-        for (let i = 0, n = annotations.length; i < n; ++i) {
-            const matches = new RegExp(usr ? /^(\d+): (\S+ \S+)/ : /^(\d+): /).exec(
-                annotations[i]
-            );
-            if (matches) {
-                const num = matches[1];
-                const hoverMessage = swarmHost
-                    ? new MarkdownString(
-                          `[${num + " " + matches[2]}](${swarmHost}/changes/${num})`
-                      )
-                    : matches[2];
-
-                if (num !== lastNum) {
-                    lastNum = num;
-                    colorIndex = (colorIndex + 1) % decorateColors.length;
-                }
-
-                const before: ThemableDecorationAttachmentRenderOptions = {
-                    contentText: (cl ? "" : "#") + num,
-                    color: decorateColors[colorIndex]
-                };
-                const renderOptions: DecorationInstanceRenderOptions = { before };
-
-                decorations.push({
-                    range: new Range(i, 0, i, 0),
-                    hoverMessage,
-                    renderOptions
-                });
-            }
-        }
-
-        const p4Uri = Utils.makePerforceDocUri(doc.uri, "print", "-q");
-
-        workspace.openTextDocument(p4Uri).then(d => {
-            window.showTextDocument(d).then(e => {
-                e.setDecorations(decorationType, decorations);
-            });
-        });
+        const swarmHost = conf.get<string>("swarmHost");
+        await AnnotationProvider.annotate(uri, swarmHost);
     }
 
     export function opened() {
