@@ -713,7 +713,7 @@ function parseAnnotateOutput(
     // 1: hello this is a file
 
     const regex = withUser ? /^(\d+): (\S+) (\S+) (.*?)$/ : /^(\d+): (.*?)$/;
-    const linePos = withUser ? 4 : 1;
+    const linePos = withUser ? 4 : 2;
 
     return lines.map(line => {
         const matches = regex.exec(line);

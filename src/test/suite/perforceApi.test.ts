@@ -741,4 +741,243 @@ describe("Perforce API", () => {
             ).to.eventually.equal("delete -c 1 //depot/hello //depot/bla");
         });
     });
+    describe("annotate", () => {
+        type TestAnnotation = {
+            line: string;
+            chnum: string;
+            revision: string;
+            user: string;
+            date: string;
+        };
+        const annotations: TestAnnotation[] = [
+            {
+                line: "here is a file",
+                chnum: "5",
+                revision: "1",
+                user: "user.a",
+                date: "2020/01/02"
+            },
+            {
+                line: "",
+                chnum: "5",
+                revision: "1",
+                user: "user.a",
+                date: "2020/01/02"
+            },
+            {
+                line: " it has some lines",
+                chnum: "9",
+                revision: "2",
+                user: "user.b",
+                date: "2020/02/03"
+            },
+            {
+                line: "and another line",
+                chnum: "126125",
+                revision: "14",
+                user: "xyz",
+                date: "2020/04/09"
+            }
+        ];
+        it("returns an annotation per line", async () => {
+            const lines = annotations.map(ann => ann.revision + ": " + ann.line);
+            execute.callsFake(execWithStdOut(lines.join("\n")));
+
+            const output = await p4.annotate(ws, { file: "//depot/hello" });
+            expect(output).to.deep.equal(
+                annotations.map(ann => {
+                    return {
+                        line: ann.line,
+                        revisionOrChnum: ann.revision,
+                        user: undefined,
+                        date: undefined
+                    };
+                })
+            );
+
+            expect(execute).to.have.been.calledWith(ws, "annotate", sinon.match.any, [
+                "-q",
+                "//depot/hello"
+            ]);
+        });
+        it("parses output with changelists", async () => {
+            const lines = annotations.map(ann => ann.chnum + ": " + ann.line);
+            execute.callsFake(execWithStdOut(lines.join("\n")));
+
+            const output = await p4.annotate(ws, {
+                file: "//depot/hello",
+                outputChangelist: true
+            });
+            expect(output).to.deep.equal(
+                annotations.map(ann => {
+                    return {
+                        line: ann.line,
+                        revisionOrChnum: ann.chnum,
+                        user: undefined,
+                        date: undefined
+                    };
+                })
+            );
+
+            expect(execute).to.have.been.calledWith(ws, "annotate", sinon.match.any, [
+                "-q",
+                "-c",
+                "//depot/hello"
+            ]);
+        });
+        it("parses output with users", async () => {
+            const lines = annotations.map(
+                ann => ann.chnum + ": " + ann.user + " " + ann.date + " " + ann.line
+            );
+            execute.callsFake(execWithStdOut(lines.join("\n")));
+
+            const output = await p4.annotate(ws, {
+                file: "//depot/hello",
+                outputUser: true
+            });
+            expect(output).to.deep.equal(
+                annotations.map(ann => {
+                    return {
+                        line: ann.line,
+                        revisionOrChnum: ann.chnum,
+                        user: ann.user,
+                        date: ann.date
+                    };
+                })
+            );
+
+            expect(execute).to.have.been.calledWith(ws, "annotate", sinon.match.any, [
+                "-q",
+                "-u",
+                "//depot/hello"
+            ]);
+        });
+    });
+    describe("getFileHistory", () => {
+        const lines = [
+            "//depot/branch/newFile.txt",
+            "... #2 change 24 edit on 2020/03/09 22:22:42 by user.b@b_client (text)",
+            "",
+            "\tmake some changes in the branch",
+            "\tover multiple lines",
+            "",
+            "... #1 change 23 move/add on 2019/11/15 22:19:29 by user.a@default (text)",
+            "",
+            "\tmove the file",
+            "",
+            "... ... move from //depot/TestArea/newFile.txt#1,#2"
+        ];
+        const oldLines = [
+            "//depot/TestArea/newFile.txt",
+            "... #2 change 22 edit on 2018/03/09 21:30:07 by user.a@default (text)",
+            "",
+            "\tmake some changes to the new file",
+            "",
+            "... ... branch into //depot/brancha/newFile.txt#1",
+            "... #1 change 21 add on 2018/03/09 21:29:32 by user.x@stuff (text)",
+            "",
+            "\tadd a file",
+            ""
+        ];
+
+        const date1 = new Date(2020, 2, 9, 22, 22, 42);
+        const date2 = new Date(2019, 10, 15, 22, 19, 29);
+        const date3 = new Date(2018, 2, 9, 21, 30, 7);
+        const date4 = new Date(2018, 2, 9, 21, 29, 32);
+
+        it("Returns a list of changes", async () => {
+            execute.callsFake(execWithStdOut(lines.join("\n")));
+
+            const output = await p4.getFileHistory(ws, {
+                file: "//depot/branch/newFile.txt"
+            });
+
+            expect(output).to.deep.equal([
+                {
+                    file: "//depot/branch/newFile.txt",
+                    description: "make some changes in the branch\nover multiple lines",
+                    revision: "2",
+                    chnum: "24",
+                    operation: "edit",
+                    date: date1,
+                    user: "user.b",
+                    client: "b_client"
+                },
+                {
+                    file: "//depot/branch/newFile.txt",
+                    description: "move the file",
+                    revision: "1",
+                    chnum: "23",
+                    operation: "move/add",
+                    date: date2,
+                    user: "user.a",
+                    client: "default"
+                }
+            ]);
+
+            expect(execute).to.have.been.calledWith(ws, "filelog", sinon.match.any, [
+                "-l",
+                "-t",
+                "//depot/branch/newFile.txt"
+            ]);
+        });
+        it("Follows branches when enabled", async () => {
+            execute.callsFake(execWithStdOut([...lines, ...oldLines].join("\n")));
+
+            const output = await p4.getFileHistory(ws, {
+                file: "//depot/branch/newFile.txt",
+                followBranches: true
+            });
+
+            expect(output).to.deep.equal([
+                {
+                    file: "//depot/branch/newFile.txt",
+                    description: "make some changes in the branch\nover multiple lines",
+                    revision: "2",
+                    chnum: "24",
+                    operation: "edit",
+                    date: date1,
+                    user: "user.b",
+                    client: "b_client"
+                },
+                {
+                    file: "//depot/branch/newFile.txt",
+                    description: "move the file",
+                    revision: "1",
+                    chnum: "23",
+                    operation: "move/add",
+                    date: date2,
+                    user: "user.a",
+                    client: "default"
+                },
+                {
+                    file: "//depot/TestArea/newFile.txt",
+                    description: "make some changes to the new file",
+                    revision: "2",
+                    chnum: "22",
+                    operation: "edit",
+                    date: date3,
+                    user: "user.a",
+                    client: "default"
+                },
+                {
+                    file: "//depot/TestArea/newFile.txt",
+                    description: "add a file",
+                    revision: "1",
+                    chnum: "21",
+                    operation: "add",
+                    date: date4,
+                    user: "user.x",
+                    client: "stuff"
+                }
+            ]);
+
+            expect(execute).to.have.been.calledWith(ws, "filelog", sinon.match.any, [
+                "-l",
+                "-t",
+                "-i",
+                "//depot/branch/newFile.txt"
+            ]);
+        });
+    });
 });
