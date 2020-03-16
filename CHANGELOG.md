@@ -1,5 +1,8 @@
 # Change log
 
+## [3.9.1] - 2020-03-16
+* Resolves an issue where, if the default change spec contains an empty field, it could prevent new changelists from being saved, and prevent 'submit selected files' from working (#74)
+
 ## [3.9.0] - 2020-03-16
 * Add vscode context variables and commands, to get info about the currently open file, such as the changelist number. This could be useful for custom tasks, keyboard shortcuts etc.
 * Add command inputs to the perforce log where appropriate (#74)
@@ -233,6 +236,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.9.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.9.0...3.9.1
 [3.9.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.8.0...3.9.0
 [3.8.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.7.0...3.8.0
 [3.7.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.2...3.7.0
