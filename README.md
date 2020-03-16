@@ -106,9 +106,35 @@ See [Multi-root Workspaces - Settings](https://code.visualstudio.com/docs/editor
 * ![circle-slash](images/circle-slash.png) not under client's root
 
 ## SCM view
+
 ![SCM Perforce](images/scm-perforce.png)  
 
 Explore and leave your comments on [GitHub](https://github.com/mjcrouch/vscode-perforce/issues)
+
+## Command variables
+
+The extension provides a few commands and context variables relating to the file currently open in the editor. These can be used in tasks, keyboard shortcuts etc. as required, if you can find a use for them!
+
+For example, the following task prints out the changelist number, provided the current file is open in perforce:
+
+```
+    {
+        "label": "echo",
+        "type": "shell",
+        "command": "echo ${command:perforce.currentFile.changelist}"
+    }
+```
+
+In all cases, the command name and the context variable name are the same
+
+| Name                              | description
+|-----------------------------------|---------------
+| `perforce.currentFile.status`     | Whether the file is open / in the workspace. Possible values: `OPEN`, `NOT_OPEN`, `NOT_IN_WORKSPACE`
+| `perforce.currentFile.depotPath`  | The depot path of the file (**only** provided if the file is open)
+| `perforce.currentFile.revision`   | The open revision of the file (**only** provided if the file is open)
+| `perforce.currentFile.changelist` | The changelist in which the file is open
+| `perforce.currentFile.operation`  | The perforce operation for the file, e.g. `edit`, `move/add`
+| `perforce.currentFile.filetype`   | The perforce file type of the file, e.g. `text`
 
 ## Common Questions
 

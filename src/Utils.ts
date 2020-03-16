@@ -1,6 +1,5 @@
 import { Event, Uri, workspace } from "vscode";
 import { PerforceService } from "./PerforceService";
-import { Display } from "./Display";
 
 import * as fs from "fs";
 
@@ -99,95 +98,5 @@ export namespace Utils {
         });
 
         return allArgs;
-    }
-
-    export interface CommandParams {
-        file?: Uri | string;
-        revision?: string;
-        prefixArgs?: string[];
-        gOpts?: string;
-        input?: string;
-        /**
-         * hides std-err from the status bar (not from the log output)
-         */
-        hideStdErr?: boolean;
-        /**
-         * When set to true, will not reject if stderr is present
-         */
-        stdErrIsOk?: boolean;
-    }
-
-    // Get a string containing the output of the command
-    export function runCommand(
-        resource: Uri,
-        command: string,
-        params: CommandParams
-    ): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const {
-                file,
-                revision,
-                prefixArgs,
-                gOpts,
-                input,
-                hideStdErr,
-                stdErrIsOk
-            } = params;
-            const args = prefixArgs ?? [];
-
-            if (gOpts !== undefined) {
-                command = gOpts + " " + command;
-            }
-
-            const revisionString = revision ?? "";
-
-            if (file) {
-                let path = typeof file === "string" ? file : file.fsPath;
-                path = expansePath(path);
-
-                args.push(path + revisionString);
-            }
-
-            PerforceService.execute(
-                resource,
-                command,
-                (err, stdout, stderr) => {
-                    err && Display.showError(err.toString());
-                    if (stderr) {
-                        hideStdErr
-                            ? Display.channel.appendLine(stderr.toString())
-                            : Display.showError(stderr.toString());
-                    }
-                    if (err) {
-                        reject(err);
-                    } else if (stderr && !stdErrIsOk) {
-                        reject(stderr);
-                    } else {
-                        resolve(stdout);
-                    }
-                },
-                args,
-                input
-            );
-        });
-    }
-
-    // Get a string containing the output of the command specific to a file
-    export function runCommandForFile(
-        command: string,
-        file: Uri,
-        revision?: string,
-        prefixArgs?: string[],
-        gOpts?: string,
-        input?: string
-    ): Promise<string> {
-        const resource = file;
-        return runCommand(resource, command, {
-            file,
-            revision,
-            prefixArgs,
-            gOpts,
-            input
-        });
     }
 }

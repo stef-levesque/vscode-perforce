@@ -1,6 +1,8 @@
 import { Utils } from "../Utils";
 import { FileSpec, isFileSpec, PerforceFile, isUri } from "./CommonTypes";
 import * as vscode from "vscode";
+import { PerforceService } from "../PerforceService";
+import { Display } from "../Display";
 
 /**
  * Predicate used for filtering out undefined or null values from an array,
@@ -151,7 +153,7 @@ export function flagMapper<P extends FlagDefinition<P>>(
 
 const joinDefinedArgs = (args: CmdlineArgs) => args?.filter(isTruthy);
 
-function fragmentAsSuffix(fragment?: string): string {
+export function fragmentAsSuffix(fragment?: string): string {
     return fragment ? (fragment.startsWith("@") ? fragment : "#" + fragment) : "";
 }
 
@@ -164,7 +166,7 @@ function fileSpecToArg(fileSpec: FileSpec) {
     return Utils.expansePath(fileSpec.fsPath) + fragmentAsSuffix(fileSpec.fragment);
 }
 
-function pathsToArgs(arr?: (string | FileSpec)[]) {
+export function pathsToArgs(arr?: (string | FileSpec)[]) {
     return (
         arr?.map(path => {
             if (isFileSpec(path)) {
@@ -176,9 +178,82 @@ function pathsToArgs(arr?: (string | FileSpec)[]) {
     );
 }
 
-export const fixedParams = (ps: Utils.CommandParams) => () => ps;
+export const fixedParams = (ps: CommandParams) => () => ps;
 
-const runPerforceCommand = Utils.runCommand;
+type CommandParams = {
+    input?: string;
+    hideStdErr?: boolean;
+    stdErrIsOk?: boolean;
+};
+
+/**
+ * Runs a perforce command, returning just the stdout.
+ * By default, stderr throws an error and logs output.
+ * Err always throws an error and logs output
+ * @param resource determines the relevant perforce client, user details to use based on the workspace of the file
+ * @param command the perforce command to run
+ * @param args the arguments to provide to the perforce command
+ * @param params adjust the behaviour of the command
+ */
+export function runPerforceCommand(
+    resource: vscode.Uri,
+    command: string,
+    args: string[],
+    params: CommandParams
+): Promise<string> {
+    const { input, hideStdErr, stdErrIsOk } = params;
+    return new Promise((resolve, reject) =>
+        PerforceService.execute(
+            resource,
+            command,
+            (err, stdout, stderr) => {
+                err && Display.showError(err.toString());
+                if (stderr) {
+                    hideStdErr
+                        ? Display.channel.appendLine(stderr.toString())
+                        : Display.showError(stderr.toString());
+                }
+                if (err) {
+                    reject(err);
+                } else if (stderr && !stdErrIsOk) {
+                    reject(stderr);
+                } else {
+                    resolve(stdout);
+                }
+            },
+            args,
+            input
+        )
+    );
+}
+
+/**
+ * Runs a perforce command, returning stdout and stderr in a tuple
+ * Rejects on err, but does NOT show or log warnings in any case
+ * @param resource determines the relevant perforce client, user details to use based on the workspace of the file
+ * @param command the perforce command to run
+ * @param args the arguments to provide to the perforce command
+ */
+function runPerforceCommandRaw(
+    resource: vscode.Uri,
+    command: string,
+    args: string[]
+): Promise<[string, string]> {
+    return new Promise((resolve, reject) =>
+        PerforceService.execute(
+            resource,
+            command,
+            (err, stdout, stderr) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve([stdout, stderr]);
+                }
+            },
+            args
+        )
+    );
+}
 
 /**
  * merge n objects of the same type, where the left hand value has precedence
@@ -209,19 +284,24 @@ export function mergeAll<T>(...args: T[]): T {
 export function makeSimpleCommand<T>(
     command: string,
     fn: (opts: T) => CmdlineArgs,
-    otherParams?: (opts: T) => Exclude<Utils.CommandParams, { prefixArgs: string }>
+    otherParams?: (opts: T) => Exclude<CommandParams, { prefixArgs: string }>
 ) {
-    return (resource: vscode.Uri, options: T) =>
+    const func = (
+        resource: vscode.Uri,
+        options: T,
+        overrideParams?: Exclude<CommandParams, { prefixArgs: string }>
+    ) =>
         runPerforceCommand(
             resource,
             command,
-            mergeWithoutOverriding(
-                {
-                    prefixArgs: joinDefinedArgs(fn(options))
-                },
-                otherParams?.(options) ?? {}
-            )
+            joinDefinedArgs(fn(options)),
+            mergeWithoutOverriding(overrideParams ?? {}, otherParams?.(options) ?? {})
         );
+
+    func.raw = (resource: vscode.Uri, options: T) =>
+        runPerforceCommandRaw(resource, command, joinDefinedArgs(fn(options)));
+
+    return func;
 }
 
 /**

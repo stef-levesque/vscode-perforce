@@ -1542,7 +1542,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         "a.txt#4 vs a.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
-                        file.localFile,
+                        { fsPath: file.localFile.fsPath },
                         "print",
                         sinon.match.any,
                         ["-q", file.localFile.fsPath + "#4"]
@@ -1570,7 +1570,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         "a.txt#4 vs a.txt"
                     );
                     expect(items.execute).to.be.calledWithMatch(
-                        file1.localFile,
+                        { fsPath: file1.localFile.fsPath },
                         "print",
                         sinon.match.any,
                         ["-q", file1.localFile.fsPath + "#4"]
@@ -1676,7 +1676,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                     );
 
                     expect(items.execute).to.be.calledWithMatch(
-                        file.localFile,
+                        { fsPath: file.localFile.fsPath },
                         "print",
                         sinon.match.any,
                         ["-q", file.localFile.fsPath + "#7"]
@@ -1745,7 +1745,7 @@ describe("Model & ScmProvider modules (integration)", () => {
                         "a.txt@=1 vs a.txt (workspace)"
                     );
                     expect(items.execute).to.be.calledWithMatch(
-                        file.localFile,
+                        { fsPath: file.localFile.fsPath },
                         "print",
                         sinon.match.any,
                         ["-q", file.localFile.fsPath + "@=1"]

@@ -132,11 +132,25 @@ export class StubPerforceModel {
     resolveOpenFiles(
         _resource: vscode.Uri,
         options: p4.OpenedFileOptions
-    ): Promise<string[]> {
+    ): Promise<p4.OpenedFile[]> {
         return Promise.resolve(
             this.changelists
                 .filter(cl => (options.chnum ? cl.chnum === options.chnum : true))
-                .flatMap(cl => cl.files.map(file => file.depotPath))
+                .flatMap(cl =>
+                    cl.files.map<p4.OpenedFile>(file => {
+                        return {
+                            depotPath: file.depotPath,
+                            revision: file.depotRevision.toString(),
+                            chnum: cl.chnum,
+                            filetype: file.fileType ?? "text",
+                            message:
+                                file.depotPath +
+                                " opened for " +
+                                getStatusText(file.operation),
+                            operation: getStatusText(file.operation)
+                        };
+                    })
+                )
         );
     }
 
@@ -189,15 +203,6 @@ export class StubPerforceModel {
                 .filter((cl): cl is p4.ShelvedChangeInfo => cl.paths !== undefined)
         );
     }
-
-    /*private withoutUndefined<T>(obj: { [key: string]: T }) {
-        return Object.entries(obj).reduce((all, cur) => {
-            if (cur[1] !== undefined && cur[1] !== null) {
-                all[cur[0]] = cur[1];
-            }
-            return all;
-        }, {} as { [key: string]: T });
-    }*/
 
     fstatFile(
         depotPath: string,

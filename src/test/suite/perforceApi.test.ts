@@ -369,13 +369,29 @@ describe("Perforce API", () => {
         it("Returns the list of opened files", async () => {
             execute.callsFake(
                 execWithStdOut(
-                    "//depot/testArea/anotherfile#1 - move/delete change 35 (text) by super@matto\n" +
-                        "//depot/testArea/anotherfile-moved#1 - move/add change 35 (text) by super@matto"
+                    "//depot/testArea/anotherfile#99 - move/delete change 35 (text)\n" +
+                        "//depot/testArea/anotherfile-moved#1 - move/add default change (text)"
                 )
             );
             await expect(p4.getOpenedFiles(ws, { chnum: "3" })).to.eventually.eql([
-                "//depot/testArea/anotherfile",
-                "//depot/testArea/anotherfile-moved"
+                {
+                    depotPath: "//depot/testArea/anotherfile",
+                    revision: "99",
+                    chnum: "35",
+                    filetype: "text",
+                    message:
+                        "//depot/testArea/anotherfile#99 - move/delete change 35 (text)",
+                    operation: "move/delete"
+                },
+                {
+                    depotPath: "//depot/testArea/anotherfile-moved",
+                    revision: "1",
+                    chnum: "default",
+                    filetype: "text",
+                    message:
+                        "//depot/testArea/anotherfile-moved#1 - move/add default change (text)",
+                    operation: "move/add"
+                }
             ]);
             expect(execute).to.have.been.calledWith(ws, "opened", sinon.match.any, [
                 "-c",
@@ -385,6 +401,62 @@ describe("Perforce API", () => {
         it("Does not throw on stderr", async () => {
             execute.callsFake(execWithStdErr("no open files"));
             await expect(p4.getOpenedFiles(ws, {})).to.eventually.eql([]);
+        });
+    });
+    describe("get open file details", () => {
+        it("Returns the files that are open and not open", async () => {
+            execute.callsFake(
+                execWithResult(
+                    null,
+                    "//depot/testArea/anotherfile#99 - move/delete change 35 (text)",
+                    [
+                        "TestArea/newFile.txt - file(s) not opened on this client.",
+                        "Path 'C:/Users/myfile' is not under client's root 'c:\\perforce'."
+                    ].join("\n")
+                )
+            );
+
+            await expect(
+                p4.getOpenedFileDetails(ws, {
+                    files: [
+                        "//depot/testArea/anotherFile",
+                        "TestArea/newFile.txt",
+                        "C:/Users/myfile"
+                    ]
+                })
+            ).to.eventually.eql({
+                open: [
+                    {
+                        depotPath: "//depot/testArea/anotherfile",
+                        revision: "99",
+                        chnum: "35",
+                        filetype: "text",
+                        message:
+                            "//depot/testArea/anotherfile#99 - move/delete change 35 (text)",
+                        operation: "move/delete"
+                    }
+                ],
+                unopen: [
+                    {
+                        filePath: "TestArea/newFile.txt",
+                        message:
+                            "TestArea/newFile.txt - file(s) not opened on this client.",
+                        reason: p4.UnopenedFileReason.NOT_OPENED
+                    },
+                    {
+                        filePath: "C:/Users/myfile",
+                        message:
+                            "Path 'C:/Users/myfile' is not under client's root 'c:\\perforce'.",
+                        reason: p4.UnopenedFileReason.NOT_IN_ROOT
+                    }
+                ]
+            });
+
+            expect(execute).to.have.been.calledWith(ws, "opened", sinon.match.any, [
+                "//depot/testArea/anotherFile",
+                "TestArea/newFile.txt",
+                "C:/Users/myfile"
+            ]);
         });
     });
     describe("submit", () => {

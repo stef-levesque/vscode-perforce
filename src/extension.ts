@@ -16,6 +16,7 @@ import * as Ini from "ini";
 import { Disposable } from "vscode";
 import { WorkspaceConfigAccessor } from "./ConfigService";
 import { AnnotationProvider } from "./annotations/AnnotationProvider";
+import * as ContextVars from "./ContextVars";
 
 let _isRegistered = false;
 const _disposable: vscode.Disposable[] = [];
@@ -260,6 +261,7 @@ function doOneTimeRegistration() {
         );
 
         Display.initialize(_disposable);
+        ContextVars.initialize(_disposable);
 
         _perforceContentProvider = new PerforceContentProvider();
         _disposable.push(_perforceContentProvider);

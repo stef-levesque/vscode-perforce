@@ -1071,6 +1071,8 @@ export class Model implements Disposable {
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
-        return await p4.getOpenedFiles(this._workspaceUri, {});
+        return (await p4.getOpenedFiles(this._workspaceUri, {})).map(
+            file => file.depotPath
+        );
     }
 }

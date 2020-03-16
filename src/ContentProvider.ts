@@ -1,6 +1,7 @@
 import { window, workspace, Uri, Disposable, Event, EventEmitter } from "vscode";
 import { Utils, UriArguments } from "./Utils";
 import { Display } from "./Display";
+import { runPerforceCommand, pathsToArgs, isTruthy } from "./api/CommandUtils";
 
 export class PerforceContentProvider {
     private onDidChangeEmitter = new EventEmitter<Uri>();
@@ -24,29 +25,25 @@ export class PerforceContentProvider {
         this.onDidChangeEmitter.fire(uri);
     }
 
-    private getResourceAndFileForUri(
-        uri: Uri,
-        allArgs: UriArguments
-    ): [Uri | undefined, string | Uri | undefined] {
+    private getResourceForUri(uri: Uri, allArgs: UriArguments): Uri | undefined {
         if (allArgs["depot"]) {
             // depot-based uri should always have a path
             const resource =
                 allArgs["workspace"] && typeof (allArgs["workspace"] === "string")
                     ? Uri.file(allArgs["workspace"] as string)
                     : workspace.workspaceFolders?.[0].uri;
-            const file = Utils.getDepotPathFromDepotUri(uri);
-            return [resource, file];
+            return resource;
         }
         if (uri.fsPath) {
             // a file is supplied
             const resource = Uri.file(uri.fsPath);
-            return [resource, resource];
+            return resource;
         }
         // just for printing the output of a command that doesn't relate to a specific file
         if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
-            return [window.activeTextEditor.document.uri, undefined];
+            return window.activeTextEditor.document.uri;
         }
-        return [workspace.workspaceFolders?.[0].uri, undefined];
+        return workspace.workspaceFolders?.[0].uri;
     }
 
     public async provideTextDocumentContent(uri: Uri): Promise<string> {
@@ -54,16 +51,11 @@ export class PerforceContentProvider {
             return "";
         }
 
-        let revision: string = uri.fragment;
-        if (revision && !revision.startsWith("@")) {
-            revision = "#" + uri.fragment;
-        }
-
         const allArgs = Utils.decodeUriQuery(uri.query ?? "");
         const args = ((allArgs["p4args"] as string) ?? "-q").split(" ");
         const command = (allArgs["command"] as string) ?? "print";
 
-        const [resource, file] = this.getResourceAndFileForUri(uri, allArgs);
+        const resource = this.getResourceForUri(uri, allArgs);
 
         if (!resource) {
             Display.channel.appendLine(
@@ -71,11 +63,12 @@ export class PerforceContentProvider {
             );
             throw new Error(`Can't find proper workspace for command ${command} `);
         }
-        return Utils.runCommand(resource, command, {
-            file,
-            revision,
-            prefixArgs: args,
-            hideStdErr: true
-        });
+
+        // TODO - don't export this stuff from the API,
+        // change the uri scheme so that it's not just running arbitrary commands
+        const fileArgs = uri.fsPath ? pathsToArgs([uri]).filter(isTruthy) : [];
+        const allP4Args = args.concat(fileArgs);
+
+        return runPerforceCommand(resource, command, allP4Args, { hideStdErr: true });
     }
 }
