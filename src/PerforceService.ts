@@ -245,7 +245,7 @@ export namespace PerforceService {
         responseCallback: (err: Error | null, stdout: string, stderr: string) => void,
         input?: string
     ) {
-        logExecutedCommand(cmd, allArgs, spawnArgs);
+        logExecutedCommand(cmd, allArgs, input, spawnArgs);
         const child = spawn(cmd, allArgs, spawnArgs);
 
         let called = false;
@@ -270,13 +270,22 @@ export namespace PerforceService {
         });
     }
 
-    function logExecutedCommand(cmd: string, args: string[], spawnArgs: CP.SpawnOptions) {
+    function logExecutedCommand(
+        cmd: string,
+        args: string[],
+        input: string | undefined,
+        spawnArgs: CP.SpawnOptions
+    ) {
         // not necessarily using these escaped values, because cross-spawn does its own escaping,
         // but no sensible way of logging the unescaped array for a user. The output command line
         // should at least be copy-pastable and work
         const escapedArgs = args.map(arg => `'${arg.replace(/'/g, `'\\''`)}'`);
         const loggedCommand = [cmd].concat(escapedArgs);
-        Display.channel.appendLine(spawnArgs.cwd + ": " + loggedCommand.join(" "));
+        const censoredInput = cmd === "login" ? "***" : input;
+        const loggedInput = input ? " < " + censoredInput : "";
+        Display.channel.appendLine(
+            spawnArgs.cwd + ": " + loggedCommand.join(" ") + loggedInput
+        );
     }
 
     async function getResults(child: CP.ChildProcess): Promise<string[]> {
