@@ -35,7 +35,7 @@ function parseRawFields(parts: string[]): RawField[] {
     return parts.map(field => {
         const colPos = field.indexOf(":");
         const name = field.slice(0, colPos);
-        const value = parseRawField(field.slice(colPos + 1));
+        const value = parseRawField(field.slice(colPos + 2));
         return { name, value };
     });
 }
@@ -124,15 +124,18 @@ const inputChange = makeSimpleCommand(
     () => ["-i"],
     (options: InputChangeSpecOptions) => {
         return {
-            input: getDefinedSpecFields(options.spec)
-                .concat(
-                    options.spec.rawFields.filter(
-                        field =>
-                            !options.spec[field.name.toLowerCase() as keyof ChangeSpec]
+            input:
+                getDefinedSpecFields(options.spec)
+                    .concat(
+                        options.spec.rawFields.filter(
+                            field =>
+                                !options.spec[
+                                    field.name.toLowerCase() as keyof ChangeSpec
+                                ]
+                        )
                     )
-                )
-                .map(field => field.name + ":\t" + field.value.join("\n\t"))
-                .join("\n\n")
+                    .map(field => field.name + ":\t" + field.value.join("\n\t"))
+                    .join("\n\n") + "\n\n" // perforce doesn't like an empty raw field on the end without newlines
         };
     }
 );

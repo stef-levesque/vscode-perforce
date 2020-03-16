@@ -110,22 +110,27 @@ describe("Perforce API", () => {
         it("Outputs a change spec for an existing changelist", async () => {
             execute.callsFake(
                 execWithStdOut(
-                    "# A Perforce Change Specification.\n" +
-                        "#\n" +
-                        "#  Change:      The change number. 'new' on a new changelist.\n" +
-                        "#  Date:        The date this specification was last modified.\n" +
-                        "#  etc\n" +
-                        "\n" +
-                        "Change:\t123\n" +
-                        "\n" +
-                        "Client:\tcli\n" +
-                        "\n" +
-                        "User:\tuser\n" +
-                        "\n" +
-                        "Status:\tpending\n" +
-                        "\n" +
-                        "Description:\n" +
+                    [
+                        "# A Perforce Change Specification.",
+                        "#",
+                        "#  Change:      The change number. 'new' on a new changelist.",
+                        "#  Date:        The date this specification was last modified.",
+                        "#  etc",
+                        "",
+                        "Change:\t123",
+                        "",
+                        "Client:\tcli",
+                        "",
+                        "User:\tuser",
+                        "",
+                        "Status:\tpending",
+                        "",
+                        "Jobs: ",
+                        "",
+                        "Description:",
                         "\tchangelist line 1\n\tchangelist line 2"
+                    ].join("\n")
+                    // why the jobs? - see issue 74
                 )
             );
             await expect(
@@ -139,6 +144,7 @@ describe("Perforce API", () => {
                     { name: "Client", value: ["cli"] },
                     { name: "User", value: ["user"] },
                     { name: "Status", value: ["pending"] },
+                    { name: "Jobs", value: [""] },
                     {
                         name: "Description",
                         value: ["changelist line 1", "changelist line 2"]
@@ -222,6 +228,33 @@ describe("Perforce API", () => {
                 "Change:\t1234\n\n" +
                     "Files:\t//depot/testArea/myEdit.txt\t# edit\n\n" +
                     "Description:\toverride"
+            );
+        });
+        it("Handles an empty raw field at the end by using line breaks", async () => {
+            // issue #74
+            execute.callsFake(execWithStdOut("Change 1234 updated."));
+            const changeSpec: ChangeSpec = {
+                description: "a spec",
+                change: "1234",
+                files: [{ depotPath: "//depot/testArea/myEdit.txt", action: "edit" }],
+                rawFields: [{ name: "Jobs", value: [""] }]
+            };
+            await expect(
+                p4.inputChangeSpec(ws, { spec: changeSpec })
+            ).to.eventually.deep.equal({
+                rawOutput: "Change 1234 updated.",
+                chnum: "1234"
+            });
+
+            expect(execute).to.have.been.calledWithMatch(
+                ws,
+                "change",
+                sinon.match.any,
+                ["-i"],
+                "Change:\t1234\n\n" +
+                    "Description:\ta spec\n\n" +
+                    "Files:\t//depot/testArea/myEdit.txt\t# edit\n\n" +
+                    "Jobs:\t\n\n"
             );
         });
         it("Throws an error on stderr", async () => {
