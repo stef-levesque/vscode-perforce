@@ -1,5 +1,10 @@
 # Change log
 
+## [3.9.0] - 2020-03-16
+* Add vscode context variables and commands, to get info about the currently open file, such as the changelist number. This could be useful for custom tasks, keyboard shortcuts etc.
+* Add command inputs to the perforce log where appropriate (#74)
+* Fix a minor issue where a file not in the client root would show as "not opened for edit" in the status bar
+
 ## [3.8.0] - 2020-03-13
 * Replaced the annotation view with a new, more advanced view showing a lot more detail about each change (#33)
   * Use the same command as before - "Perforce: Annotate" - to open a new tab showing the annotations for the current file
@@ -228,6 +233,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.9.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.8.0...3.9.0
 [3.8.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.7.0...3.8.0
 [3.7.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.2...3.7.0
 [3.6.2]: https://github.com/mjcrouch/vscode-perforce/compare/3.6.1...3.6.2
