@@ -1,5 +1,9 @@
 # Change log
 
+## [3.10.0] - 2020-03-17
+* Add 'Edit and Save' command. This may be useful if you are working with a slow or distant perforce server, as it will not try to save the file until the perforce command has completed. (#72)
+* Fix an issue where context variables (for use in 'when' clauses) were not set correctly
+
 ## [3.9.1] - 2020-03-16
 * Resolves an issue where, if the default change spec contains an empty field, it could prevent new changelists from being saved, and prevent 'submit selected files' from working (#74)
 
