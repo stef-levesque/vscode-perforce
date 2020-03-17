@@ -225,6 +225,9 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
 }
 
 export function activate(ctx: vscode.ExtensionContext): void {
+    // ALWAYS register the edit and save command
+    PerforceCommands.registerImportantCommands(_disposable);
+
     if (vscode.workspace.getConfiguration("perforce").get("activationMode") === "off") {
         return;
     }

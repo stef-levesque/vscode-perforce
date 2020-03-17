@@ -248,6 +248,11 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.editAndSave",
+                "title": "Edit and Save - Open the current file for edit, and then save it",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.delete",
                 "title": "Delete - Delete the current file",
                 "category": "Perforce"

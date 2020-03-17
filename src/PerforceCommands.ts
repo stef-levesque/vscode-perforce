@@ -1,6 +1,14 @@
 "use strict";
 
-import { commands, workspace, window, Uri, QuickPickItem } from "vscode";
+import {
+    commands,
+    workspace,
+    window,
+    Uri,
+    QuickPickItem,
+    Disposable,
+    ProgressLocation
+} from "vscode";
 
 import * as Path from "path";
 
@@ -29,6 +37,15 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.login", login);
         commands.registerCommand("perforce.diffFiles", diffFiles);
         commands.registerCommand("perforce.menuFunctions", menuFunctions);
+    }
+
+    export function registerImportantCommands(subscriptions: Disposable[]) {
+        subscriptions.push(
+            commands.registerCommand(
+                "perforce.editAndSave",
+                editAndSaveOpenFileOrPassthrough
+            )
+        );
     }
 
     function addOpenFile() {
@@ -70,6 +87,29 @@ export namespace PerforceCommands {
         }
 
         p4edit(editor.document.uri);
+    }
+
+    async function editAndSaveOpenFileOrPassthrough() {
+        const activeFile = window.activeTextEditor?.document;
+        if (!activeFile) {
+            // pass through to the save action in case it can do anything else
+            await commands.executeCommand("workbench.action.files.save");
+        } else {
+            try {
+                await window.withProgress(
+                    {
+                        location: ProgressLocation.Notification,
+                        title: "Perforce: Opening file for edit"
+                    },
+                    () => p4edit(activeFile.uri)
+                );
+            } catch (err) {
+                // ensure save always happens even if something goes wrong
+                Display.showError(err);
+            }
+
+            await activeFile.save();
+        }
     }
 
     export function p4edit(fileUri: Uri): Promise<boolean> {

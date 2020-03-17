@@ -44,7 +44,7 @@ function setContextVars(event: ActiveStatusEvent) {
         message: event.details?.message ?? ""
     };
 
-    Object.keys(fileContext).forEach(c => {
+    Object.entries(fileContext).forEach(c => {
         vscode.commands.executeCommand(
             "setContext",
             "perforce.currentFile." + c[0],
