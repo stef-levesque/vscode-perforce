@@ -12,11 +12,12 @@ import {
 import { Model, ResourceGroup } from "./scm/Model";
 import { Resource } from "./scm/Resource";
 import { Status } from "./scm/Status";
-import { mapEvent, Utils } from "./Utils";
+import { mapEvent } from "./Utils";
 import { FileType } from "./scm/FileTypes";
 import { IPerforceConfig, matchConfig } from "./PerforceService";
 import { WorkspaceConfigAccessor } from "./ConfigService";
 import * as DiffProvider from "./DiffProvider";
+import * as PerforceUri from "./PerforceUri";
 
 export class PerforceSCMProvider {
     private wksFolder: Uri;
@@ -244,7 +245,7 @@ export class PerforceSCMProvider {
         const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
         const preview = selection.length === 1;
         const promises = selection.map(resource => {
-            return commands.executeCommand<void>("vscode.open", resource.underlyingUri, {
+            return commands.executeCommand<void>("vscode.open", resource.resourceUri, {
                 preview
             });
         });
@@ -489,18 +490,12 @@ export class PerforceSCMProvider {
             resource.fromFile &&
             resource.fromEndRev
         ) {
-            return Utils.makePerforceDocUri(resource.fromFile, "print", "-q", {
-                depot: true
-            }).with({
-                fragment: resource.fromEndRev
-            });
+            return resource.fromFile;
         }
 
         //otherwise diff against the have revision
         if (await this._model.haveFile(uri)) {
-            return Utils.makePerforceDocUri(uri, "print", "-q").with({
-                fragment: "have"
-            });
+            return PerforceUri.fromUriWithRevision(uri, "have");
         }
     }
 
@@ -517,7 +512,7 @@ export class PerforceSCMProvider {
         diffType?: DiffProvider.DiffType
     ): Promise<void> {
         if (resource.FileType.base === FileType.BINARY) {
-            const uri = Utils.makePerforceDocUri(resource.resourceUri, "fstat", "");
+            const uri = PerforceUri.fromUri(resource.resourceUri, { command: "fstat" });
             await workspace
                 .openTextDocument(uri)
                 .then(doc => window.showTextDocument(doc));

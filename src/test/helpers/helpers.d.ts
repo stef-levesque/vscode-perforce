@@ -16,6 +16,7 @@ declare module "chai" {
                     }[]
                 ): void;
                 shelvedResources(
+                    change: { chnum: string },
                     expecteds: {
                         depotPath: string;
                         operation: import("../../scm/Status").Status;

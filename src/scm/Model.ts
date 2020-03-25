@@ -13,6 +13,7 @@ import {
 } from "vscode";
 import { WorkspaceConfigAccessor } from "../ConfigService";
 import { Utils } from "../Utils";
+import * as PerforceUri from "../PerforceUri";
 import { Display, ActiveStatusEvent, ActiveEditorStatus } from "../Display";
 import { Resource } from "./Resource";
 
@@ -344,19 +345,14 @@ export class Model implements Disposable {
 
     public async Describe(input: ResourceGroup): Promise<void> {
         if (input.isDefault) {
-            const command = "change";
-            const args = "-o";
-            const uri: Uri = Uri.parse("perforce:").with({
-                query: Utils.makePerforceUriQuery(command, args)
-            });
+            const uri = PerforceUri.forCommand(input.model.workspaceUri, "change", "-o");
             await commands.executeCommand<void>("vscode.open", uri);
         } else {
-            const command = "describe";
-            const args = input.chnum;
-
-            const uri: Uri = Uri.parse("perforce:").with({
-                query: Utils.makePerforceUriQuery(command, args)
-            });
+            const uri = PerforceUri.forCommand(
+                input.model.workspaceUri,
+                "describe",
+                input.chnum
+            );
             await commands.executeCommand<void>("vscode.open", uri);
         }
     }
@@ -1028,7 +1024,11 @@ export class Model implements Disposable {
 
         const resource: Resource = new Resource(
             this,
-            Uri.file(fstatInfo.depotFile),
+            PerforceUri.fromDepotPath(
+                underlyingUri ?? this.workspaceUri,
+                fstatInfo.depotFile,
+                undefined
+            ),
             underlyingUri,
             chnum,
             true,

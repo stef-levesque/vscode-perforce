@@ -9,11 +9,12 @@ import * as sinon from "sinon";
 import { stubExecute, StubPerforceModel } from "../helpers/StubPerforceModel";
 import p4Commands from "../helpers/p4Commands";
 import { PerforceCommands } from "../../PerforceCommands";
-import { Utils } from "../../Utils";
+import * as PerforceUri from "../../PerforceUri";
 import { PerforceContentProvider } from "../../ContentProvider";
 import { Display } from "../../Display";
 import { getLocalFile } from "../helpers/testUtils";
 import { PerforceSCMProvider } from "../../ScmProvider";
+import { Status } from "../../scm/Status";
 
 chai.use(sinonChai);
 chai.use(p4Commands);
@@ -55,14 +56,26 @@ describe("Perforce Command Module (integration)", () => {
     describe("Diff", () => {
         it("Opens the have revision for the currently open file by default", async () => {
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
+            stubModel.changelists = [
+                {
+                    chnum: "default",
+                    description: "n/a",
+                    files: [
+                        {
+                            depotPath: "//depot/testFolder/a.txt",
+                            depotRevision: 2,
+                            localFile: localFile,
+                            operation: Status.EDIT
+                        }
+                    ]
+                }
+            ];
             await vscode.window.showTextDocument(localFile);
             await PerforceCommands.diff();
             expect(execCommand.lastCall).to.be.vscodeDiffCall(
-                Utils.makePerforceDocUri(localFile, "print", "-q").with({
-                    fragment: "have"
-                }),
+                PerforceUri.fromDepotPath(localFile, "//depot/testFolder/a.txt", "2"),
                 localFile,
-                "a.txt#have vs a.txt (workspace)"
+                "a.txt#2 ⟷ a.txt (workspace)"
             );
         });
         it("Opens the supplied revision for the currently open file", async () => {
@@ -70,11 +83,11 @@ describe("Perforce Command Module (integration)", () => {
             await vscode.window.showTextDocument(localFile);
             await PerforceCommands.diff(5);
             expect(execCommand.lastCall).to.be.vscodeDiffCall(
-                Utils.makePerforceDocUri(localFile, "print", "-q").with({
+                PerforceUri.fromUri(localFile).with({
                     fragment: "5"
                 }),
                 localFile,
-                "new.txt#5 vs new.txt (workspace)"
+                "new.txt#5 ⟷ new.txt (workspace)"
             );
         });
     });
@@ -148,7 +161,7 @@ describe("Perforce Command Module (integration)", () => {
 
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(
-                Utils.makePerforceDocUri(localFile, "print", "-q").with({
+                PerforceUri.fromUri(localFile).with({
                     fragment: "5"
                 })
             );

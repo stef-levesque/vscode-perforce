@@ -16,6 +16,7 @@ import { PerforceService } from "./PerforceService";
 import * as p4 from "./api/PerforceApi";
 import { Display } from "./Display";
 import { Utils } from "./Utils";
+import * as PerforceUri from "./PerforceUri";
 import { PerforceSCMProvider } from "./ScmProvider";
 import * as AnnotationProvider from "./annotations/AnnotationProvider";
 import * as DiffProvider from "./DiffProvider";
@@ -31,6 +32,8 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.submitSingle", submitSingle);
         commands.registerCommand("perforce.diff", diff);
         commands.registerCommand("perforce.diffRevision", diffRevision);
+        commands.registerCommand("perforce.diffPrevious", diffPrevious);
+        commands.registerCommand("perforce.diffNext", diffNext);
         commands.registerCommand("perforce.annotate", annotate);
         commands.registerCommand("perforce.opened", opened);
         commands.registerCommand("perforce.logout", logout);
@@ -240,18 +243,16 @@ export namespace PerforceCommands {
         const doc = editor.document;
 
         if (!doc.isUntitled) {
-            const revStr = revision && !isNaN(revision) ? revision.toString() : "have";
-            const depotUri = Utils.makePerforceDocUri(doc.uri, "print", "-q").with({
-                fragment: revStr
-            });
+            if (!revision) {
+                await diffPrevious(editor.document.uri);
+                return;
+            }
 
-            const fn = Path.basename(doc.uri.fsPath);
-            await commands.executeCommand(
-                "vscode.diff",
-                depotUri,
-                doc.uri,
-                fn + "#" + revStr + " vs " + fn + " (workspace)"
-            );
+            const revStr = revision && !isNaN(revision) ? revision.toString() : "have";
+            const depotUri = PerforceUri.fromUriWithRevision(doc.uri, revStr);
+            const rightUri = doc.uri;
+
+            await DiffProvider.diffFiles(depotUri, rightUri);
         }
     }
 
@@ -309,6 +310,28 @@ export namespace PerforceCommands {
             },
             args
         );
+    }
+
+    async function diffPrevious(fromDoc?: Uri) {
+        if (!fromDoc) {
+            fromDoc = window.activeTextEditor?.document.uri;
+        }
+        if (!fromDoc) {
+            Display.showError("No file to diff");
+            return false;
+        }
+        await DiffProvider.diffPrevious(fromDoc);
+    }
+
+    async function diffNext(fromDoc?: Uri) {
+        if (!fromDoc) {
+            fromDoc = window.activeTextEditor?.document.uri;
+        }
+        if (!fromDoc) {
+            Display.showError("No file to diff");
+            return false;
+        }
+        await DiffProvider.diffNext(fromDoc);
     }
 
     async function diffFiles(leftFile: string, rightFile: string) {

@@ -1,6 +1,7 @@
 import { workspace, Uri } from "vscode";
 
 import { Utils } from "./Utils";
+import * as PerforceUri from "./PerforceUri";
 import { Display } from "./Display";
 import { PerforceSCMProvider } from "./ScmProvider";
 
@@ -216,12 +217,13 @@ export namespace PerforceService {
         args?: string[],
         input?: string
     ): void {
-        const wksFolder = workspace.getWorkspaceFolder(resource);
+        const actualResource = PerforceUri.getUsableWorkspace(resource) ?? resource;
+        const wksFolder = workspace.getWorkspaceFolder(actualResource);
         const config = wksFolder ? getConfig(wksFolder.uri.fsPath) : null;
         const wksPath = wksFolder?.uri.fsPath;
         const cmd = getPerforceCmdPath();
 
-        const allArgs: string[] = getPerforceCmdParams(resource);
+        const allArgs: string[] = getPerforceCmdParams(actualResource);
         allArgs.push(command);
 
         if (args !== undefined) {
@@ -232,7 +234,7 @@ export namespace PerforceService {
             allArgs.push(...args);
         }
 
-        const cwd = config?.localDir ?? wksPath ?? Path.dirname(resource.fsPath);
+        const cwd = config?.localDir ?? wksPath ?? Path.dirname(actualResource.fsPath);
         const env = { ...process.env, PWD: cwd };
         const spawnArgs: CP.SpawnOptions = { cwd, env };
         spawnPerforceCommand(cmd, allArgs, spawnArgs, responseCallback, input);

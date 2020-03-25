@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as p4 from "../api/PerforceApi";
 
-import { Utils } from "../Utils";
+import * as PerforceUri from "../PerforceUri";
 import * as DiffProvider from "../DiffProvider";
 import { isTruthy } from "../api/CommandUtils";
 
@@ -37,13 +37,7 @@ export function makeDiffURI(
 }
 
 function makePerforceURI(underlying: vscode.Uri, change: p4.FileLogItem) {
-    const baseUri = vscode.Uri.parse("perforce:" + change.file).with({
-        fragment: change.revision
-    });
-    return Utils.makePerforceDocUri(baseUri, "print", "-q", {
-        depot: true,
-        workspace: underlying.fsPath
-    });
+    return PerforceUri.fromDepotPath(underlying, change.file, change.revision);
 }
 
 export function makeAnnotateURI(underlying: vscode.Uri, change: p4.FileLogItem) {

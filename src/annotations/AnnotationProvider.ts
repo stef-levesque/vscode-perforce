@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as p4 from "../api/PerforceApi";
 
 import { isTruthy } from "../api/CommandUtils";
-import { Utils } from "../Utils";
+import * as PerforceUri from "../PerforceUri";
 import * as md from "./MarkdownGenerator";
 import * as ColumnFormatter from "./ColumnFormatter";
 import { Display } from "../Display";
@@ -45,7 +45,7 @@ export class AnnotationProvider {
         private _annotations: (p4.Annotation | undefined)[],
         private _decorations: vscode.DecorationOptions[]
     ) {
-        this._p4Uri = Utils.makePerforceDocUri(_doc, "print", "-q");
+        this._p4Uri = PerforceUri.fromUri(_doc);
         this._subscriptions = [];
         this._decorationsByChnum = this.mapToChnums();
 
@@ -168,7 +168,8 @@ export class AnnotationProvider {
             .getConfiguration("perforce")
             .get("annotate.followBranches", false);
 
-        const underlying = getUnderlyingUri(uri);
+        const underlying = PerforceUri.getUsableWorkspace(uri) ?? uri;
+
         const annotationsPromise = p4.annotate(underlying, {
             file: uri,
             outputChangelist: true,
@@ -185,11 +186,6 @@ export class AnnotationProvider {
 
         return provider;
     }
-}
-
-function getUnderlyingUri(uri: vscode.Uri) {
-    const decoded = Utils.decodeUriQuery(uri.query);
-    return decoded.workspace ? vscode.Uri.file(decoded.workspace as string) : uri;
 }
 
 function makeHoverMessage(

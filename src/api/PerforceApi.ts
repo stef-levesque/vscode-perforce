@@ -5,7 +5,6 @@ import {
     flagMapper,
     makeSimpleCommand,
     asyncOuputHandler,
-    fixedParams,
     splitIntoChunks,
     mergeAll,
     extractSection,
@@ -20,6 +19,7 @@ import {
     RawField,
     ChangeSpec
 } from "./CommonTypes";
+import * as PerforceUri from "../PerforceUri";
 
 //const prepareOutput = (value: string) => value.trim();
 const removeLeadingNewline = (value: string) => value.replace(/^\r*?\n/, "");
@@ -96,7 +96,9 @@ export type ChangeSpecOptions = {
     existingChangelist?: string;
 };
 
-const changeFlags = flagMapper<ChangeSpecOptions>([], "existingChangelist", true, ["-o"]);
+const changeFlags = flagMapper<ChangeSpecOptions>([], "existingChangelist", ["-o"], {
+    lastArgIsFormattedArray: true
+});
 
 const outputChange = makeSimpleCommand("change", changeFlags);
 
@@ -197,11 +199,7 @@ const fstatFlags = flagMapper<FstatOptions>(
     "depotPaths"
 );
 
-const fstatBasic = makeSimpleCommand(
-    "fstat",
-    fstatFlags,
-    fixedParams({ stdErrIsOk: true })
-);
+const fstatBasic = makeSimpleCommand("fstat", fstatFlags).ignoringStdErr;
 
 export async function getFstatInfo(resource: vscode.Uri, options: FstatOptions) {
     const chunks = splitIntoChunks(options.depotPaths);
@@ -282,7 +280,9 @@ function parseOpenedErrors(output: string): UnopenedFile[] {
         .filter(isTruthy);
 }
 
-const openedFlags = flagMapper<OpenedFileOptions>([["c", "chnum"]], "files");
+const openedFlags = flagMapper<OpenedFileOptions>([["c", "chnum"]], "files", [], {
+    ignoreRevisionFragments: true
+});
 
 const opened = makeSimpleCommand("opened", openedFlags);
 
@@ -292,10 +292,7 @@ const opened = makeSimpleCommand("opened", openedFlags);
  * @param options options for the command
  */
 export async function getOpenedFiles(resource: vscode.Uri, options: OpenedFileOptions) {
-    const output = await opened(resource, options, {
-        stdErrIsOk: true,
-        hideStdErr: true
-    });
+    const output = await opened.ignoringAndHidingStdErr(resource, options);
     return parseOpenedOutput(output);
 }
 
@@ -501,7 +498,8 @@ const describeFlags = flagMapper<DescribeOptions>(
         ["s", "omitDiffs"]
     ],
     "chnums",
-    true
+    [],
+    { lastArgIsFormattedArray: true }
 );
 
 const describe = makeSimpleCommand("describe", describeFlags);
@@ -616,16 +614,35 @@ export interface HaveFileOptions {
     file: PerforceFile;
 }
 
-const haveFileFlags = flagMapper<HaveFileOptions>([], "file");
+const haveFileFlags = flagMapper<HaveFileOptions>([], "file", [], {
+    ignoreRevisionFragments: true
+});
 
-const haveFileCmd = makeSimpleCommand(
-    "have",
-    haveFileFlags,
-    fixedParams({ stdErrIsOk: true, hideStdErr: true })
-);
+function parseHaveOutput(resource: vscode.Uri, output: string): vscode.Uri | undefined {
+    const matches = /^(.+)#(\d+) - .+/.exec(output);
+
+    if (matches) {
+        return PerforceUri.fromDepotPath(resource, matches[1], matches[2]);
+    }
+}
+
+// TODO tidy this up
+
+const haveFileCmd = makeSimpleCommand("have", haveFileFlags);
+
+/**
+ * Checks if we `have` a file.
+ * @param resource Context for where to run the command
+ * @param options Options for the command
+ * @returns a perforce URI representing the depot path, revision etc
+ */
+export async function have(resource: vscode.Uri, options: HaveFileOptions) {
+    const output = await haveFileCmd(resource, options);
+    return parseHaveOutput(resource, output);
+}
 
 // if stdout has any value, we have the file (stderr indicates we don't)
-export const haveFile = asyncOuputHandler(haveFileCmd, isTruthy);
+export const haveFile = asyncOuputHandler(haveFileCmd.ignoringAndHidingStdErr, isTruthy);
 
 export type NoOpts = {};
 
@@ -661,12 +678,10 @@ export interface FilelogOptions {
     followBranches?: boolean;
 }
 
-const filelogFlags = flagMapper<FilelogOptions>(
-    [["i", "followBranches"]],
-    "file",
-    false,
-    ["-l", "-t"]
-);
+const filelogFlags = flagMapper<FilelogOptions>([["i", "followBranches"]], "file", [
+    "-l",
+    "-t"
+]);
 
 const filelog = makeSimpleCommand("filelog", filelogFlags);
 
@@ -770,7 +785,6 @@ const annotateFlags = flagMapper<AnnotateOptions>(
         ["i", "followBranches"]
     ],
     "file",
-    false,
     ["-q"]
 );
 

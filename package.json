@@ -213,6 +213,16 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Whether to prompt for confirmation, before submitting a saved changelist"
+                },
+                "perforce.editorButtons.diffPrevAndNext": {
+                    "type": "string",
+                    "enum": [
+                        "All diffable files",
+                        "Only on diffs",
+                        "Never"
+                    ],
+                    "default": "All diffable files",
+                    "description": "When to show buttons on the editor title menu for diffing the next / previous revision"
                 }
             }
         },
@@ -276,6 +286,20 @@
                 "command": "perforce.diffFiles",
                 "title": "Diff two specific files / revisions",
                 "category": "Perforce"
+            },
+            {
+                "command": "perforce.diffPrevious",
+                "title": "Diff against the previous revision",
+                "icon": "$(arrow-left)",
+                "category": "Perforce",
+                "enablement": "perforce.currentFile.canDiffPrev"
+            },
+            {
+                "command": "perforce.diffNext",
+                "title": "Diff against the next revision",
+                "icon": "$(arrow-right)",
+                "category": "Perforce",
+                "enablement": "perforce.currentFile.canDiffNext"
             },
             {
                 "command": "perforce.annotate",
@@ -750,6 +774,28 @@
                     "command": "perforce.deleteShelvedFile",
                     "when": "scmProvider == perforce",
                     "group": "2_shelve@2"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "perforce.diffPrevious",
+                    "group": "navigation@-10",
+                    "when": "perforce.currentFile.showDiffPrev && config.perforce.editorButtons.diffPrevAndNext =~ /All/ || perforce.currentFile.showDiffPrev && config.perforce.editorButtons.diffPrevAndNext =~ /Only/ && perforce.currentFile.isPerforceOrDiff"
+                },
+                {
+                    "command": "perforce.diffNext",
+                    "group": "navigation@-9",
+                    "when": "perforce.currentFile.showDiffNext && config.perforce.editorButtons.diffPrevAndNext =~ /All/ || perforce.currentFile.showDiffPrev && config.perforce.editorButtons.diffPrevAndNext =~ /Only/ && perforce.currentFile.isPerforceOrDiff"
+                },
+                {
+                    "command": "perforce.diffPrevious",
+                    "group": "perforce@1",
+                    "when": "perforce.currentFile.showDiffPrev"
+                },
+                {
+                    "command": "perforce.diffNext",
+                    "group": "perforce@2",
+                    "when": "perforce.currentFile.showDiffNext"
                 }
             ]
         },

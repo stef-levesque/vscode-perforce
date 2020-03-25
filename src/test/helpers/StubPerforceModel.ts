@@ -2,10 +2,17 @@ import * as sinon from "sinon";
 import * as vscode from "vscode";
 import * as p4 from "../../api/PerforceApi";
 
-import { ChangeInfo, ChangeSpec, FixedJob, FstatInfo } from "../../api/CommonTypes";
+import {
+    ChangeInfo,
+    ChangeSpec,
+    FixedJob,
+    FstatInfo,
+    isUri
+} from "../../api/CommonTypes";
 import { Status } from "../../scm/Status";
 import { PerforceService } from "../../PerforceService";
 import { getStatusText } from "./testUtils";
+import * as PerforceUri from "../../PerforceUri";
 
 type PerforceResponseCallback = (
     err: Error | null,
@@ -77,6 +84,7 @@ export class StubPerforceModel {
     public getOpenedFiles: sinon.SinonStub<any>;
     public getShelvedFiles: sinon.SinonStub<any>;
     public haveFile: sinon.SinonStub<any>;
+    public have: sinon.SinonStub<any>;
     public reopenFiles: sinon.SinonStub<any>;
     public revert: sinon.SinonStub<any>;
     public shelve: sinon.SinonStub<any>;
@@ -114,6 +122,7 @@ export class StubPerforceModel {
             .stub(p4, "getShelvedFiles")
             .callsFake(this.resolveShelvedFiles.bind(this));
         this.haveFile = sinon.stub(p4, "haveFile").resolves(true);
+        this.have = sinon.stub(p4, "have").callsFake(this.resolveHave.bind(this));
         this.reopenFiles = sinon.stub(p4, "reopenFiles").resolves("reopened");
         this.revert = sinon.stub(p4, "revert").resolves("reverted");
         this.shelve = sinon.stub(p4, "shelve").resolves("shelved");
@@ -169,6 +178,35 @@ export class StubPerforceModel {
                         status: "*pending*"
                     };
                 })
+        );
+    }
+
+    findFile(uri: vscode.Uri): [StubChangelist, StubFile] | undefined {
+        const change = this.changelists.find(ch =>
+            ch.files.some(f => f.localFile.fsPath === uri.fsPath)
+        );
+        const file = change?.files.find(f => f.localFile.fsPath === uri.fsPath);
+        return change && file ? [change, file] : undefined;
+    }
+
+    resolveHave(
+        resource: vscode.Uri,
+        options: p4.HaveFileOptions
+    ): Promise<vscode.Uri | undefined> {
+        if (!isUri(options.file)) {
+            throw new Error("Doesn't support non-uri types yet");
+        }
+        const details = this.findFile(options.file);
+        if (!details) {
+            return Promise.resolve(undefined);
+        }
+        const [, file] = details;
+        return Promise.resolve(
+            PerforceUri.fromDepotPath(
+                resource,
+                file.depotPath,
+                file.depotRevision.toString()
+            )
         );
     }
 

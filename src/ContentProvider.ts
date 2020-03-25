@@ -1,6 +1,6 @@
 import { window, workspace, Uri, Disposable, Event, EventEmitter } from "vscode";
-import { Utils, UriArguments } from "./Utils";
 import { Display } from "./Display";
+import * as PerforceUri from "./PerforceUri";
 import { runPerforceCommand, pathsToArgs, isTruthy } from "./api/CommandUtils";
 
 export class PerforceContentProvider {
@@ -25,19 +25,9 @@ export class PerforceContentProvider {
         this.onDidChangeEmitter.fire(uri);
     }
 
-    private getResourceForUri(uri: Uri, allArgs: UriArguments): Uri | undefined {
-        if (allArgs["depot"]) {
-            // depot-based uri should always have a path
-            const resource =
-                allArgs["workspace"] && typeof (allArgs["workspace"] === "string")
-                    ? Uri.file(allArgs["workspace"] as string)
-                    : workspace.workspaceFolders?.[0].uri;
-            return resource;
-        }
-        if (uri.fsPath) {
-            // a file is supplied
-            const resource = Uri.file(uri.fsPath);
-            return resource;
+    private getResourceForUri(uri: Uri): Uri | undefined {
+        if (PerforceUri.isUsableForWorkspace(uri)) {
+            return uri;
         }
         // just for printing the output of a command that doesn't relate to a specific file
         if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
@@ -51,11 +41,11 @@ export class PerforceContentProvider {
             return "";
         }
 
-        const allArgs = Utils.decodeUriQuery(uri.query ?? "");
-        const args = ((allArgs["p4args"] as string) ?? "-q").split(" ");
+        const allArgs = PerforceUri.decodeUriQuery(uri.query ?? "");
+        const args = ((allArgs["p4Args"] as string) ?? "-q").split(" ");
         const command = (allArgs["command"] as string) ?? "print";
 
-        const resource = this.getResourceForUri(uri, allArgs);
+        const resource = this.getResourceForUri(uri);
 
         if (!resource) {
             Display.channel.appendLine(
