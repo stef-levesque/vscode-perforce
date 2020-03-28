@@ -18,12 +18,12 @@
   * It is possible to customise the gutter to change the level of detail using the experimental `perforce.annotate.gutterColumns` setting
   * By default, the annotation view follows branch actions. This can be disabled with `perforce.annotate.followBranches`
   * There is much more still to do - all feedback welcome!
-* Add an inline context item to open a file from the scm provider view (#63)
+* Add an inline context item to open a file from the scm provider view (#63 - thanks @allender)
 
 ## [3.7.0] - 2020-03-09
-* Add an option to hide the submit button from changelists, to prevent accidental submits
+* Add an option to hide the submit button from changelists, to prevent accidental submits (thanks @joshuaferrara)
 * Add an option to prompt for confirmation before submitting a saved changelist, for the same reason. This option is enabled by default
-* Fix problems with files being incorrectly added or deleted during an external operation like p4 sync, when `deleteOnFileDelete` or `addOnFileCreate` were enabled (#52)
+* Fix problems with files being incorrectly added or deleted during an external operation like p4 sync, when `deleteOnFileDelete` or `addOnFileCreate` were enabled (#52 - thanks @allender)
   * Previously, the extension was watching for filesystem changes to perform these automatic actions. This meant external sync commands, and also things like changes to `node_modules` would be picked up by the extension. It now only attempts to perform the add or delete action when files are added or deleted from *within* the IDE, and not via an external tool.
   * Previously, the extension would incorrectly use `.p4ignore` files to decide whether to delete a file or not. This was not actually correct behaviour, as deletions are not subject to p4ignore rules. We now leave it up to perforce to decide what to ignore (see #5)
 * The minimum VS Code version is now 1.42.0
@@ -240,6 +240,7 @@
 * `edit` command on opened file
 * `revert` command on opened file
 
+[3.10.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.9.1...3.10.0
 [3.9.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.9.0...3.9.1
 [3.9.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.8.0...3.9.0
 [3.8.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.7.0...3.8.0
