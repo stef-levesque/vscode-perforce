@@ -319,37 +319,25 @@
                 "command": "perforce.Sync",
                 "title": "Sync",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/sync.svg",
-                    "dark": "resources/icons/dark/sync.svg"
-                }
+                "icon": "$(repo-pull)"
             },
             {
                 "command": "perforce.Refresh",
                 "title": "Refresh",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/refresh.svg",
-                    "dark": "resources/icons/dark/refresh.svg"
-                }
+                "icon": "$(refresh)"
             },
             {
                 "command": "perforce.submitDefault",
                 "title": "Submit Default Changelist",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/submit.svg",
-                    "dark": "resources/icons/dark/submit.svg"
-                }
+                "icon": "$(check)"
             },
             {
                 "command": "perforce.submitChangelist",
                 "title": "Submit changelist",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/submit.svg",
-                    "dark": "resources/icons/dark/submit.svg"
-                }
+                "icon": "$(check)"
             },
             {
                 "command": "perforce.submitSelectedFiles",
@@ -365,10 +353,7 @@
                 "command": "perforce.openResource",
                 "title": "Open changes",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/diff.svg",
-                    "dark": "resources/icons/dark/diff.svg"
-                }
+                "icon": "$(diff)"
             },
             {
                 "command": "perforce.openResourcevShelved",
@@ -379,55 +364,37 @@
                 "command": "perforce.openFile",
                 "title": "Open file",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/go-to-file.svg",
-                    "dark": "resources/icons/dark/go-to-file.svg"
-                }
+                "icon": "$(go-to-file)"
             },
             {
                 "command": "perforce.revertFile",
                 "title": "Revert file",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/revert.svg",
-                    "dark": "resources/icons/dark/revert.svg"
-                }
+                "icon": "$(discard)"
             },
             {
                 "command": "perforce.revertUnchangedFile",
                 "title": "Revert file if unchanged",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/revert.svg",
-                    "dark": "resources/icons/dark/revert.svg"
-                }
+                "icon": "$(discard)"
             },
             {
                 "command": "perforce.revertChangelist",
                 "title": "Revert files in changelist",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/revert.svg",
-                    "dark": "resources/icons/dark/revert.svg"
-                }
+                "icon": "$(discard)"
             },
             {
                 "command": "perforce.revertUnchangedChangelist",
                 "title": "Revert unchanged files in changelist",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/revert.svg",
-                    "dark": "resources/icons/dark/revert.svg"
-                }
+                "icon": "$(discard)"
             },
             {
                 "command": "perforce.shelveunshelve",
                 "title": "Shelve/Unshelve file",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/shelveunshelve.svg",
-                    "dark": "resources/icons/dark/shelveunshelve.svg"
-                }
+                "icon": "$(files)"
             },
             {
                 "command": "perforce.shelveChangelist",
@@ -473,19 +440,13 @@
                 "command": "perforce.editChangelist",
                 "title": "Edit changelist description",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/edit.svg",
-                    "dark": "resources/icons/dark/edit.svg"
-                }
+                "icon": "$(edit)"
             },
             {
                 "command": "perforce.reopenFile",
                 "title": "Move to changelist...",
                 "category": "Perforce",
-                "icon": {
-                    "light": "resources/icons/light/reopen.svg",
-                    "dark": "resources/icons/dark/reopen.svg"
-                }
+                "icon": "$(move)"
             },
             {
                 "command": "perforce.opened",
