@@ -15,10 +15,10 @@ export class DecorationProvider {
     ): SourceControlResourceDecorations {
         const status = this.getDominantStatus(statuses);
         const light = {
-            iconPath: DecorationProvider.getIconPath(status, isShelved, "light")
+            iconPath: DecorationProvider.getIconPath(status, isShelved, "light"),
         };
         const dark = {
-            iconPath: DecorationProvider.getIconPath(status, isShelved, "dark")
+            iconPath: DecorationProvider.getIconPath(status, isShelved, "dark"),
         };
 
         const strikeThrough = DecorationProvider.useStrikeThrough(status);
@@ -39,7 +39,7 @@ export class DecorationProvider {
 
         // The most dominant types are ADD, EDIT, and DELETE
         let index: number = statuses.findIndex(
-            s => s === Status.ADD || s === Status.EDIT || s === Status.DELETE
+            (s) => s === Status.ADD || s === Status.EDIT || s === Status.DELETE
         );
         if (index >= 0) {
             return statuses[index];
@@ -47,7 +47,7 @@ export class DecorationProvider {
 
         // The next dominant type is MOVE
         index = statuses.findIndex(
-            s => s === Status.MOVE_ADD || s === Status.MOVE_DELETE
+            (s) => s === Status.MOVE_ADD || s === Status.MOVE_DELETE
         );
         if (index >= 0) {
             return statuses[index];

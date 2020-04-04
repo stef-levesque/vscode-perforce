@@ -33,9 +33,9 @@ describe("Diff Provider", () => {
                 localFile: getLocalFile(workspaceUri, "testFolder", "a.txt"),
                 depotPath: "//depot/testArea/testFolder/a.txt",
                 depotRevision: 4,
-                operation: Status.EDIT
+                operation: Status.EDIT,
             };
-        }
+        },
     };
 
     let showImportantError: Sinon.SinonSpy<any>;
@@ -75,7 +75,7 @@ describe("Diff Provider", () => {
 
             const expectedRight = PerforceUri.withArgs(right, {
                 leftUri: left.toString(),
-                diffStartFile: right.toString()
+                diffStartFile: right.toString(),
             });
 
             await DiffProvider.diffFiles(left, right);
@@ -98,7 +98,7 @@ describe("Diff Provider", () => {
             );
             const left = PerforceUri.fromUriWithRevision(right, "3");
             const expectedRight = PerforceUri.withArgs(right, {
-                leftUri: left.toString()
+                leftUri: left.toString(),
             });
 
             await DiffProvider.diffFiles(left, right);
@@ -115,7 +115,7 @@ describe("Diff Provider", () => {
 
             const expectedRight = PerforceUri.withArgs(right, {
                 leftUri: left.toString(),
-                diffStartFile: right.toString()
+                diffStartFile: right.toString(),
             });
 
             await DiffProvider.diffFiles(left, right);
@@ -135,13 +135,13 @@ describe("Diff Provider", () => {
                         localFile,
                         depotPath,
                         "2"
-                    ).toString()
+                    ).toString(),
                 }
             );
             const right = PerforceUri.fromDepotPath(localFile, depotPath, "4");
             const expectedLeft = PerforceUri.withArgs(left, { leftUri: undefined });
             const expectedRight = PerforceUri.withArgs(right, {
-                leftUri: expectedLeft.toString()
+                leftUri: expectedLeft.toString(),
             });
 
             await DiffProvider.diffFiles(left, right);
@@ -163,12 +163,12 @@ describe("Diff Provider", () => {
                 );
                 const from = PerforceUri.withArgs(localFile, {
                     leftUri: curLeft.toString(),
-                    haveRev: "4"
+                    haveRev: "4",
                 });
 
                 const expectedLeft = PerforceUri.fromUriWithRevision(curLeft, "1");
                 const expectedRight = PerforceUri.withArgs(curLeft, {
-                    leftUri: expectedLeft.toString()
+                    leftUri: expectedLeft.toString(),
                 });
 
                 await DiffProvider.diffPrevious(from);
@@ -187,7 +187,7 @@ describe("Diff Provider", () => {
                 );
                 const from = PerforceUri.withArgs(localFile, {
                     leftUri: curLeft.toString(),
-                    haveRev: "4"
+                    haveRev: "4",
                 });
 
                 await DiffProvider.diffPrevious(from);
@@ -204,17 +204,17 @@ describe("Diff Provider", () => {
                     localUri: localFile,
                     depotPath: depotPath,
                     revision: "4",
-                    depotUri: PerforceUri.fromDepotPath(localFile, depotPath, "4")
+                    depotUri: PerforceUri.fromDepotPath(localFile, depotPath, "4"),
                 };
                 stubModel.have.resolves(have);
 
                 const expectedLeft = PerforceUri.withArgs(have.depotUri, {
-                    haveRev: "4"
+                    haveRev: "4",
                 });
                 const expectedRight = PerforceUri.withArgs(localFile, {
                     haveRev: "4",
                     leftUri: expectedLeft.toString(),
-                    diffStartFile: localFile.toString()
+                    diffStartFile: localFile.toString(),
                 });
 
                 await DiffProvider.diffPrevious(localFile);
@@ -249,7 +249,7 @@ describe("Diff Provider", () => {
                     PerforceUri.fromUriWithRevision(localFile, "4"),
                     {
                         leftUri: expectedLeft.toString(),
-                        diffStartFile: from.toString()
+                        diffStartFile: from.toString(),
                     }
                 );
 
@@ -305,7 +305,7 @@ describe("Diff Provider", () => {
                     PerforceUri.fromDepotPath(localFile, depotPath, "4"),
                     {
                         haveRev: "4",
-                        diffStartFile: localFile.toString()
+                        diffStartFile: localFile.toString(),
                     }
                 );
 
@@ -313,7 +313,7 @@ describe("Diff Provider", () => {
                 const expectedRight = PerforceUri.withArgs(
                     localFile,
                     {
-                        leftUri: expectedLeft.toString()
+                        leftUri: expectedLeft.toString(),
                     },
                     ""
                 );

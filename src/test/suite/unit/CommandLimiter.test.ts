@@ -98,7 +98,7 @@ describe("Command Limiter (unit)", () => {
             }
 
             expect(queue).to.have.lengthOf(50000);
-            items.forEach(item => expect(queue.dequeue()).to.equal(item));
+            items.forEach((item) => expect(queue.dequeue()).to.equal(item));
             expect(queue).to.have.lengthOf(0);
         });
     });
@@ -108,16 +108,16 @@ describe("Command Limiter (unit)", () => {
         beforeEach(() => {
             cbs = [
                 sinon.stub().callsArg(0),
-                sinon.stub().callsFake(c =>
+                sinon.stub().callsFake((c) =>
                     setTimeout(() => {
                         c();
                     }, 2)
                 ),
-                sinon.stub().callsFake(c =>
+                sinon.stub().callsFake((c) =>
                     setTimeout(() => {
                         c();
                     }, 4)
-                )
+                ),
             ];
         });
         it("Starts with empty queue and running count", () => {
@@ -188,11 +188,11 @@ describe("Command Limiter (unit)", () => {
         it("Runs jobs asynchronously", async () => {
             const cl = new CommandLimiter(2);
 
-            const c1 = sinon.stub().callsFake(c => c());
-            const c2 = sinon.stub().callsFake(c => c());
+            const c1 = sinon.stub().callsFake((c) => c());
+            const c2 = sinon.stub().callsFake((c) => c());
 
             const p1 = cl.submit(
-                c =>
+                (c) =>
                     setTimeout(() => {
                         c1(c);
                     }, 40),
@@ -202,7 +202,7 @@ describe("Command Limiter (unit)", () => {
             expect(cl).to.include({ queueLength: 0, runningCount: 1 });
 
             const p2 = cl.submit(
-                c =>
+                (c) =>
                     setTimeout(() => {
                         c2(c);
                     }, 5),

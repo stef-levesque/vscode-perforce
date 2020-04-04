@@ -24,7 +24,7 @@ const basicFiles = {
     subFolderFile: ["testFolder", "subFolder", "subFile"],
     unknownFile: ["testFolder", "noexist"],
     unknownFile2: ["testFolder", "newfile"],
-    excluded: ["testFolder", "excluded"]
+    excluded: ["testFolder", "excluded"],
 };
 
 const workspaceUri = getWorkspaceUri();
@@ -40,7 +40,7 @@ function stubEvent<T>() {
         registered: boolean;
     };
     const attrs: EventAttrs = {
-        registered: false
+        registered: false,
     };
 
     const func = (
@@ -81,7 +81,7 @@ function makeStubEvents() {
         onDidChangeTextDocument: stubEvent<vscode.TextDocumentChangeEvent>(),
         onDidCreateFiles: stubEvent<vscode.FileCreateEvent>(),
         onWillDeleteFiles: stubEvent<vscode.FileWillDeleteEvent>(),
-        onWillSaveTextDocument: stubEvent<vscode.TextDocumentWillSaveEvent>()
+        onWillSaveTextDocument: stubEvent<vscode.TextDocumentWillSaveEvent>(),
     };
 }
 
@@ -112,7 +112,7 @@ describe("File System Actions", () => {
 
             eventProvider.onWillDeleteFiles.attrs.fire?.({
                 files: files,
-                waitUntil: waitUntil
+                waitUntil: waitUntil,
             });
 
             expect(waitUntil).to.have.been.called;
@@ -180,7 +180,7 @@ describe("File System Actions", () => {
     describe("Add on file create", () => {
         const fireAddEvent = (...files: vscode.Uri[]) => {
             eventProvider.onDidCreateFiles.attrs.fire?.({
-                files: files
+                files: files,
             });
         };
 

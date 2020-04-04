@@ -10,7 +10,7 @@ export const removeLeadingNewline = (value: string) => value.replace(/^\r*?\n/, 
 export const splitIntoLines = (value: string) => value.split(/\r*?\n/);
 export const splitIntoSections = (str: string) => str.split(/\r*?\n\r*?\n/);
 export const removeIndent = (lines: string[]) =>
-    lines.map(line => line.replace(/^\t/, ""));
+    lines.map((line) => line.replace(/^\t/, ""));
 
 /**
  * Extract a section of an array between two matching predicates
@@ -67,7 +67,7 @@ function arraySplitter<T>(chunkSize: number) {
 export const splitIntoChunks = <T>(arr: T[]) => arraySplitter<T>(32)(arr);
 
 export function applyToEach<T, R>(fn: (input: T) => R) {
-    return (input: T[]) => input.map(i => fn(i));
+    return (input: T[]) => input.map((i) => fn(i));
 }
 
 export function concatIfOutputIsDefined<T, R>(...fns: ((arg: T) => R | undefined)[]) {
@@ -91,7 +91,9 @@ export function makeFlags(
     pairs: [string, string | boolean | undefined][],
     lastArgs?: (string | undefined)[]
 ): CmdlineArgs {
-    return pairs.flatMap(pair => makeFlag(pair[0], pair[1])).concat(...(lastArgs ?? []));
+    return pairs
+        .flatMap((pair) => makeFlag(pair[0], pair[1]))
+        .concat(...(lastArgs ?? []));
 }
 
 type FlagValue = string | boolean | PerforceFile | PerforceFile[] | string[] | undefined;
@@ -140,7 +142,7 @@ export function flagMapper<P extends FlagDefinition<P>>(
     return (params: P): CmdlineArgs => {
         return (fixedPrefix ?? []).concat(
             makeFlags(
-                flagNames.map(fn => {
+                flagNames.map((fn) => {
                     return [fn[0], params[fn[1]] as string | boolean | undefined];
                 }),
                 lastArg
@@ -178,7 +180,7 @@ function fileSpecToArg(fileSpec: FileSpec, ignoreRevisionFragments?: boolean) {
 
 export function pathsToArgs(arr?: (string | FileSpec)[], options?: FlagMapperOptions) {
     return (
-        arr?.map(path => {
+        arr?.map((path) => {
             if (isFileSpec(path)) {
                 return fileSpecToArg(path, options?.ignoreRevisionFragments);
             } else if (path) {
@@ -202,7 +204,7 @@ export function runPerforceCommandIgnoringStdErr(
 ): Promise<string> {
     return runPerforceCommand(resource, command, args, {
         stdErrIsOk: true,
-        hideStdErr: hideStdErr
+        hideStdErr: hideStdErr,
     });
 }
 

@@ -5,14 +5,14 @@ import glob from "glob";
 export function run(): Promise<void> {
     // Create the mocha test
     const mocha = new Mocha({
-        ui: "bdd"
+        ui: "bdd",
     });
     mocha.useColors(true);
     mocha.reporter("cypress-multi-reporters", {
         reporterEnabled: "mocha-junit-reporter, spec",
         mochaJunitReporterReporterOptions: {
-            mochaFile: "./reports/junit-integration.xml"
-        }
+            mochaFile: "./reports/junit-integration.xml",
+        },
     });
 
     const testsRoot = path.resolve(__dirname, "..");
@@ -24,11 +24,11 @@ export function run(): Promise<void> {
             }
 
             // Add files to the test suite
-            files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+            files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
 
             try {
                 // Run the mocha test
-                mocha.run(failures => {
+                mocha.run((failures) => {
                     if (failures > 0) {
                         e(new Error(`${failures} tests failed.`));
                     } else {

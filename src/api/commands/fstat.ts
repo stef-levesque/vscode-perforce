@@ -4,7 +4,7 @@ import {
     makeSimpleCommand,
     splitIntoChunks,
     mergeAll,
-    splitIntoSections
+    splitIntoSections,
 } from "../CommandUtils";
 import { FstatInfo } from "../CommonTypes";
 import { isTruthy } from "../../TsUtils";
@@ -28,9 +28,7 @@ function parseZTagField(field: string) {
 }
 
 function parseZTagBlock(block: string) {
-    return splitIntoLines(block)
-        .map(parseZTagField)
-        .filter(isTruthy);
+    return splitIntoLines(block).map(parseZTagField).filter(isTruthy);
 }
 
 function parseFstatSection(file: string) {
@@ -38,17 +36,17 @@ function parseFstatSection(file: string) {
 }
 
 function parseFstatOutput(expectedFiles: string[], fstatOutput: string) {
-    const all = splitIntoSections(fstatOutput.trim()).map(file =>
+    const all = splitIntoSections(fstatOutput.trim()).map((file) =>
         parseFstatSection(file)
     );
-    return expectedFiles.map(file => all.find(fs => fs["depotFile"] === file));
+    return expectedFiles.map((file) => all.find((fs) => fs["depotFile"] === file));
 }
 
 const fstatFlags = flagMapper<FstatOptions>(
     [
         ["e", "chnum"],
         ["Or", "outputPendingRecord"],
-        ["Rs", "limitToShelved"]
+        ["Rs", "limitToShelved"],
     ],
     "depotPaths"
 );
@@ -57,7 +55,7 @@ const fstatBasic = makeSimpleCommand("fstat", fstatFlags).ignoringStdErr;
 
 export async function getFstatInfo(resource: vscode.Uri, options: FstatOptions) {
     const chunks = splitIntoChunks(options.depotPaths);
-    const promises = chunks.map(paths =>
+    const promises = chunks.map((paths) =>
         fstatBasic(resource, { ...options, ...{ depotPaths: paths } })
     );
 

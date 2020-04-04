@@ -10,7 +10,7 @@ import {
     Uri,
     TextDocumentSaveReason,
     FileType,
-    FileWillDeleteEvent
+    FileWillDeleteEvent,
 } from "vscode";
 
 import * as micromatch from "micromatch";
@@ -57,7 +57,7 @@ export default class FileSystemActions {
             const eventSubscriptions: Disposable[] = [];
 
             if (config.editOnFileSave) {
-                workspace.onWillSaveTextDocument(e => {
+                workspace.onWillSaveTextDocument((e) => {
                     e.waitUntil(FileSystemActions.onWillSaveFile(e.document, e.reason));
                 }, eventSubscriptions);
             }
@@ -185,14 +185,14 @@ export default class FileSystemActions {
         const fileExcludes = Object.keys(workspace.getConfiguration("files").exclude);
 
         return micromatch.isMatch(uri.fsPath, fileExcludes, {
-            dot: true
+            dot: true,
         });
     }
 
     private static onFilesDeleted(filesDeleted: FileWillDeleteEvent) {
         const promises = filesDeleted.files
-            .filter(uri => !FileSystemActions.shouldExclude(uri))
-            .map(uri => FileSystemActions.deleteFileOrDirectory(uri));
+            .filter((uri) => !FileSystemActions.shouldExclude(uri))
+            .map((uri) => FileSystemActions.deleteFileOrDirectory(uri));
 
         filesDeleted.waitUntil(Promise.all(promises));
     }

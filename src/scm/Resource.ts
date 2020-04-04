@@ -3,7 +3,7 @@ import {
     SourceControlResourceState,
     SourceControlResourceDecorations,
     Uri,
-    workspace
+    workspace,
 } from "vscode";
 import { DecorationProvider } from "./DecorationProvider";
 import { GetStatuses, Status } from "./Status";
@@ -97,7 +97,7 @@ export class Resource implements SourceControlResourceState {
         return {
             title: "Open",
             command,
-            arguments: [this]
+            arguments: [this],
         };
     }
 

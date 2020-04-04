@@ -43,11 +43,11 @@ export function fromDepotPath(
     revisionOrAtLabel: string | undefined
 ) {
     const baseUri = vscode.Uri.parse("perforce:" + depotPath).with({
-        fragment: revisionOrAtLabel
+        fragment: revisionOrAtLabel,
     });
     return fromUri(baseUri, {
         depot: true,
-        workspace: workspace.fsPath
+        workspace: workspace.fsPath,
     });
 }
 
@@ -78,22 +78,22 @@ export function forCommand(resource: vscode.Uri, command: string, p4Args: string
     return fromUri(vscode.Uri.parse("perforce:"), {
         command: command,
         p4Args: p4Args,
-        workspace: resource.fsPath
+        workspace: resource.fsPath,
     });
 }
 
 export function fromUri(uri: vscode.Uri, otherArgs?: UriArguments) {
     const defaultArgs = {
         command: "print",
-        p4Args: "-q"
+        p4Args: "-q",
     };
     return uri.with({
         scheme: "perforce",
         query: encodeQuery({
             ...defaultArgs,
             ...decodeUriQuery(uri.query), // use existing params
-            ...otherArgs
-        })
+            ...otherArgs,
+        }),
     });
 }
 
@@ -114,7 +114,7 @@ export function withArgs(
     const curArgs = decodeUriQuery(uri.query);
     const newQuery = encodeQuery({
         ...curArgs,
-        ...args
+        ...args,
     });
     return revisionOrAtLabel !== undefined
         ? uri.with({ query: newQuery, fragment: revisionOrAtLabel })
@@ -123,16 +123,16 @@ export function withArgs(
 
 export function encodeQuery(args: UriArguments) {
     return Object.entries(args)
-        .filter(arg => !!arg[1])
-        .map(arg => encodeParam(arg[0], arg[1]))
-        .filter(arg => !!arg)
+        .filter((arg) => !!arg[1])
+        .map((arg) => encodeParam(arg[0], arg[1]))
+        .filter((arg) => !!arg)
         .join("&");
 }
 
 export function decodeUriQuery(query: string): UriArguments {
     const argArr = query?.split("&") ?? [];
     const allArgs: AnyUriArguments = {};
-    argArr.forEach(arg => {
+    argArr.forEach((arg) => {
         const parts = arg.split("=");
         const name = decodeURIComponent(parts[0]);
         const value = parts[1] ? decodeURIComponent(parts[1]) : true;

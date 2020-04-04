@@ -7,7 +7,7 @@ import {
     SourceControl,
     SourceControlResourceState,
     Event,
-    workspace
+    workspace,
 } from "vscode";
 import { Model, ResourceGroup } from "./scm/Model";
 import { Resource } from "./scm/Resource";
@@ -25,10 +25,10 @@ export class PerforceSCMProvider {
 
     private disposables: Disposable[] = [];
     dispose(): void {
-        this.disposables.forEach(d => d.dispose());
+        this.disposables.forEach((d) => d.dispose());
         this.disposables = [];
         const pos = PerforceSCMProvider.instances.findIndex(
-            instance => instance === this
+            (instance) => instance === this
         );
         if (pos >= 0) {
             PerforceSCMProvider.instances.splice(pos, 1);
@@ -54,7 +54,7 @@ export class PerforceSCMProvider {
     public get count(): number {
         const countBadge = this._workspaceConfig.countBadge;
         const resources: Resource[] = this._model.ResourceGroups.flatMap(
-            g => g.resourceStates as Resource[]
+            (g) => g.resourceStates as Resource[]
         );
 
         // Don't count MOVE_DELETE as we already count MOVE_ADD
@@ -63,11 +63,11 @@ export class PerforceSCMProvider {
                 return 0;
             case "all-but-shelved":
                 return resources.filter(
-                    s => s.status !== Status.MOVE_DELETE && !s.isShelved
+                    (s) => s.status !== Status.MOVE_DELETE && !s.isShelved
                 ).length;
             case "all":
             default:
-                return resources.filter(s => s.status !== Status.MOVE_DELETE).length;
+                return resources.filter((s) => s.status !== Status.MOVE_DELETE).length;
         }
     }
 
@@ -105,7 +105,7 @@ export class PerforceSCMProvider {
         this._model._sourceControl.acceptInputCommand = {
             command: "perforce.processChangelist",
             title: "Process Changelist",
-            arguments: [this._model._sourceControl]
+            arguments: [this._model._sourceControl],
         };
 
         // Hook up the model change event to trigger our own event
@@ -242,11 +242,13 @@ export class PerforceSCMProvider {
     }
 
     public static async OpenFile(...resourceStates: SourceControlResourceState[]) {
-        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const selection = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
         const preview = selection.length === 1;
-        const promises = selection.map(resource => {
+        const promises = selection.map((resource) => {
             return commands.executeCommand<void>("vscode.open", resource.resourceUri, {
-                preview
+                preview,
             });
         });
 
@@ -254,7 +256,9 @@ export class PerforceSCMProvider {
     }
 
     public static async Open(...resourceStates: SourceControlResourceState[]) {
-        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const selection = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
         const promises = [];
         for (const resource of selection) {
             promises.push(PerforceSCMProvider.open(resource));
@@ -263,7 +267,9 @@ export class PerforceSCMProvider {
     }
 
     public static async OpenvShelved(...resourceStates: SourceControlResourceState[]) {
-        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const selection = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
         const promises = [];
         for (const resource of selection) {
             promises.push(
@@ -291,7 +297,7 @@ export class PerforceSCMProvider {
     }
 
     public static async RefreshAll() {
-        const promises = PerforceSCMProvider.instances.map(provider =>
+        const promises = PerforceSCMProvider.instances.map((provider) =>
             provider._model.Refresh()
         );
         await Promise.all(promises);
@@ -342,7 +348,9 @@ export class PerforceSCMProvider {
     public static async SubmitSelectedFiles(
         ...resourceStates: SourceControlResourceState[]
     ) {
-        const resources = resourceStates.filter(s => s instanceof Resource) as Resource[];
+        const resources = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
         await resources[0].model.SubmitSelectedFile(resources);
     }
 
@@ -352,7 +360,7 @@ export class PerforceSCMProvider {
     ) {
         if (arg instanceof Resource) {
             const resources = [...(resourceStates as Resource[]), arg];
-            const promises = resources.map(resource => resource.model.Revert(resource));
+            const promises = resources.map((resource) => resource.model.Revert(resource));
             await Promise.all(promises);
         } else {
             const group = arg;
@@ -367,7 +375,7 @@ export class PerforceSCMProvider {
     ) {
         if (arg instanceof Resource) {
             const resources = [...(resourceStates as Resource[]), arg];
-            const promises = resources.map(resource =>
+            const promises = resources.map((resource) =>
                 resource.model.Revert(resource, true)
             );
             await Promise.all(promises);
@@ -409,8 +417,10 @@ export class PerforceSCMProvider {
     public static async ShelveOrUnshelve(
         ...resourceStates: SourceControlResourceState[]
     ): Promise<void> {
-        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
-        const promises = selection.map(resource =>
+        const selection = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
+        const promises = selection.map((resource) =>
             resource.model.ShelveOrUnshelve(resource)
         );
         await Promise.all(promises);
@@ -419,8 +429,10 @@ export class PerforceSCMProvider {
     public static async DeleteShelvedFile(
         ...resourceStates: SourceControlResourceState[]
     ): Promise<void> {
-        const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
-        const promises = selection.map(resource =>
+        const selection = resourceStates.filter(
+            (s) => s instanceof Resource
+        ) as Resource[];
+        const promises = selection.map((resource) =>
             resource.model.DeleteShelvedFile(resource)
         );
         await Promise.all(promises);
@@ -500,11 +512,11 @@ export class PerforceSCMProvider {
     }
 
     public static hasOpenFile(uri: Uri) {
-        return this.instances.some(inst => inst._model.getOpenResource(uri));
+        return this.instances.some((inst) => inst._model.getOpenResource(uri));
     }
 
     public static mayHaveConflictForFile(uri: Uri) {
-        return this.instances.some(inst => inst._model.mayHaveConflictForFile(uri));
+        return this.instances.some((inst) => inst._model.mayHaveConflictForFile(uri));
     }
 
     private static async open(
@@ -515,7 +527,7 @@ export class PerforceSCMProvider {
             const uri = PerforceUri.fromUri(resource.resourceUri, { command: "fstat" });
             await workspace
                 .openTextDocument(uri)
-                .then(doc => window.showTextDocument(doc));
+                .then((doc) => window.showTextDocument(doc));
             return;
         }
 

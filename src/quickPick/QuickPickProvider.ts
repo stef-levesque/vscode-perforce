@@ -51,12 +51,12 @@ function makeStackActions(): ActionableQuickPickItem[] {
                   performAction: () => {
                       quickPickStack.pop();
                       showQuickPick(prev.type, ...prev.args);
-                  }
+                  },
               }
             : {
                   label: backLabel,
-                  description: "n/a"
-              }
+                  description: "n/a",
+              },
     ].filter(isTruthy);
 }
 
@@ -73,7 +73,7 @@ export async function showQuickPick(type: string, ...args: any[]) {
                 //ignoreFocusOut: true,
                 matchOnDescription: true,
                 matchOnDetail: true,
-                placeHolder: actions.placeHolder
+                placeHolder: actions.placeHolder,
             }
         );
 

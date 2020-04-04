@@ -26,7 +26,7 @@ export function makeDiffURI(
 ) {
     const args = [
         makePerforceURI(workspace, prevChange),
-        makePerforceURI(workspace, change)
+        makePerforceURI(workspace, change),
     ];
     return (
         makeCommandURI("perforce.diffFiles", ...args) +

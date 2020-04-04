@@ -170,7 +170,7 @@ export namespace PerforceService {
             limiter.debugMode = true;
             debugModeSetup = true;
         }
-        limiter.submit(onDone => {
+        limiter.submit((onDone) => {
             execCommand(
                 resource,
                 command,
@@ -228,7 +228,7 @@ export namespace PerforceService {
 
         if (args !== undefined) {
             if (config && config.stripLocalDir) {
-                args = args.map(arg => arg.replace(config.localDir, ""));
+                args = args.map((arg) => arg.replace(config.localDir, ""));
             }
 
             allArgs.push(...args);
@@ -281,7 +281,7 @@ export namespace PerforceService {
         // not necessarily using these escaped values, because cross-spawn does its own escaping,
         // but no sensible way of logging the unescaped array for a user. The output command line
         // should at least be copy-pastable and work
-        const escapedArgs = args.map(arg => `'${arg.replace(/'/g, `'\\''`)}'`);
+        const escapedArgs = args.map((arg) => `'${arg.replace(/'/g, `'\\''`)}'`);
         const loggedCommand = [cmd].concat(escapedArgs);
         const censoredInput = cmd === "login" ? "***" : input;
         const loggedInput = input ? " < " + censoredInput : "";
@@ -331,7 +331,7 @@ export namespace PerforceService {
     export function getClientRoot(resource: Uri): Promise<string> {
         return new Promise((resolve, reject) => {
             PerforceService.executeAsPromise(resource, "info")
-                .then(stdout => {
+                .then((stdout) => {
                     let clientRootIndex = stdout.indexOf("Client root: ");
                     if (clientRootIndex === -1) {
                         reject("P4 Info didn't specify a valid Client Root path");
@@ -350,7 +350,7 @@ export namespace PerforceService {
                         stdout.substring(clientRootIndex, endClientRootIndex).trimRight()
                     );
                 })
-                .catch(err => {
+                .catch((err) => {
                     reject(err);
                 });
         });
@@ -359,7 +359,7 @@ export namespace PerforceService {
     export function getConfigFilename(resource: Uri): Promise<string> {
         return new Promise((resolve, reject) => {
             PerforceService.executeAsPromise(resource, "set", ["-q"])
-                .then(stdout => {
+                .then((stdout) => {
                     let configIndex = stdout.indexOf("P4CONFIG=");
                     if (configIndex === -1) {
                         resolve(".p4config");
@@ -377,7 +377,7 @@ export namespace PerforceService {
                     //Resolve with p4 config filename as string
                     resolve(stdout.substring(configIndex, endConfigIndex).trimRight());
                 })
-                .catch(err => {
+                .catch((err) => {
                     reject(err);
                 });
         });

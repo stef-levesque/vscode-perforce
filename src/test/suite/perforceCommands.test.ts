@@ -51,7 +51,7 @@ describe("Perforce Command Module (integration)", () => {
     afterEach(async () => {
         await vscode.commands.executeCommand("workbench.action.files.revert");
         sinon.restore();
-        subscriptions.forEach(sub => sub.dispose());
+        subscriptions.forEach((sub) => sub.dispose());
     });
     describe("Diff", () => {
         it("Opens the have revision for the currently open file by default", async () => {
@@ -65,10 +65,10 @@ describe("Perforce Command Module (integration)", () => {
                             depotPath: "//depot/testFolder/a.txt",
                             depotRevision: 2,
                             localFile: localFile,
-                            operation: Status.EDIT
-                        }
-                    ]
-                }
+                            operation: Status.EDIT,
+                        },
+                    ],
+                },
             ];
             await vscode.window.showTextDocument(localFile);
             await PerforceCommands.diff();
@@ -84,7 +84,7 @@ describe("Perforce Command Module (integration)", () => {
             await PerforceCommands.diff(5);
             expect(execCommand.lastCall).to.be.vscodeDiffCall(
                 PerforceUri.fromUri(localFile).with({
-                    fragment: "5"
+                    fragment: "5",
                 }),
                 localFile,
                 "new.txt#5 ⟷ new.txt (workspace)"
@@ -95,17 +95,17 @@ describe("Perforce Command Module (integration)", () => {
         it("Reverts the file open in the editor", async () => {
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(localFile, {
-                preview: false
+                preview: false,
             });
 
             await PerforceCommands.revertOpenFile();
 
             // this is ugly but sinon is not matching the Uris in a single call
             expect(stubModel.revert).to.have.been.calledWithMatch({
-                fsPath: localFile.fsPath
+                fsPath: localFile.fsPath,
             });
             expect(stubModel.revert.getCall(-1).args[1]).to.deep.equal({
-                paths: [localFile]
+                paths: [localFile],
             });
 
             expect(refresh).to.have.been.called;
@@ -115,22 +115,22 @@ describe("Perforce Command Module (integration)", () => {
         it("Reverts and then deletes the file open in the editor", async () => {
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(localFile, {
-                preview: false
+                preview: false,
             });
 
             await PerforceCommands.deleteOpenFile();
 
             expect(stubModel.revert).to.have.been.calledWithMatch({
-                fsPath: localFile.fsPath
+                fsPath: localFile.fsPath,
             });
             expect(stubModel.revert.getCall(-1).args[1]).to.deep.equal({
-                paths: [localFile]
+                paths: [localFile],
             });
             expect(stubModel.del).to.have.been.calledWithMatch({
-                fsPath: localFile.fsPath
+                fsPath: localFile.fsPath,
             });
             expect(stubModel.del.getCall(-1).args[1]).to.deep.equal({
-                paths: [localFile]
+                paths: [localFile],
             });
 
             expect(refresh).to.have.been.called;
@@ -141,9 +141,9 @@ describe("Perforce Command Module (integration)", () => {
             const warn = sinon.stub(Display, "showModalMessage");
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             const editor = await vscode.window.showTextDocument(localFile, {
-                preview: false
+                preview: false,
             });
-            await editor.edit(editBuilder =>
+            await editor.edit((editBuilder) =>
                 editBuilder.insert(new vscode.Position(0, 0), "hello")
             );
             expect(vscode.window.activeTextEditor).to.equal(editor);
@@ -162,7 +162,7 @@ describe("Perforce Command Module (integration)", () => {
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(
                 PerforceUri.fromUri(localFile).with({
-                    fragment: "5"
+                    fragment: "5",
                 })
             );
 
@@ -174,7 +174,7 @@ describe("Perforce Command Module (integration)", () => {
 
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(localFile, {
-                preview: false
+                preview: false,
             });
 
             await PerforceCommands.submitSingle();
@@ -189,7 +189,7 @@ describe("Perforce Command Module (integration)", () => {
 
             const localFile = getLocalFile(workspaceUri, "testFolder", "a.txt");
             await vscode.window.showTextDocument(localFile, {
-                preview: false
+                preview: false,
             });
 
             await PerforceCommands.submitSingle();
@@ -198,7 +198,7 @@ describe("Perforce Command Module (integration)", () => {
             expect(stubModel.submitChangelist).to.have.been.calledWithMatch(localFile, {
                 file: { fsPath: localFile.fsPath },
                 description: "new changelist description",
-                chnum: undefined
+                chnum: undefined,
             });
         });
     });

@@ -10,7 +10,7 @@ export enum Status {
     MOVE_ADD,
     MOVE_DELETE,
     PURGE,
-    UNKNOWN
+    UNKNOWN,
 }
 
 export function GetStatuses(statusText: string): Status[] {

@@ -41,7 +41,7 @@ async function main() {
             extensionDevelopmentPath,
             extensionTestsPath,
             launchArgs: [testWorkspace],
-            extensionTestsEnv: env
+            extensionTestsEnv: env,
         });
     } catch (err) {
         console.error("Failed to run tests: " + err);

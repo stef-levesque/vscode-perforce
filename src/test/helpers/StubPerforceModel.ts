@@ -7,7 +7,7 @@ import {
     ChangeSpec,
     FixedJob,
     FstatInfo,
-    isUri
+    isUri,
 } from "../../api/CommonTypes";
 import { Status } from "../../scm/Status";
 import { PerforceService } from "../../PerforceService";
@@ -128,7 +128,7 @@ export class StubPerforceModel {
         this.shelve = sinon.stub(p4, "shelve").resolves("shelved");
         this.submitChangelist = sinon.stub(p4, "submitChangelist").resolves({
             rawOutput: "submitting...\n change 250 submitted",
-            chnum: "250"
+            chnum: "250",
         });
         this.sync = sinon.stub(p4, "sync").resolves("synced");
         this.unshelve = sinon.stub(p4, "unshelve").resolves("unshelved");
@@ -144,9 +144,9 @@ export class StubPerforceModel {
     ): Promise<p4.OpenedFile[]> {
         return Promise.resolve(
             this.changelists
-                .filter(cl => (options.chnum ? cl.chnum === options.chnum : true))
-                .flatMap(cl =>
-                    cl.files.map<p4.OpenedFile>(file => {
+                .filter((cl) => (options.chnum ? cl.chnum === options.chnum : true))
+                .flatMap((cl) =>
+                    cl.files.map<p4.OpenedFile>((file) => {
                         return {
                             depotPath: file.depotPath,
                             revision: file.depotRevision.toString(),
@@ -156,7 +156,7 @@ export class StubPerforceModel {
                                 file.depotPath +
                                 " opened for " +
                                 getStatusText(file.operation),
-                            operation: getStatusText(file.operation)
+                            operation: getStatusText(file.operation),
                         };
                     })
                 )
@@ -167,25 +167,25 @@ export class StubPerforceModel {
         // Note - doesn't take account of options! (TODO if required)
         return Promise.resolve(
             this.changelists
-                .filter(cl => !cl.submitted && cl.chnum !== "default")
-                .map<ChangeInfo>(cl => {
+                .filter((cl) => !cl.submitted && cl.chnum !== "default")
+                .map<ChangeInfo>((cl) => {
                     return {
                         chnum: cl.chnum,
                         date: "01/01/2020",
                         client: "cli",
                         user: "user",
                         description: cl.description,
-                        status: "*pending*"
+                        status: "*pending*",
                     };
                 })
         );
     }
 
     findFile(uri: vscode.Uri): [StubChangelist, StubFile] | undefined {
-        const change = this.changelists.find(ch =>
-            ch.files.some(f => f.localFile.fsPath === uri.fsPath)
+        const change = this.changelists.find((ch) =>
+            ch.files.some((f) => f.localFile.fsPath === uri.fsPath)
         );
-        const file = change?.files.find(f => f.localFile.fsPath === uri.fsPath);
+        const file = change?.files.find((f) => f.localFile.fsPath === uri.fsPath);
         return change && file ? [change, file] : undefined;
     }
 
@@ -209,7 +209,7 @@ export class StubPerforceModel {
                 file.depotPath,
                 file.depotRevision.toString()
             ),
-            localUri: file.localFile
+            localUri: file.localFile,
         });
     }
 
@@ -217,12 +217,12 @@ export class StubPerforceModel {
         _resource: vscode.Uri,
         options: p4.GetFixedJobsOptions
     ): Promise<FixedJob[]> {
-        const cl = this.changelists.find(cl => cl.chnum === options.chnum);
+        const cl = this.changelists.find((cl) => cl.chnum === options.chnum);
         if (!cl) {
             return Promise.reject("Changelist does not exist");
         }
         return Promise.resolve(
-            cl.jobs?.map<FixedJob>(job => {
+            cl.jobs?.map<FixedJob>((job) => {
                 return { description: job.description, id: job.name };
             }) ?? []
         );
@@ -234,11 +234,11 @@ export class StubPerforceModel {
     ): Promise<p4.ShelvedChangeInfo[]> {
         return Promise.resolve(
             this.changelists
-                .filter(cl => options.chnums.includes(cl.chnum))
-                .map(cl => {
+                .filter((cl) => options.chnums.includes(cl.chnum))
+                .map((cl) => {
                     return {
                         chnum: parseInt(cl.chnum),
-                        paths: cl.shelvedFiles?.map(s => s.depotPath)
+                        paths: cl.shelvedFiles?.map((s) => s.depotPath),
                     };
                 })
                 .filter((cl): cl is p4.ShelvedChangeInfo => cl.paths !== undefined)
@@ -250,12 +250,14 @@ export class StubPerforceModel {
         chnum?: string,
         shelved?: boolean
     ): FstatInfo | undefined {
-        const cl = this.changelists.find(c =>
-            chnum ? c.chnum === chnum : c.files.some(file => file.depotPath === depotPath)
+        const cl = this.changelists.find((c) =>
+            chnum
+                ? c.chnum === chnum
+                : c.files.some((file) => file.depotPath === depotPath)
         );
         const file = shelved
-            ? cl?.shelvedFiles?.find(file => file.depotPath === depotPath)
-            : cl?.files.find(file => file.depotPath === depotPath);
+            ? cl?.shelvedFiles?.find((file) => file.depotPath === depotPath)
+            : cl?.files.find((file) => file.depotPath === depotPath);
 
         if (file) {
             return {
@@ -270,7 +272,7 @@ export class StubPerforceModel {
                 workRev: file.depotRevision?.toString(),
                 change: cl?.chnum,
                 resolveFromFile0: file.resolveFromDepotPath,
-                resolveEndFromRev0: file.resolveEndFromRev?.toString()
+                resolveEndFromRev0: file.resolveEndFromRev?.toString(),
             } as FstatInfo;
         }
     }
@@ -279,7 +281,7 @@ export class StubPerforceModel {
         _resource: vscode.Uri,
         options: p4.FstatOptions
     ): Promise<(FstatInfo | undefined)[]> {
-        const files = options.depotPaths.map(path =>
+        const files = options.depotPaths.map((path) =>
             this.fstatFile(path, options.chnum, options.limitToShelved)
         );
         return Promise.resolve(files);
@@ -292,7 +294,7 @@ export class StubPerforceModel {
     ): Promise<ChangeSpec> {
         if (options.existingChangelist) {
             const cl = this.changelists.find(
-                cl => cl.chnum === options.existingChangelist
+                (cl) => cl.chnum === options.existingChangelist
             );
             if (!cl) {
                 return Promise.reject("No such changelist " + options.existingChangelist);
@@ -300,25 +302,25 @@ export class StubPerforceModel {
             return Promise.resolve<ChangeSpec>({
                 change: options.existingChangelist,
                 description: cl.description,
-                files: cl.files.map(file => {
+                files: cl.files.map((file) => {
                     return {
                         action: getStatusText(file.operation),
-                        depotPath: file.depotPath
+                        depotPath: file.depotPath,
                     };
                 }),
-                rawFields: [{ name: "A field", value: ["don't know"] }]
+                rawFields: [{ name: "A field", value: ["don't know"] }],
             });
         }
-        const cl = this.changelists.find(cl => cl.chnum === "default");
+        const cl = this.changelists.find((cl) => cl.chnum === "default");
         return Promise.resolve<ChangeSpec>({
             description: "<Enter description>",
-            files: cl?.files.map(file => {
+            files: cl?.files.map((file) => {
                 return {
                     action: getStatusText(file.operation),
-                    depotPath: file.depotPath
+                    depotPath: file.depotPath,
                 };
             }),
-            rawFields: [{ name: "A field", value: ["don't know"] }]
+            rawFields: [{ name: "A field", value: ["don't know"] }],
         });
     }
 }

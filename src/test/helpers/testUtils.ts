@@ -69,7 +69,7 @@ export function perforceLocalUriMatcher(file: StubFile) {
         throw new Error("Can't make a local file matcher without a local file");
     }
     return PerforceUri.fromUri(file.localFile).with({
-        fragment: file.depotRevision.toString()
+        fragment: file.depotRevision.toString(),
     });
 }
 
@@ -108,7 +108,7 @@ export function perforceFromFileUriMatcher(file: StubFile) {
 export function perforceShelvedUriMatcher(file: StubFile, chnum: string) {
     return PerforceUri.fromUri(
         vscode.Uri.parse("perforce:" + file.depotPath).with({
-            fragment: "@=" + chnum
+            fragment: "@=" + chnum,
         }),
         { depot: true, workspace: getWorkspaceUri().fsPath }
     );

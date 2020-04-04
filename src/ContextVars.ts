@@ -16,7 +16,7 @@ const makeDefault = () => {
         canDiffPrev: false,
         canDiffNext: false,
         isPerforceOrDiff: false,
-        hasRevision: false
+        hasRevision: false,
     };
 };
 
@@ -85,7 +85,7 @@ function calculateDiffOptions(file?: vscode.Uri, status?: ActiveEditorStatus) {
         canDiffNext: !disableDiffNext,
         canDiffPrev: !disableDiffPrev,
         isPerforceOrDiff,
-        hasRevision
+        hasRevision,
     };
 }
 
@@ -100,10 +100,10 @@ function setContextVars(event: ActiveStatusEvent) {
         operation: event.details?.operation ?? "",
         filetype: event.details?.filetype ?? "",
         message: event.details?.message ?? "",
-        ...diffOptions
+        ...diffOptions,
     };
 
-    Object.entries(fileContext).forEach(c => {
+    Object.entries(fileContext).forEach((c) => {
         vscode.commands.executeCommand(
             "setContext",
             "perforce.currentFile." + c[0],
@@ -119,7 +119,7 @@ function clearContextVars(file?: vscode.Uri) {
 
     const all = { ...fileContext, ...diffOptions };
 
-    Object.entries(all).forEach(c => {
+    Object.entries(all).forEach((c) => {
         vscode.commands.executeCommand(
             "setContext",
             "perforce.currentFile." + c[0],

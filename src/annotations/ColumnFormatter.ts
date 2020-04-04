@@ -20,7 +20,7 @@ export function parseColumns(columns: string[]) {
     return columns
         .map(parseColumn)
         .filter(isTruthy)
-        .filter(col => col.length && col.length >= 0);
+        .filter((col) => col.length && col.length >= 0);
 }
 
 export function parseColumn(item: string): ColumnOption | undefined {
@@ -36,7 +36,7 @@ export function parseColumn(item: string): ColumnOption | undefined {
             length: parseInt(lenStr),
             padLeft: !!padLeft,
             truncateRight: !!truncateRight,
-            prefix
+            prefix,
         };
     } else {
         Display.showImportantError(
@@ -54,19 +54,19 @@ type ColumnBehaviors = Record<ValidColumn, ColumnBehavior>;
 const behaviors: ColumnBehaviors = {
     revision: {
         value: (change, latestChange) =>
-            change.file === latestChange.file ? change.revision : "ᛦ" + change.revision
+            change.file === latestChange.file ? change.revision : "ᛦ" + change.revision,
     },
     chnum: {
-        value: change => change.chnum
+        value: (change) => change.chnum,
     },
-    user: { value: change => change.user },
-    client: { value: change => change.client },
+    user: { value: (change) => change.user },
+    client: { value: (change) => change.client },
     description: {
-        value: change => replaceWhitespace(change.description)
+        value: (change) => replaceWhitespace(change.description),
     },
     timeAgo: {
-        value: change => (change.date ? timeAgo.format(change.date) : "Unknown")
-    }
+        value: (change) => (change.date ? timeAgo.format(change.date) : "Unknown"),
+    },
 };
 
 export function calculateTotalWidth(options: ColumnOption[]) {

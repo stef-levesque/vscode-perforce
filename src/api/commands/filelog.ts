@@ -3,7 +3,7 @@ import {
     flagMapper,
     makeSimpleCommand,
     sectionArrayBy,
-    splitIntoLines
+    splitIntoLines,
 } from "../CommandUtils";
 import { PerforceFile } from "../CommonTypes";
 import { isTruthy, parseDate } from "../../TsUtils";
@@ -15,14 +15,14 @@ export interface FilelogOptions {
 
 const filelogFlags = flagMapper<FilelogOptions>([["i", "followBranches"]], "file", [
     "-l",
-    "-t"
+    "-t",
 ]);
 
 const filelog = makeSimpleCommand("filelog", filelogFlags);
 
 export enum Direction {
     TO,
-    FROM
+    FROM,
 }
 
 export type FileLogIntegration = {
@@ -47,7 +47,7 @@ export type FileLogItem = {
 
 function parseFileLogIntegrations(lines: string[]): FileLogIntegration[] {
     return lines
-        .map(line => {
+        .map((line) => {
             const matches = /^.{3} .{3} (\S+) (into|from) (.*?)#(\d+)(?:,#(\d+))?$/.exec(
                 line
             );
@@ -78,10 +78,10 @@ function parseFilelogItem(item: string[], file: string): FileLogItem | undefined
     if (matches) {
         const [, revision, chnum, operation, date, user, client] = matches;
         const description = desc
-            .filter(l => l.startsWith("\t"))
-            .map(l => l.slice(1))
+            .filter((l) => l.startsWith("\t"))
+            .map((l) => l.slice(1))
             .join("\n");
-        const integStrings = desc.filter(l => l.startsWith("... ..."));
+        const integStrings = desc.filter((l) => l.startsWith("... ..."));
         const integrations = parseFileLogIntegrations(integStrings);
 
         return {
@@ -93,21 +93,21 @@ function parseFilelogItem(item: string[], file: string): FileLogItem | undefined
             date: parseDate(date),
             user,
             client,
-            integrations
+            integrations,
         };
     }
 }
 
 function parseFileLogFile(lines: string[]) {
-    const histories = sectionArrayBy(lines.slice(1), line => line.startsWith("... #"));
+    const histories = sectionArrayBy(lines.slice(1), (line) => line.startsWith("... #"));
 
     const file = lines[0];
 
-    return histories.map(h => parseFilelogItem(h, file)).filter(isTruthy);
+    return histories.map((h) => parseFilelogItem(h, file)).filter(isTruthy);
 }
 
 function parseFileLogFiles(lines: string[]) {
-    const files = sectionArrayBy(lines, line => line.startsWith("//"));
+    const files = sectionArrayBy(lines, (line) => line.startsWith("//"));
 
     return files.flatMap(parseFileLogFile);
 }

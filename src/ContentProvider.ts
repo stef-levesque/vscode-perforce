@@ -13,7 +13,7 @@ export class PerforceContentProvider {
 
     private disposables: Disposable[] = [];
     dispose(): void {
-        this.disposables.forEach(d => d.dispose());
+        this.disposables.forEach((d) => d.dispose());
     }
 
     constructor() {

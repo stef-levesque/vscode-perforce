@@ -2,7 +2,7 @@ import {
     flagMapper,
     makeSimpleCommand,
     asyncOuputHandler,
-    splitIntoLines
+    splitIntoLines,
 } from "../CommandUtils";
 import { PerforceFile } from "../CommonTypes";
 import { isTruthy } from "../../TsUtils";
@@ -16,7 +16,7 @@ export interface IntegratedOptions {
 const integrateFlags = flagMapper<IntegratedOptions>(
     [
         ["s", "startingChnum"],
-        ["-into-only", "intoOnly"]
+        ["-into-only", "intoOnly"],
     ],
     "file",
     undefined,
@@ -57,7 +57,7 @@ function parseIntegratedRevision(line: string): IntegratedRevision | undefined {
             direction,
             rightFile,
             rightStartRev,
-            rightEndRev
+            rightEndRev,
         ] = matches;
 
         return direction === "from"
@@ -68,7 +68,7 @@ function parseIntegratedRevision(line: string): IntegratedRevision | undefined {
                   operation,
                   toFile: leftFile,
                   toRev: leftStartRev,
-                  displayDirection: direction
+                  displayDirection: direction,
               }
             : {
                   fromFile: leftFile,
@@ -77,15 +77,13 @@ function parseIntegratedRevision(line: string): IntegratedRevision | undefined {
                   operation,
                   toFile: rightFile,
                   toRev: rightStartRev,
-                  displayDirection: direction
+                  displayDirection: direction,
               };
     }
 }
 
 function parseIntegratedOutput(output: string) {
-    return splitIntoLines(output)
-        .map(parseIntegratedRevision)
-        .filter(isTruthy);
+    return splitIntoLines(output).map(parseIntegratedRevision).filter(isTruthy);
 }
 
 export const integrated = asyncOuputHandler(integratedCommand, parseIntegratedOutput);

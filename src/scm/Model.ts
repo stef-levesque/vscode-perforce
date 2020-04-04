@@ -9,7 +9,7 @@ import {
     ProgressLocation,
     window,
     workspace,
-    commands
+    commands,
 } from "vscode";
 import { WorkspaceConfigAccessor } from "../ConfigService";
 import { Utils } from "../Utils";
@@ -51,7 +51,7 @@ export class Model implements Disposable {
     public dispose() {
         this.clean();
         if (this._disposables) {
-            this._disposables.forEach(d => d.dispose());
+            this._disposables.forEach((d) => d.dispose());
             this._disposables = [];
         }
     }
@@ -97,7 +97,7 @@ export class Model implements Disposable {
             result.push(this._defaultGroup);
         }
 
-        this._pendingGroups.forEach(value => {
+        this._pendingGroups.forEach((value) => {
             const config = workspace.getConfiguration("perforce");
             if (
                 config.get<boolean>("hideEmptyChangelists") &&
@@ -182,7 +182,7 @@ export class Model implements Disposable {
         window.withProgress(
             {
                 location: ProgressLocation.SourceControl,
-                title: "Syncing..."
+                title: "Syncing...",
             },
             () => this.syncUpdate()
         );
@@ -239,7 +239,7 @@ export class Model implements Disposable {
             await window.withProgress(
                 {
                     location: ProgressLocation.SourceControl,
-                    title: "Updating info..."
+                    title: "Updating info...",
                 },
                 () => this.updateInfo()
             );
@@ -247,7 +247,7 @@ export class Model implements Disposable {
         await window.withProgress(
             {
                 location: ProgressLocation.SourceControl,
-                title: "Updating status..."
+                title: "Updating status...",
             },
             () => this.updateStatus()
         );
@@ -275,12 +275,12 @@ export class Model implements Disposable {
         }
 
         const changeFields = await p4.getChangeSpec(this._workspaceUri, {
-            existingChangelist
+            existingChangelist,
         });
 
         if (this._workspaceConfig.hideNonWorkspaceFiles && changeFields.files) {
             const infos = await p4.getFstatInfo(this._workspaceUri, {
-                depotPaths: changeFields.files.map(file => file.depotPath)
+                depotPaths: changeFields.files.map((file) => file.depotPath),
             });
 
             changeFields.files = changeFields.files.filter((_file, i) =>
@@ -292,7 +292,7 @@ export class Model implements Disposable {
         let newChangelistNumber: string | undefined;
         try {
             const created = await p4.inputChangeSpec(this._workspaceUri, {
-                spec: changeFields
+                spec: changeFields,
             });
 
             newChangelistNumber = created.chnum;
@@ -311,7 +311,7 @@ export class Model implements Disposable {
             changeFields.files = [];
             changeFields.description = descStr;
             const created = await p4.inputChangeSpec(this._workspaceUri, {
-                spec: changeFields
+                spec: changeFields,
             });
             return created.chnum;
         } catch (err) {
@@ -337,7 +337,7 @@ export class Model implements Disposable {
         const id = input.chnum;
 
         const change = await p4.getChangeSpec(this._workspaceUri, {
-            existingChangelist: id
+            existingChangelist: id,
         });
 
         this._sourceControl.inputBox.value = "#" + id + "\n" + change.description ?? "";
@@ -365,7 +365,7 @@ export class Model implements Disposable {
 
         try {
             const files = await p4.getOpenedFiles(this._workspaceUri, {
-                chnum: "default"
+                chnum: "default",
             });
             if (files.length === 0) {
                 throw new Error("The default changelist is empty");
@@ -384,7 +384,7 @@ export class Model implements Disposable {
         const pick = await vscode.window.showQuickPick(
             ["Submit", "Save Changelist", "Cancel"],
             {
-                ignoreFocusOut: true
+                ignoreFocusOut: true,
             }
         );
 
@@ -399,12 +399,12 @@ export class Model implements Disposable {
 
                 if (changeListNr !== undefined) {
                     await p4.submitChangelist(this._workspaceUri, {
-                        chnum: changeListNr
+                        chnum: changeListNr,
                     });
                 }
             } else {
                 await p4.submitChangelist(this._workspaceUri, {
-                    description: descStr
+                    description: descStr,
                 });
             }
         } else {
@@ -440,7 +440,7 @@ export class Model implements Disposable {
         }
 
         const output = await p4.submitChangelist(this.workspaceUri, {
-            chnum: newChange.chnum
+            chnum: newChange.chnum,
         });
 
         Display.showMessage("Change " + output.chnum + " submitted");
@@ -448,7 +448,7 @@ export class Model implements Disposable {
     }
 
     public async SubmitSelectedFile(resources: Resource[]) {
-        if (resources.some(r => r.change !== "default")) {
+        if (resources.some((r) => r.change !== "default")) {
             Display.showModalMessage(
                 "Only files from the default changelist can be submitted selectively"
             );
@@ -456,8 +456,8 @@ export class Model implements Disposable {
         }
 
         const spec = await p4.getChangeSpec(this.workspaceUri, {});
-        spec.files = spec.files?.filter(file =>
-            resources.some(r => r.depotPath === file.depotPath)
+        spec.files = spec.files?.filter((file) =>
+            resources.some((r) => r.depotPath === file.depotPath)
         );
         if (spec.files?.length !== resources.length) {
             Display.showModalMessage(
@@ -476,7 +476,7 @@ export class Model implements Disposable {
     }
 
     private hasShelvedFiles(group: SourceControlResourceGroup) {
-        return group.resourceStates.some(resource => (resource as Resource).isShelved);
+        return group.resourceStates.some((resource) => (resource as Resource).isShelved);
     }
 
     public async Revert(
@@ -529,7 +529,7 @@ export class Model implements Disposable {
         if (isResourceGroup(input) && !this.hasShelvedFiles(input) && !input.isDefault) {
             try {
                 const output = await p4.deleteChangelist(this._workspaceUri, {
-                    chnum: input.chnum
+                    chnum: input.chnum,
                 });
                 Display.updateEditor();
                 Display.channel.append(output);
@@ -547,7 +547,7 @@ export class Model implements Disposable {
     public async QuietlyRevertChangelist(chnum: string): Promise<void> {
         const output = await p4.revert(this._workspaceUri, {
             chnum: chnum,
-            paths: ["//..."]
+            paths: ["//..."],
         });
         Display.updateEditor();
         Display.channel.append(output);
@@ -579,7 +579,7 @@ export class Model implements Disposable {
             await p4.unshelve(this._workspaceUri, {
                 shelvedChnum: input.chnum,
                 toChnum: input.chnum,
-                force: true
+                force: true,
             });
             this.Refresh();
             Display.showMessage("Changelist unshelved");
@@ -605,7 +605,7 @@ export class Model implements Disposable {
         try {
             await p4.shelve(this._workspaceUri, {
                 chnum: input.chnum,
-                delete: true
+                delete: true,
             });
             this.Refresh();
             Display.showMessage("Shelved files deleted");
@@ -620,12 +620,12 @@ export class Model implements Disposable {
                 await p4.unshelve(this._workspaceUri, {
                     toChnum: input.change,
                     shelvedChnum: input.change,
-                    paths: [input.depotPath]
+                    paths: [input.depotPath],
                 });
                 const output = await p4.shelve(this._workspaceUri, {
                     chnum: input.change,
                     delete: true,
-                    paths: [input.depotPath]
+                    paths: [input.depotPath],
                 });
                 Display.updateEditor();
                 Display.channel.append(output);
@@ -638,7 +638,7 @@ export class Model implements Disposable {
                 await p4.shelve(this._workspaceUri, {
                     chnum: input.change,
                     force: true,
-                    paths: [{ fsPath: input.resourceUri.fsPath }]
+                    paths: [{ fsPath: input.resourceUri.fsPath }],
                 });
                 await this.Revert(input);
             } catch (reason) {
@@ -666,7 +666,7 @@ export class Model implements Disposable {
             const ret = await p4.shelve(this._workspaceUri, {
                 delete: true,
                 chnum: input.change,
-                paths: [input.depotPath]
+                paths: [input.depotPath],
             });
             this.Refresh();
             Display.showMessage(ret);
@@ -680,14 +680,14 @@ export class Model implements Disposable {
         return await window.showInputBox({
             prompt: "Enter the job to be fixed by changelist " + chnum,
             placeHolder: "jobNNNNNN",
-            validateInput: val => {
+            validateInput: (val) => {
                 if (val.trim() === "") {
                     return "Enter a job name";
                 }
                 if (!re.exec(val)) {
                     return "Job names can only contain letters and numbers";
                 }
-            }
+            },
         });
     }
 
@@ -718,7 +718,7 @@ export class Model implements Disposable {
                 return {
                     description: job.description[0],
                     label: job.id,
-                    detail: job.description.slice(1).join(" ")
+                    detail: job.description.slice(1).join(" "),
                 };
             }
         );
@@ -733,7 +733,7 @@ export class Model implements Disposable {
         const job = await window.showQuickPick(items, {
             placeHolder: "Select a job to remove",
             matchOnDescription: true,
-            matchOnDetail: true
+            matchOnDetail: true,
         });
 
         return job;
@@ -756,7 +756,7 @@ export class Model implements Disposable {
             await p4.fixJob(this._workspaceUri, {
                 chnum: input.chnum,
                 jobId,
-                removeFix: true
+                removeFix: true,
             });
             this.Refresh();
             Display.showMessage("Job " + jobId + " removed");
@@ -773,11 +773,11 @@ export class Model implements Disposable {
     private async requestChangelistDescription() {
         const newText = await window.showInputBox({
             prompt: "Enter the new changelist's description",
-            validateInput: val => {
+            validateInput: (val) => {
                 if (val.trim() === "") {
                     return "Description must not be empty";
                 }
-            }
+            },
         });
 
         return newText;
@@ -789,7 +789,7 @@ export class Model implements Disposable {
     }
 
     public async ReopenFile(resources: Resource[]): Promise<void> {
-        if (resources.some(r => r.isShelved)) {
+        if (resources.some((r) => r.isShelved)) {
             Display.showImportantError("Cannot reopen a shelved file");
             throw new Error("Cannot reopen shelved file");
         }
@@ -803,20 +803,20 @@ export class Model implements Disposable {
         items.push({
             id: "default",
             label: this._defaultGroup?.label ?? "Default Changelist",
-            description: ""
+            description: "",
         });
         items.push({ id: "new", label: "New Changelist...", description: "" });
         this._pendingGroups.forEach((value, key) => {
             items.push({
                 id: key.toString(),
                 label: "#" + key.toString(),
-                description: value.description
+                description: value.description,
             });
         });
 
         const selection = await window.showQuickPick(items, {
             matchOnDescription: true,
-            placeHolder: "Choose a changelist:"
+            placeHolder: "Choose a changelist:",
         });
 
         if (selection === undefined) {
@@ -835,9 +835,9 @@ export class Model implements Disposable {
         try {
             const output = await p4.reopenFiles(this._workspaceUri, {
                 chnum: chnum,
-                files: resources.map(resource => {
+                files: resources.map((resource) => {
                     return { fsPath: resource.resourceUri.fsPath };
-                })
+                }),
             });
             Display.channel.append(output);
         } catch (reason) {
@@ -856,7 +856,7 @@ export class Model implements Disposable {
             this._defaultGroup = undefined;
         }
 
-        this._pendingGroups.forEach(value => value.group.dispose());
+        this._pendingGroups.forEach((value) => value.group.dispose());
         this._pendingGroups.clear();
 
         this._onDidChange.fire();
@@ -877,7 +877,7 @@ export class Model implements Disposable {
 
         try {
             const output = await p4.sync(this._workspaceUri, {
-                files: pathToSync ? [{ fsPath: pathToSync.fsPath }] : []
+                files: pathToSync ? [{ fsPath: pathToSync.fsPath }] : [],
             });
             Display.channel.append(output);
             this.Refresh();
@@ -901,7 +901,7 @@ export class Model implements Disposable {
         const openPromise = this.getDepotOpenedResources();
         const [shelvedResources, openResources] = await Promise.all([
             shelvedPromise,
-            openPromise
+            openPromise,
         ]);
         this.createResourceGroups(changelists, shelvedResources.concat(openResources));
 
@@ -957,7 +957,7 @@ export class Model implements Disposable {
                 !!resource && resource.change === "default"
         );
 
-        const groups = changelists.map(c => {
+        const groups = changelists.map((c) => {
             const group = sc.createResourceGroup(
                 "pending:" + c.chnum,
                 "#" + c.chnum + ": " + c.description
@@ -972,7 +972,7 @@ export class Model implements Disposable {
             return group;
         });
 
-        resources.forEach(resource => {
+        resources.forEach((resource) => {
             if (!resource.isShelved && resource.underlyingUri) {
                 this._openResourcesByPath.set(resource.underlyingUri.fsPath, resource);
             }
@@ -981,7 +981,7 @@ export class Model implements Disposable {
         groups.forEach((group, i) => {
             this._pendingGroups.set(parseInt(changelists[i].chnum), {
                 description: changelists[i].description,
-                group: group
+                group: group,
             });
         });
     }
@@ -990,7 +990,7 @@ export class Model implements Disposable {
         const changes = this.filterIgnoredChangelists(
             await p4.getChangelists(this._workspaceUri, {
                 client: this.clientName,
-                status: p4.ChangelistStatus.PENDING
+                status: p4.ChangelistStatus.PENDING,
             })
         );
 
@@ -1002,7 +1002,7 @@ export class Model implements Disposable {
     private filterIgnoredChangelists(changelists: ChangeInfo[]): ChangeInfo[] {
         const prefix = this._workspaceConfig.ignoredChangelistPrefix;
         if (prefix) {
-            changelists = changelists.filter(c => !c.description.startsWith(prefix));
+            changelists = changelists.filter((c) => !c.description.startsWith(prefix));
         }
         return changelists;
     }
@@ -1012,7 +1012,7 @@ export class Model implements Disposable {
             return [];
         }
         const allFileInfo = await p4.getShelvedFiles(this._workspaceUri, {
-            chnums: changes.map(c => c.chnum)
+            chnums: changes.map((c) => c.chnum),
         });
         return this.getShelvedResources(allFileInfo);
     }
@@ -1041,12 +1041,12 @@ export class Model implements Disposable {
     private async getShelvedResources(
         files: p4.ShelvedChangeInfo[]
     ): Promise<Resource[]> {
-        const proms = files.map(f =>
+        const proms = files.map((f) =>
             p4.getFstatInfo(this._workspaceUri, {
                 depotPaths: f.paths,
                 limitToShelved: true,
                 outputPendingRecord: true,
-                chnum: f.chnum.toString()
+                chnum: f.chnum.toString(),
             })
         );
         const fstatInfo = await Promise.all(proms);
@@ -1054,7 +1054,7 @@ export class Model implements Disposable {
         return fstatInfo.flatMap((cur, i) =>
             cur
                 .filter((f): f is FstatInfo => !!f)
-                .map(f => this.makeResourceForShelvedFile(files[i].chnum.toString(), f))
+                .map((f) => this.makeResourceForShelvedFile(files[i].chnum.toString(), f))
         );
     }
 
@@ -1062,17 +1062,17 @@ export class Model implements Disposable {
         const depotPaths = await this.getDepotOpenedFilePaths();
         const fstatInfo = await p4.getFstatInfo(this._workspaceUri, {
             depotPaths,
-            outputPendingRecord: true
+            outputPendingRecord: true,
         });
         return fstatInfo
             .filter((info): info is FstatInfo => !!info) // in case fstat doesn't have output for this file
-            .map(info => this.makeResourceForOpenFile(info))
+            .map((info) => this.makeResourceForOpenFile(info))
             .filter((resource): resource is Resource => resource !== undefined); // for files out of workspace
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {
         return (await p4.getOpenedFiles(this._workspaceUri, {})).map(
-            file => file.depotPath
+            (file) => file.depotPath
         );
     }
 }

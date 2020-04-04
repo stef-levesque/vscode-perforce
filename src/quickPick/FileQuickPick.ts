@@ -26,9 +26,9 @@ export const fileQuickPickProvider: qp.ActionableQuickPickProvider = {
         );
         return {
             items: actions,
-            placeHolder: makeRevisionSummary(changes.current)
+            placeHolder: makeRevisionSummary(changes.current),
         };
-    }
+    },
 };
 
 export async function showQuickPickForFile(uri: vscode.Uri, cached?: CachedOutput) {
@@ -57,9 +57,9 @@ export const fileRevisionQuickPickProvider: qp.ActionableQuickPickProvider = {
                 "Choose revision for " +
                 changes.current.file +
                 "#" +
-                changes.current.revision
+                changes.current.revision,
         };
-    }
+    },
 };
 
 export async function showRevChooserForFile(uri: vscode.Uri, cached?: CachedOutput) {
@@ -93,9 +93,9 @@ export const fileDiffQuickPickProvider: qp.ActionableQuickPickProvider = {
                 "Diff revision for " +
                 changes.current.file +
                 "#" +
-                changes.current.revision
+                changes.current.revision,
         };
-    }
+    },
 };
 
 export async function showDiffChooserForFile(uri: vscode.Uri) {
@@ -120,7 +120,7 @@ type ChangeDetails = {
 function makeCache(details: ChangeDetails): CachedOutput {
     return {
         filelog: details.all,
-        haveFile: details.haveFile
+        haveFile: details.haveFile,
     };
 }
 
@@ -176,7 +176,7 @@ async function getChangeDetails(
         throw new Error("Filelog info empty");
     }
 
-    const currentIndex = filelog.findIndex(c => c.revision === uri.fragment);
+    const currentIndex = filelog.findIndex((c) => c.revision === uri.fragment);
     const current = filelog[currentIndex];
     const next = filelog[currentIndex - 1];
     const prev = filelog[currentIndex + 1];
@@ -191,14 +191,14 @@ function makeAllRevisionPicks(
     includeIntegrations: boolean,
     includeIntegrationTargets: boolean
 ): qp.ActionableQuickPickItem[] {
-    const revPicks = changes.all.flatMap(change => {
+    const revPicks = changes.all.flatMap((change) => {
         const icon =
             change === changes.current ? "$(location)" : "$(debug-stackframe-dot)";
         const fromRev = includeIntegrations
-            ? change.integrations.find(c => c.direction === p4.Direction.FROM)
+            ? change.integrations.find((c) => c.direction === p4.Direction.FROM)
             : undefined;
         const toRevs = includeIntegrationTargets
-            ? change.integrations.filter(c => c.direction === p4.Direction.TO)
+            ? change.integrations.filter((c) => c.direction === p4.Direction.TO)
             : [];
 
         const revPick: qp.ActionableQuickPickItem = {
@@ -220,7 +220,7 @@ function makeAllRevisionPicks(
                     change.revision
                 );
                 return showQuickPickForFile(revUri, makeCache(changes));
-            }
+            },
         };
 
         const fromPick: qp.ActionableQuickPickItem | undefined = fromRev
@@ -240,11 +240,11 @@ function makeAllRevisionPicks(
                           fromRev.endRev
                       );
                       return showQuickPickForFile(revUri);
-                  }
+                  },
               }
             : undefined;
 
-        const toPicks = toRevs.map(rev => {
+        const toPicks = toRevs.map((rev) => {
             return {
                 label:
                     nbsp.repeat(10) +
@@ -261,7 +261,7 @@ function makeAllRevisionPicks(
                         rev.endRev
                     );
                     return showQuickPickForFile(revUri);
-                }
+                },
             };
         });
 
@@ -280,7 +280,7 @@ function makeAllRevisionPicks(
                     !includeIntegrationTargets,
                     makeCache(changes)
                 );
-            }
+            },
         },
         {
             label: includeIntegrations
@@ -293,8 +293,8 @@ function makeAllRevisionPicks(
                     includeIntegrationTargets,
                     makeCache(changes)
                 );
-            }
-        }
+            },
+        },
     ];
 
     return controls.concat(revPicks);
@@ -337,7 +337,7 @@ function makeDiffRevisionPicks(
                     isOldRev ? thisUri : currentUri,
                     isOldRev ? currentUri : thisUri
                 );
-            }
+            },
         };
     });
 }
@@ -349,7 +349,7 @@ function makeNextAndPrevPicks(
     const prev = changes.prev;
     const next = changes.next;
     const integFrom = changes.current.integrations.find(
-        i => i.direction === p4.Direction.FROM
+        (i) => i.direction === p4.Direction.FROM
     );
     return [
         prev
@@ -363,11 +363,11 @@ function makeNextAndPrevPicks(
                           prev.revision
                       );
                       return showQuickPickForFile(prevUri, makeCache(changes));
-                  }
+                  },
               }
             : {
                   label: "$(arrow-small-left) Previous revision",
-                  description: "n/a"
+                  description: "n/a",
               },
         next
             ? {
@@ -380,18 +380,18 @@ function makeNextAndPrevPicks(
                           next.revision
                       );
                       return showQuickPickForFile(nextUri, makeCache(changes));
-                  }
+                  },
               }
             : {
                   label: "$(arrow-small-right) Next revision",
-                  description: "n/a"
+                  description: "n/a",
               },
         {
             label: "$(symbol-numeric) File history...",
             description: "Go to a specific revision",
             performAction: () => {
                 showRevChooserForFile(uri, makeCache(changes));
-            }
+            },
         },
         integFrom
             ? {
@@ -409,14 +409,14 @@ function makeNextAndPrevPicks(
                           integFrom.endRev
                       );
                       return showQuickPickForFile(integUri);
-                  }
+                  },
               }
             : undefined,
         {
             label: "$(source-control) Go to integration target...",
             description: "See integrations that include this revision",
-            performAction: () => showIntegPickForFile(uri)
-        }
+            performAction: () => showIntegPickForFile(uri),
+        },
     ].filter(isTruthy);
 }
 
@@ -431,8 +431,8 @@ function makeClipboardPicks(
                 vscode.env.clipboard.writeText(
                     changes.current.file + "#" + changes.current.revision
                 );
-            }
-        }
+            },
+        },
     ];
 }
 
@@ -449,7 +449,7 @@ function makeDiffPicks(
             description: "Open this revision in the editor",
             performAction: () => {
                 vscode.window.showTextDocument(uri);
-            }
+            },
         },
         have
             ? {
@@ -457,7 +457,7 @@ function makeDiffPicks(
                   description: "Open the local file in the editor",
                   performAction: () => {
                       vscode.window.showTextDocument(have.localUri);
-                  }
+                  },
               }
             : undefined,
         {
@@ -465,7 +465,7 @@ function makeDiffPicks(
             description: "Open in the editor, with change details for each line",
             performAction: () => {
                 AnnotationProvider.annotate(uri);
-            }
+            },
         },
         prev
             ? {
@@ -476,7 +476,7 @@ function makeDiffPicks(
                       changes.current.file,
                       changes.current.revision
                   ),
-                  performAction: () => DiffProvider.diffPreviousIgnoringLeftInfo(uri)
+                  performAction: () => DiffProvider.diffPreviousIgnoringLeftInfo(uri),
               }
             : undefined,
         latest !== changes.current
@@ -500,7 +500,7 @@ function makeDiffPicks(
                               latest.file,
                               latest.revision
                           )
-                      )
+                      ),
               }
             : undefined,
         {
@@ -517,15 +517,15 @@ function makeDiffPicks(
                           have.localUri
                       );
                   }
-                : undefined
+                : undefined,
         },
         {
             label: "$(diff) Diff against...",
             description: "Choose another revision to diff against",
             performAction: () => {
                 showDiffChooserForFile(uri);
-            }
-        }
+            },
+        },
     ].filter(isTruthy);
 }
 
@@ -544,7 +544,7 @@ function makeChangelistPicks(
                 nbsp +
                 changes.current.description,
             performAction: () =>
-                ChangeQuickPick.showQuickPickForChangelist(uri, changes.current.chnum)
-        }
+                ChangeQuickPick.showQuickPickForChangelist(uri, changes.current.chnum),
+        },
     ];
 }

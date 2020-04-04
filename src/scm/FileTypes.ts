@@ -7,7 +7,7 @@ export enum FileType {
     RESOURCE,
     UNICODE,
     UTF8,
-    UTF16
+    UTF16,
 }
 
 export enum Modifiers {
@@ -22,7 +22,7 @@ export enum Modifiers {
     STOREREV_ONLY_HEAD = 1 << 7,
     STOREREV_COUNT = 1 << 8,
     ORIGINAL_MODTIME = 1 << 9,
-    ARCHIVE_TRIGGER = 1 << 10
+    ARCHIVE_TRIGGER = 1 << 10,
 }
 
 export interface IFileType {

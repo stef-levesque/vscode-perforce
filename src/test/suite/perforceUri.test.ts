@@ -17,7 +17,7 @@ describe("Perforce Uris", () => {
                 command: "p&r=int",
                 p4Args: "-q",
                 depot: true,
-                leftUri: undefined
+                leftUri: undefined,
             });
             expect(query).to.equal("command=p%26r%3Dint&p4Args=-q&depot");
         });
@@ -30,7 +30,7 @@ describe("Perforce Uris", () => {
             expect(decoded).to.deep.equal({
                 p4Args: "-q",
                 command: "p&r=int",
-                depot: true
+                depot: true,
             });
         });
     });
@@ -44,7 +44,7 @@ describe("Perforce Uris", () => {
         it("Accepts additional arguments that can override the defaults", () => {
             const uri = PerforceUri.fromUri(localUri, {
                 command: "opened",
-                p4Args: undefined
+                p4Args: undefined,
             });
             expect(uri.scheme).to.equal("perforce");
             expect(uri.fsPath).to.equal(localUri.fsPath);
@@ -141,7 +141,7 @@ describe("Perforce Uris", () => {
         });
         it("Returns false for depot URIs without a workspace", () => {
             const uri = PerforceUri.fromUri(vscode.Uri.parse("perforce://depot/hello"), {
-                depot: true
+                depot: true,
             });
             expect(PerforceUri.isUsableForWorkspace(uri)).to.be.false;
         });
@@ -159,7 +159,7 @@ describe("Perforce Uris", () => {
         });
         it("Is undefined if there is no workspace", () => {
             const uri = PerforceUri.fromUri(vscode.Uri.parse("perforce://depot/hello"), {
-                depot: true
+                depot: true,
             });
             expect(PerforceUri.getWorkspaceFromQuery(uri)).to.be.undefined;
         });

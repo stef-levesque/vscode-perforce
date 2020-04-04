@@ -7,7 +7,7 @@ import {
     Uri,
     QuickPickItem,
     Disposable,
-    ProgressLocation
+    ProgressLocation,
 } from "vscode";
 
 import * as Path from "path";
@@ -106,7 +106,7 @@ export namespace PerforceCommands {
                 await window.withProgress(
                     {
                         location: ProgressLocation.Notification,
-                        title: "Perforce: Opening file for edit"
+                        title: "Perforce: Opening file for edit",
                     },
                     () => p4edit(activeFile.uri)
                 );
@@ -120,7 +120,7 @@ export namespace PerforceCommands {
     }
 
     export function p4edit(fileUri: Uri): Promise<boolean> {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             const args = [Utils.expansePath(fileUri.fsPath)];
             PerforceService.execute(
                 fileUri,
@@ -215,11 +215,11 @@ export namespace PerforceCommands {
                 "Enter a changelist description to submit '" +
                 Path.basename(file.fsPath) +
                 "'",
-            validateInput: input => {
+            validateInput: (input) => {
                 if (!input.trim()) {
                     return "Description must not be empty";
                 }
-            }
+            },
         });
         if (!description) {
             return;
@@ -289,7 +289,7 @@ export namespace PerforceCommands {
                     const revisions = stdout.split("\n");
                     const revisionsData: QuickPickItem[] = [];
                     revisions.shift(); // remove the first line - filename
-                    revisions.forEach(revisionInfo => {
+                    revisions.forEach((revisionInfo) => {
                         if (!revisionInfo.includes("... #")) {
                             return;
                         }
@@ -305,7 +305,7 @@ export namespace PerforceCommands {
                         revisionsData.push({ label, description });
                     });
 
-                    window.showQuickPick(revisionsData).then(revision => {
+                    window.showQuickPick(revisionsData).then((revision) => {
                         if (revision) {
                             diff(parseInt(revision.label.substring(1)));
                         }
@@ -402,24 +402,21 @@ export namespace PerforceCommands {
             } else if (stderr) {
                 Display.showError(stderr.toString());
             } else {
-                const opened = stdout
-                    .toString()
-                    .trim()
-                    .split("\n");
+                const opened = stdout.toString().trim().split("\n");
                 if (opened.length === 0) {
                     return false;
                 }
 
-                const options = opened.map(file => {
+                const options = opened.map((file) => {
                     return {
                         description: file,
-                        label: Path.basename(file)
+                        label: Path.basename(file),
                     };
                 });
 
                 window
                     .showQuickPick(options, { matchOnDescription: true })
-                    .then(selection => {
+                    .then((selection) => {
                         if (!selection) {
                             return false;
                         }
@@ -427,22 +424,22 @@ export namespace PerforceCommands {
                         const depotPath = selection.description;
                         const whereFile = depotPath.substring(0, depotPath.indexOf("#"));
                         where(whereFile)
-                            .then(result => {
+                            .then((result) => {
                                 // https://www.perforce.com/perforce/r14.2/manuals/cmdref/p4_where.html
                                 const results = result.split(" ");
                                 if (results.length >= 3) {
                                     const fileToOpen = results[2].trim();
                                     workspace.openTextDocument(Uri.file(fileToOpen)).then(
-                                        document => {
+                                        (document) => {
                                             window.showTextDocument(document);
                                         },
-                                        reason => {
+                                        (reason) => {
                                             Display.showError(reason);
                                         }
                                     );
                                 }
                             })
-                            .catch(reason => {
+                            .catch((reason) => {
                                 Display.showError(reason);
                             });
                     });
@@ -514,7 +511,7 @@ export namespace PerforceCommands {
         if (!loggedIn) {
             const password = await window.showInputBox({
                 prompt: "Enter password",
-                password: true
+                password: true,
             });
             if (password) {
                 try {
@@ -537,43 +534,43 @@ export namespace PerforceCommands {
         const items: QuickPickItem[] = [];
         items.push({
             label: "add",
-            description: "Open a new file to add it to the depot"
+            description: "Open a new file to add it to the depot",
         });
         items.push({ label: "edit", description: "Open an existing file for edit" });
         items.push({
             label: "revert",
-            description: "Discard changes from an opened file"
+            description: "Discard changes from an opened file",
         });
         items.push({
             label: "submit single file",
-            description: "Submit the open file, ONLY if it is in the default changelist"
+            description: "Submit the open file, ONLY if it is in the default changelist",
         });
         items.push({
             label: "diff",
-            description: "Display diff of client file with depot file"
+            description: "Display diff of client file with depot file",
         });
         items.push({
             label: "diffRevision",
             description:
-                "Display diff of client file with depot file at a specific revision"
+                "Display diff of client file with depot file at a specific revision",
         });
         items.push({
             label: "annotate",
-            description: "Print file lines and their revisions"
+            description: "Print file lines and their revisions",
         });
         items.push({ label: "info", description: "Display client/server information" });
         items.push({
             label: "opened",
-            description: "View 'open' files and open one in editor"
+            description: "View 'open' files and open one in editor",
         });
         items.push({ label: "login", description: "Log in to Perforce" });
         items.push({ label: "logout", description: "Log out from Perforce" });
         window
             .showQuickPick(items, {
                 matchOnDescription: true,
-                placeHolder: "Choose a Perforce command:"
+                placeHolder: "Choose a Perforce command:",
             })
-            .then(function(selection) {
+            .then(function (selection) {
                 if (selection === undefined) {
                     return;
                 }

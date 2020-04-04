@@ -26,7 +26,7 @@ let _perforceContentProvider: PerforceContentProvider | undefined;
 function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
     Display.channel.appendLine("\n----------------------------");
     Display.channel.appendLine(uri + ": Trying to initialise");
-    return new Promise<boolean>(resolve => {
+    return new Promise<boolean>((resolve) => {
         if (!uri.fsPath) {
             return resolve(false);
         }
@@ -102,7 +102,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
                 p4Pass: cfg.P4PASS,
                 p4Port: cfg.P4PORT,
                 p4Tickets: cfg.P4TICKETS,
-                p4User: cfg.P4USER
+                p4User: cfg.P4USER,
             };
 
             return CreateP4(config);
@@ -110,7 +110,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
 
         Display.channel.appendLine(uri + ": Finding a client root");
         PerforceService.getClientRoot(uri)
-            .then(cliRoot => {
+            .then((cliRoot) => {
                 cliRoot = Utils.normalize(cliRoot);
                 Display.channel.appendLine(uri + ": Found client root: " + cliRoot);
 
@@ -189,7 +189,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
                 // workspace is not within client root.
                 // look for config files to specify p4Dir association
                 PerforceService.getConfigFilename(uri)
-                    .then(p4ConfigFileName => {
+                    .then((p4ConfigFileName) => {
                         Display.channel.appendLine(
                             uri +
                                 ": Looking for P4CONFIG files named: " +
@@ -215,7 +215,7 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
                                 return resolve(anyCreated);
                             });
                     })
-                    .catch(err => {
+                    .catch((err) => {
                         Display.channel.appendLine(
                             uri + ": Error trying to find / read config " + err
                         );
@@ -248,7 +248,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     );
     onDidChangeWorkspaceFolders({
         added: vscode.workspace.workspaceFolders || [],
-        removed: []
+        removed: [],
     });
 
     vscode.workspace.onDidChangeConfiguration(
@@ -273,7 +273,7 @@ function doOneTimeRegistration() {
         _disposable.push(_perforceContentProvider);
 
         _disposable.push(
-            AnnotationProvider.onWillLoadEditor(uri =>
+            AnnotationProvider.onWillLoadEditor((uri) =>
                 _perforceContentProvider?.requestUpdatedDocument(uri)
             )
         );
@@ -296,7 +296,7 @@ const settingsRequiringRestart = [
     "perforce.password",
     "perforce.dir",
     "perforce.command",
-    "perforce.bottleneck.maxConcurrent"
+    "perforce.bottleneck.maxConcurrent",
 ];
 
 let didShowConfigWarning = false;
@@ -323,7 +323,7 @@ async function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) 
 }
 
 async function onDidChangeWorkspaceFolders({
-    added
+    added,
 }: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
     Display.channel.appendLine(
         "==============================\nWorkspace folders changed. Starting initialisation.\n"
@@ -337,7 +337,7 @@ async function onDidChangeWorkspaceFolders({
             }
         } else {
             Display.channel.appendLine("No workspaces. Trying all open documents");
-            const promises = vscode.workspace.textDocuments.map(doc =>
+            const promises = vscode.workspace.textDocuments.map((doc) =>
                 TryCreateP4(doc.uri)
             );
             await Promise.all(promises);

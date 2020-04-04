@@ -17,7 +17,7 @@ function assertP4UriMatches(
             scheme: expected.scheme,
             path: expected.path,
             authority: expected.authority,
-            fragment: expected.fragment
+            fragment: expected.fragment,
         },
         message
     );
@@ -33,7 +33,7 @@ function resourceToString(resource: Resource) {
             isShelved: resource.isShelved,
             resourceUri: resource.resourceUri?.toString(),
             underlyingUri: resource.underlyingUri?.toString(),
-            fromFile: resource.fromFile?.toString()
+            fromFile: resource.fromFile?.toString(),
         },
         undefined,
         2
@@ -99,23 +99,23 @@ function assertCommonResourceFields(
     ).to.equal(expected.operation);
 }
 
-export default function(chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
+export default function (chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
     const Assertion = chai.Assertion;
 
-    Assertion.addMethod("p4Uri", function(resource: vscode.Uri) {
+    Assertion.addMethod("p4Uri", function (resource: vscode.Uri) {
         const obj: vscode.Uri = this._obj as vscode.Uri;
 
         assertP4UriMatches(Assertion, obj, resource, "uri");
     });
 
-    Assertion.addMethod("vscodeOpenCall", function(resource: vscode.Uri) {
+    Assertion.addMethod("vscodeOpenCall", function (resource: vscode.Uri) {
         const obj: SinonSpyCall = this._obj as SinonSpyCall;
 
         new Assertion(obj.args[0]).to.equal("vscode.open");
         assertP4UriMatches(Assertion, obj.args[1], resource, "Resource");
     });
 
-    Assertion.addMethod("vscodeDiffCall", function(
+    Assertion.addMethod("vscodeDiffCall", function (
         left: vscode.Uri,
         right: vscode.Uri,
         title: string
@@ -129,7 +129,7 @@ export default function(chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
     });
 
     // TODO - this code is excessive - can be simplified - possibly with expect.to.include
-    Assertion.addMethod("resources", function(
+    Assertion.addMethod("resources", function (
         expecteds: {
             depotPath: string;
             depotRevision: number;
@@ -168,7 +168,7 @@ export default function(chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
         });
     });
 
-    Assertion.addMethod("shelvedResources", function(
+    Assertion.addMethod("shelvedResources", function (
         change: {
             chnum: string;
         },

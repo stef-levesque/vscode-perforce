@@ -18,15 +18,15 @@ type DecoratedChange = {
 const normalDecoration = vscode.window.createTextEditorDecorationType({
     isWholeLine: true,
     before: {
-        margin: "0 1.75em 0 0"
-    }
+        margin: "0 1.75em 0 0",
+    },
 });
 
 const highlightedDecoration = vscode.window.createTextEditorDecorationType({
     isWholeLine: true,
     backgroundColor: new vscode.ThemeColor("perforce.lineHighlightBackgroundColor"),
     overviewRulerColor: new vscode.ThemeColor("perforce.lineHighlightOverviewRulerColor"),
-    overviewRulerLane: vscode.OverviewRulerLane.Left
+    overviewRulerLane: vscode.OverviewRulerLane.Left,
 });
 
 export class AnnotationProvider {
@@ -76,7 +76,7 @@ export class AnnotationProvider {
                 return ann?.revisionOrChnum
                     ? {
                           chnum: ann.revisionOrChnum,
-                          decoration: this._decorations[i]
+                          decoration: this._decorations[i],
                       }
                     : undefined;
             })
@@ -106,8 +106,8 @@ export class AnnotationProvider {
         const chnum = ann?.revisionOrChnum;
 
         const highlighted = this._decorationsByChnum
-            .filter(dec => dec.chnum === chnum)
-            .map(dec => dec.decoration.range);
+            .filter((dec) => dec.chnum === chnum)
+            .map((dec) => dec.decoration.range);
 
         this._editor.setDecorations(highlightedDecoration, highlighted);
     }
@@ -154,7 +154,7 @@ export class AnnotationProvider {
             AnnotationProvider._annotationsByUri.delete(this._doc);
         }
         this._decorationsByChnum = [];
-        this._subscriptions.forEach(d => d.dispose());
+        this._subscriptions.forEach((d) => d.dispose());
     }
 
     static async annotate(uri: vscode.Uri, swarmHost?: string) {
@@ -174,7 +174,7 @@ export class AnnotationProvider {
         const annotationsPromise = p4.annotate(underlying, {
             file: uri,
             outputChangelist: true,
-            followBranches
+            followBranches,
         });
 
         const logPromise = p4.getFileHistory(underlying, { file: uri, followBranches });
@@ -248,14 +248,14 @@ function makeDecoration(
         backgroundColor,
         border: "solid " + color,
         textDecoration: overline,
-        borderWidth: "0px 2px 0px 0px"
+        borderWidth: "0px 2px 0px 0px",
     };
     const renderOptions: vscode.DecorationInstanceRenderOptions = { before };
 
     return {
         range: new vscode.Range(lineNumber, 0, lineNumber, 0),
         hoverMessage,
-        renderOptions
+        renderOptions,
     };
 }
 
@@ -289,7 +289,7 @@ function getDecorations(
             }
 
             const changeIndex = log.findIndex(
-                l => l.chnum === annotation.revisionOrChnum
+                (l) => l.chnum === annotation.revisionOrChnum
             );
             if (changeIndex < 0) {
                 Display.showImportantError(

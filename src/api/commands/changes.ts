@@ -5,7 +5,7 @@ import { isTruthy } from "../../TsUtils";
 export enum ChangelistStatus {
     PENDING = "pending",
     SHELVED = "shelved",
-    SUBMITTED = "submitted"
+    SUBMITTED = "submitted",
 }
 
 export interface ChangesOptions {
@@ -17,7 +17,7 @@ const changes = makeSimpleCommand(
     "changes",
     flagMapper<ChangesOptions>([
         ["c", "client"],
-        ["s", "status"]
+        ["s", "status"],
     ])
 );
 
@@ -38,10 +38,7 @@ function parseChangelistDescription(value: string): ChangeInfo | undefined {
 }
 
 function parseChangesOutput(output: string): ChangeInfo[] {
-    return output
-        .split(/\r?\n/)
-        .map(parseChangelistDescription)
-        .filter(isTruthy);
+    return output.split(/\r?\n/).map(parseChangelistDescription).filter(isTruthy);
 }
 
 export const getChangelists = asyncOuputHandler(changes, parseChangesOutput);

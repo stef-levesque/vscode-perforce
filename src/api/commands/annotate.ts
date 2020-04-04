@@ -13,7 +13,7 @@ const annotateFlags = flagMapper<AnnotateOptions>(
     [
         ["c", "outputChangelist"],
         ["u", "outputUser"],
-        ["i", "followBranches"]
+        ["i", "followBranches"],
     ],
     "file",
     ["-q"]
@@ -40,7 +40,7 @@ function parseAnnotateOutput(
     const regex = withUser ? /^(\d+): (\S+) (\S+) (.*?)$/ : /^(\d+): (.*?)$/;
     const linePos = withUser ? 4 : 2;
 
-    return lines.map(line => {
+    return lines.map((line) => {
         const matches = regex.exec(line);
 
         if (matches) {
@@ -51,7 +51,7 @@ function parseAnnotateOutput(
                 line: matches[linePos],
                 revisionOrChnum,
                 user,
-                date
+                date,
             };
         } else {
             return undefined;

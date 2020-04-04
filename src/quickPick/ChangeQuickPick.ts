@@ -42,9 +42,9 @@ export const changeQuickPickProvider: qp.ActionableQuickPickProvider = {
                 " on " +
                 toReadableDateTime(change.date) +
                 " : " +
-                change.description.join(" ")
+                change.description.join(" "),
         };
-    }
+    },
 };
 
 export async function showQuickPickForChangelist(resource: vscode.Uri, chnum: string) {
@@ -89,8 +89,8 @@ function makeSwarmPick(
                 description: "$(link-external) " + uri.toString(),
                 performAction: () => {
                     vscode.env.openExternal(uri);
-                }
-            }
+                },
+            },
         ];
     } catch (err) {
         Display.showImportantError("Could not parse swarm link " + swarmAddr);
@@ -108,22 +108,22 @@ function makeClipboardPicks(
             description: change.chnum,
             performAction: () => {
                 vscode.env.clipboard.writeText(change.chnum);
-            }
+            },
         },
         {
             label: "$(clippy) Copy user to clipboard",
             description: change.user,
             performAction: () => {
                 vscode.env.clipboard.writeText(change.user);
-            }
+            },
         },
         {
             label: "$(clippy) Copy change description to clipboard",
             description: change.description.join(" ").slice(0, 32),
             performAction: () => {
                 vscode.env.clipboard.writeText(change.description.join("\n"));
-            }
-        }
+            },
+        },
     ];
 }
 
@@ -133,10 +133,10 @@ function makeFilePicks(
 ): qp.ActionableQuickPickItem[] {
     return [
         {
-            label: "Changed files: " + change.affectedFiles.length
-        }
+            label: "Changed files: " + change.affectedFiles.length,
+        },
     ].concat(
-        change.affectedFiles.map<qp.ActionableQuickPickItem>(file => {
+        change.affectedFiles.map<qp.ActionableQuickPickItem>((file) => {
             return {
                 label:
                     nbsp.repeat(3) +
@@ -152,7 +152,7 @@ function makeFilePicks(
                         file.revision
                     );
                     showQuickPickForFile(thisUri);
-                }
+                },
             };
         })
     );
@@ -164,13 +164,13 @@ function makeJobPicks(
 ): qp.ActionableQuickPickItem[] {
     return [
         {
-            label: "Jobs fixed: " + change.fixedJobs.length
-        }
+            label: "Jobs fixed: " + change.fixedJobs.length,
+        },
     ].concat(
-        change.fixedJobs.map<qp.ActionableQuickPickItem>(job => {
+        change.fixedJobs.map<qp.ActionableQuickPickItem>((job) => {
             return {
                 label: nbsp.repeat(3) + "$(tools) " + job.id,
-                description: job.description.join(" ")
+                description: job.description.join(" "),
             };
         })
     );

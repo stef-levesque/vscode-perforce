@@ -11,7 +11,7 @@ import * as p4 from "./api/PerforceApi";
 export enum DiffType {
     WORKSPACE_V_DEPOT,
     SHELVE_V_DEPOT,
-    WORKSPACE_V_SHELVE
+    WORKSPACE_V_SHELVE,
 }
 
 function findLengthOfCommonPrefix(sa: string, sb: string) {
@@ -70,7 +70,7 @@ function diffTitleForFiles(leftFile: Uri, rightFile: Uri) {
 export async function diffFiles(leftFile: Uri, rightFile: Uri, title?: string) {
     // ensure we don't keep stacking left files
     const leftFileWithoutLeftFiles = PerforceUri.withArgs(leftFile, {
-        leftUri: undefined
+        leftUri: undefined,
     });
     const gotStartFile =
         PerforceUri.decodeUriQuery(rightFile.query).diffStartFile ??
@@ -78,7 +78,7 @@ export async function diffFiles(leftFile: Uri, rightFile: Uri, title?: string) {
 
     const rightUriWithLeftInfo = PerforceUri.withArgs(rightFile, {
         leftUri: leftFileWithoutLeftFiles.toString(),
-        diffStartFile: gotStartFile ?? rightFile.toString()
+        diffStartFile: gotStartFile ?? rightFile.toString(),
     });
 
     const fullTitle = title ?? diffTitleForFiles(leftFile, rightFile);
@@ -152,7 +152,7 @@ function diffPreviousUsingLeftInfo(fromDoc: Uri): boolean | Promise<void> {
         return false;
     }
     const rightUri = PerforceUri.withArgs(Uri.parse(args.leftUri), {
-        diffStartFile: args.diffStartFile
+        diffStartFile: args.diffStartFile,
     });
     return diffPreviousFrom(rightUri);
 }
@@ -209,7 +209,7 @@ export async function diffDefault(
 ): Promise<void> {
     if (resource.FileType.base === FileType.BINARY) {
         const uri = PerforceUri.fromUri(resource.resourceUri, { command: "fstat" });
-        await workspace.openTextDocument(uri).then(doc => window.showTextDocument(doc));
+        await workspace.openTextDocument(uri).then((doc) => window.showTextDocument(doc));
         return;
     }
 
@@ -237,10 +237,10 @@ export async function diffDefault(
     }
 
     const leftUri = PerforceUri.withArgs(left.uri, {
-        haveRev: resource.workingRevision
+        haveRev: resource.workingRevision,
     });
     const rightUri = PerforceUri.withArgs(right, {
-        haveRev: resource.workingRevision
+        haveRev: resource.workingRevision,
     });
     await diffFiles(leftUri, rightUri, getTitle(resource, left.title, diffType));
     return;
@@ -267,7 +267,7 @@ function getLeftResource(
                     uri: PerforceUri.fromUriWithRevision(
                         resource.resourceUri,
                         "@=" + resource.change
-                    )
+                    ),
                 };
             case Status.DELETE:
             case Status.MOVE_DELETE:
@@ -280,7 +280,7 @@ function getLeftResource(
             case Status.BRANCH:
                 return {
                     title: Path.basename(resource.resourceUri.fsPath) + "#0",
-                    uri: emptyDoc
+                    uri: emptyDoc,
                 };
             case Status.MOVE_ADD:
                 // diff against the old file if it is known (always a depot path)
@@ -290,7 +290,7 @@ function getLeftResource(
                           "#" +
                           resource.fromEndRev
                         : "Depot Version",
-                    uri: resource.fromFile ?? emptyDoc
+                    uri: resource.fromFile ?? emptyDoc,
                 };
             case Status.INTEGRATE:
             case Status.EDIT:
@@ -304,7 +304,7 @@ function getLeftResource(
                     uri: PerforceUri.fromUriWithRevision(
                         resource.resourceUri,
                         resource.workingRevision
-                    )
+                    ),
                 };
         }
     }

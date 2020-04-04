@@ -21,7 +21,7 @@ export type SubmitChangelistOptions = {
 const submitFlags = flagMapper<SubmitChangelistOptions>(
     [
         ["c", "chnum"],
-        ["d", "description"]
+        ["d", "description"],
     ],
     "file"
 );
@@ -32,7 +32,7 @@ function parseSubmitOutput(output: string) {
     const matches = /Change (\d+) submitted/.exec(output);
     return {
         rawOutput: output,
-        chnum: matches?.[1]
+        chnum: matches?.[1],
     };
 }
 
@@ -50,7 +50,7 @@ export interface RevertOptions {
 const revertFlags = flagMapper<RevertOptions>(
     [
         ["a", "unchanged"],
-        ["c", "chnum"]
+        ["c", "chnum"],
     ],
     "paths"
 );
@@ -79,7 +79,7 @@ const shelveFlags = flagMapper<ShelveOptions>(
     [
         ["f", "force"],
         ["d", "delete"],
-        ["c", "chnum"]
+        ["c", "chnum"],
     ],
     "paths"
 );
@@ -97,7 +97,7 @@ const unshelveFlags = flagMapper<UnshelveOptions>(
     [
         ["f", "force"],
         ["s", "shelvedChnum"],
-        ["c", "toChnum"]
+        ["c", "toChnum"],
     ],
     "paths"
 );
@@ -115,7 +115,7 @@ export interface FixJobOptions {
 const fixJobFlags = flagMapper<FixJobOptions>(
     [
         ["c", "chnum"],
-        ["d", "removeFix"]
+        ["d", "removeFix"],
     ],
     "jobId"
 );
@@ -164,7 +164,7 @@ export interface HaveFileOptions {
 }
 
 const haveFileFlags = flagMapper<HaveFileOptions>([], "file", [], {
-    ignoreRevisionFragments: true
+    ignoreRevisionFragments: true,
 });
 
 export type HaveFile = {
@@ -212,7 +212,7 @@ export const login = makeSimpleCommand(
     () => [],
     (options: LoginOptions) => {
         return {
-            input: options.password
+            input: options.password,
         };
     }
 );

@@ -5,7 +5,7 @@ import {
     sectionArrayBy,
     splitIntoLines,
     asyncOuputHandler,
-    removeIndent
+    removeIndent,
 } from "../CommandUtils";
 import { FixedJob } from "../CommonTypes";
 import { isTruthy, parseDate } from "../../TsUtils";
@@ -19,7 +19,7 @@ export interface DescribeOptions {
 const describeFlags = flagMapper<DescribeOptions>(
     [
         ["S", "shelved"],
-        ["s", "omitDiffs"]
+        ["s", "omitDiffs"],
     ],
     "chnums",
     [],
@@ -51,7 +51,7 @@ function withSection<T>(
     sectionName: string,
     parser: (lines: string[]) => T | undefined
 ): T | undefined {
-    const found = sections.find(s => s[0].startsWith(sectionName));
+    const found = sections.find((s) => s[0].startsWith(sectionName));
     if (!found) {
         return;
     }
@@ -60,7 +60,7 @@ function withSection<T>(
 
 function parseFileList(lines: string[]): DepotFileOperation[] {
     return lines
-        .map(line => {
+        .map((line) => {
             const matches = /\.+\ (.*)#(.*) (.*)/.exec(line);
             if (matches) {
                 const [, depotPath, revision, operation] = matches;
@@ -73,11 +73,11 @@ function parseFileList(lines: string[]): DepotFileOperation[] {
 function parseDescribeChangelist(lines: string[]): DescribedChangelist | undefined {
     const sections = sectionArrayBy(
         lines,
-        line => line.endsWith("...") && !line.startsWith("\t")
+        (line) => line.endsWith("...") && !line.startsWith("\t")
     );
 
     const descStart = lines.slice(2);
-    const descriptionEndPos = descStart.findIndex(line => !line.startsWith("\t"));
+    const descriptionEndPos = descStart.findIndex((line) => !line.startsWith("\t"));
     const description = removeIndent(
         descStart.slice(0, descriptionEndPos >= 0 ? descriptionEndPos : undefined)
     );
@@ -107,7 +107,7 @@ function parseDescribeChangelist(lines: string[]): DescribedChangelist | undefin
             date: parseDate(dateStr),
             affectedFiles,
             shelvedFiles,
-            fixedJobs
+            fixedJobs,
         };
     }
 }
@@ -115,7 +115,7 @@ function parseDescribeChangelist(lines: string[]): DescribedChangelist | undefin
 function parseDescribeOutput(output: string): DescribedChangelist[] {
     const allLines = splitIntoLines(output.trim());
 
-    const changelists = sectionArrayBy(allLines, line => /^Change \d+ by/.test(line));
+    const changelists = sectionArrayBy(allLines, (line) => /^Change \d+ by/.test(line));
 
     return changelists.map(parseDescribeChangelist).filter(isTruthy);
 }
@@ -131,18 +131,18 @@ export type ShelvedChangeInfo = { chnum: number; paths: string[] };
 function parseShelvedDescribeOuput(output: string): ShelvedChangeInfo[] {
     const allLines = splitIntoLines(output.trim());
 
-    const changelists = sectionArrayBy(allLines, line => /^Change \d+ by/.test(line));
+    const changelists = sectionArrayBy(allLines, (line) => /^Change \d+ by/.test(line));
 
     return changelists
-        .map(section => {
+        .map((section) => {
             const matches = section
                 .slice(1)
-                .map(line => /(\.+)\ (.*)#(.*) (.*)/.exec(line)?.[2])
+                .map((line) => /(\.+)\ (.*)#(.*) (.*)/.exec(line)?.[2])
                 .filter(isTruthy);
             return { chnum: parseInt(section[0].split(" ")[1]), paths: matches };
         })
         .filter(isTruthy)
-        .filter(c => c.paths.length > 0);
+        .filter((c) => c.paths.length > 0);
 }
 
 export async function getShelvedFiles(
@@ -155,19 +155,19 @@ export async function getShelvedFiles(
     const output = await describeCommand(resource, {
         chnums: options.chnums,
         omitDiffs: true,
-        shelved: true
+        shelved: true,
     });
     return parseShelvedDescribeOuput(output);
 }
 
 function parseFixedJobsSection(subLines: string[]): FixedJob[] {
-    return sectionArrayBy(subLines, line => /^\w*? on/.test(line)).map(job => {
+    return sectionArrayBy(subLines, (line) => /^\w*? on/.test(line)).map((job) => {
         return {
             id: job[0].split(" ")[0],
             description: job
                 .slice(1)
-                .filter(line => line.startsWith("\t"))
-                .map(line => line.slice(1))
+                .filter((line) => line.startsWith("\t"))
+                .map((line) => line.slice(1)),
         };
     });
 }
@@ -179,7 +179,7 @@ export interface GetFixedJobsOptions {
 export async function getFixedJobs(resource: vscode.Uri, options: GetFixedJobsOptions) {
     const output = await describe(resource, {
         chnums: [options.chnum],
-        omitDiffs: true
+        omitDiffs: true,
     });
     return output[0]?.fixedJobs;
 }

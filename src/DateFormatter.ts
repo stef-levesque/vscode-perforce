@@ -16,7 +16,7 @@ export function toReadableDateTime(date?: Date) {
         month: "long",
         day: "numeric",
         hour: "numeric",
-        minute: "numeric"
+        minute: "numeric",
     };
     return date.toLocaleString(vscode.env.language, dateOptions);
 }
@@ -29,7 +29,7 @@ export function toReadableDate(date?: Date) {
         weekday: "long",
         year: "numeric",
         month: "long",
-        day: "numeric"
+        day: "numeric",
     };
     return date.toLocaleString(vscode.env.language, dateOptions);
 }

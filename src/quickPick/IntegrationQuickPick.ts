@@ -17,9 +17,9 @@ export const integrationQuickPickProvider: qp.ActionableQuickPickProvider = {
                 "Choose integration for " +
                 PerforceUri.getDepotPathFromDepotUri(uri) +
                 "#" +
-                uri.fragment
+                uri.fragment,
         };
-    }
+    },
 };
 
 export async function showIntegPickForFile(uri: vscode.Uri) {
@@ -39,12 +39,12 @@ async function makeIntegrationPicks(uri: vscode.Uri) {
     const integs = await p4.integrated(uri, {
         file: uri,
         intoOnly: true,
-        startingChnum: uri.fragment
+        startingChnum: uri.fragment,
     });
 
     return integs
-        .filter(int => isInRevRange(rev, int.fromStartRev, int.fromEndRev))
-        .map<qp.ActionableQuickPickItem>(int => {
+        .filter((int) => isInRevRange(rev, int.fromStartRev, int.fromEndRev))
+        .map<qp.ActionableQuickPickItem>((int) => {
             return {
                 label: "$(git-merge) " + int.toFile + "#" + int.toRev,
                 description:
@@ -58,7 +58,7 @@ async function makeIntegrationPicks(uri: vscode.Uri) {
                         int.toRev
                     );
                     showQuickPickForFile(thisUri);
-                }
+                },
             };
         });
 }

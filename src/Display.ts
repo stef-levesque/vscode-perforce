@@ -4,7 +4,7 @@ import {
     StatusBarItem,
     EventEmitter,
     Uri,
-    commands
+    commands,
 } from "vscode";
 
 import { debounce } from "./Debounce";
@@ -15,7 +15,7 @@ let _statusBarItem: StatusBarItem;
 export enum ActiveEditorStatus {
     OPEN = "OPEN",
     NOT_OPEN = "NOT_OPEN",
-    NOT_IN_WORKSPACE = "NOT_IN_WORKSPACE"
+    NOT_IN_WORKSPACE = "NOT_IN_WORKSPACE",
 }
 
 export interface ActiveStatusEvent {
@@ -85,7 +85,7 @@ export namespace Display {
             let details: p4.OpenedFile | undefined;
             try {
                 const opened = await p4.getOpenedFileDetails(doc.uri, {
-                    files: [doc.uri]
+                    files: [doc.uri],
                 });
                 if (opened.open.length > 0) {
                     _statusBarItem.text = "P4: $(check)";

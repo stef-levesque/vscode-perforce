@@ -7,14 +7,14 @@ import {
     removeLeadingNewline,
     splitIntoLines,
     removeIndent,
-    splitIntoSections
+    splitIntoSections,
 } from "../CommandUtils";
 import { RawField, ChangeSpec } from "../CommonTypes";
 
 const parseRawField = pipe(removeLeadingNewline, splitIntoLines, removeIndent);
 
 function parseRawFields(parts: string[]): RawField[] {
-    return parts.map(field => {
+    return parts.map((field) => {
         const colPos = field.indexOf(":");
         const name = field.slice(0, colPos);
         const value = parseRawField(field.slice(colPos + 2));
@@ -23,16 +23,16 @@ function parseRawFields(parts: string[]): RawField[] {
 }
 
 const getBasicField = (fields: RawField[], field: string) =>
-    fields.find(i => i.name === field)?.value;
+    fields.find((i) => i.name === field)?.value;
 
 const excludeNonFields = (parts: string[]) =>
-    parts.filter(part => !part.startsWith("#") && part !== "");
+    parts.filter((part) => !part.startsWith("#") && part !== "");
 
 function mapToChangeFields(rawFields: RawField[]): ChangeSpec {
     return {
         change: getBasicField(rawFields, "Change")?.[0].trim(),
         description: getBasicField(rawFields, "Description")?.join("\n"),
-        files: getBasicField(rawFields, "Files")?.map(file => {
+        files: getBasicField(rawFields, "Files")?.map((file) => {
             // exmample:
             //   //depot/TestArea/doc3.txt       # add
             //   //depot/TestArea/My initial text document.txt   # edit
@@ -40,10 +40,10 @@ function mapToChangeFields(rawFields: RawField[]): ChangeSpec {
             const endOfFileStr = file.indexOf("#");
             return {
                 depotPath: file.slice(0, endOfFileStr).trim(),
-                action: file.slice(endOfFileStr + 2)
+                action: file.slice(endOfFileStr + 2),
             };
         }),
-        rawFields
+        rawFields,
     };
 }
 
@@ -66,7 +66,7 @@ const getFilesAsRawField = (spec: ChangeSpec) =>
     spec.files
         ? {
               name: "Files",
-              value: spec.files.map(file => file.depotPath + "\t# " + file.action)
+              value: spec.files.map((file) => file.depotPath + "\t# " + file.action),
           }
         : undefined;
 
@@ -83,7 +83,7 @@ export type ChangeSpecOptions = {
 };
 
 const changeFlags = flagMapper<ChangeSpecOptions>([], "existingChangelist", ["-o"], {
-    lastArgIsFormattedArray: true
+    lastArgIsFormattedArray: true,
 });
 
 const outputChange = makeSimpleCommand("change", changeFlags);
@@ -103,7 +103,7 @@ function parseCreatedChangelist(createdStr: string): CreatedChangelist {
     const matches = /Change\s(\d+)\s/.exec(createdStr);
     return {
         rawOutput: createdStr,
-        chnum: matches?.[1]
+        chnum: matches?.[1],
     };
 }
 
@@ -116,14 +116,14 @@ const inputChange = makeSimpleCommand(
                 getDefinedSpecFields(options.spec)
                     .concat(
                         options.spec.rawFields.filter(
-                            field =>
+                            (field) =>
                                 !options.spec[
                                     field.name.toLowerCase() as keyof ChangeSpec
                                 ]
                         )
                     )
-                    .map(field => field.name + ":\t" + field.value.join("\n\t"))
-                    .join("\n\n") + "\n\n" // perforce doesn't like an empty raw field on the end without newlines
+                    .map((field) => field.name + ":\t" + field.value.join("\n\t"))
+                    .join("\n\n") + "\n\n", // perforce doesn't like an empty raw field on the end without newlines
         };
     }
 );

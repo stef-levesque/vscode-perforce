@@ -112,7 +112,7 @@ export class CommandLimiter {
                         rej(err);
                     }
                 },
-                callback: doneCallback
+                callback: doneCallback,
             };
 
             if (this._maxConcurrent > 0 && this._running.size >= this._maxConcurrent) {

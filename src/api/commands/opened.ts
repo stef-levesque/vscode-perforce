@@ -16,7 +16,7 @@ export type OpenedFile = {
 
 export enum UnopenedFileReason {
     NOT_OPENED,
-    NOT_IN_ROOT
+    NOT_IN_ROOT,
 }
 
 export type UnopenedFile = {
@@ -39,9 +39,7 @@ function parseOpenFile(line: string): OpenedFile | undefined {
 function parseOpenedOutput(output: string): OpenedFile[] {
     // example:
     // //depot/testArea/stuff#1 - edit change 46 (text)
-    return splitIntoLines(output.trim())
-        .map(parseOpenFile)
-        .filter(isTruthy);
+    return splitIntoLines(output.trim()).map(parseOpenFile).filter(isTruthy);
 }
 
 function parseUnopenFile(line: string): UnopenedFile | undefined {
@@ -65,13 +63,11 @@ function parseUnopenFile(line: string): UnopenedFile | undefined {
 }
 
 function parseOpenedErrors(output: string): UnopenedFile[] {
-    return splitIntoLines(output.trim())
-        .map(parseUnopenFile)
-        .filter(isTruthy);
+    return splitIntoLines(output.trim()).map(parseUnopenFile).filter(isTruthy);
 }
 
 const openedFlags = flagMapper<OpenedFileOptions>([["c", "chnum"]], "files", [], {
-    ignoreRevisionFragments: true
+    ignoreRevisionFragments: true,
 });
 
 const opened = makeSimpleCommand("opened", openedFlags);
