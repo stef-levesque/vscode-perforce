@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 import * as p4 from "../api/PerforceApi";
 
-import { isTruthy } from "../api/CommandUtils";
+import { isTruthy } from "../TsUtils";
 import * as PerforceUri from "../PerforceUri";
 import * as md from "./MarkdownGenerator";
 import * as ColumnFormatter from "./ColumnFormatter";
 import { Display } from "../Display";
+import { ConfigAccessor } from "../ConfigService";
 
 const nbsp = "\xa0";
 
@@ -181,6 +182,11 @@ export class AnnotationProvider {
         const [annotations, log] = await Promise.all([annotationsPromise, logPromise]);
         const decorations = getDecorations(underlying, swarmHost, annotations, log);
 
+        // try to use the depot URI to open the document, so that we can perform revision actions on it
+        if (!uri.fragment && !PerforceUri.isDepotUri(uri) && log[0]) {
+            uri = PerforceUri.fromDepotPath(uri, log[0].file, log[0].revision);
+        }
+
         const provider = new AnnotationProvider(uri, annotations, decorations);
         this._annotationsByUri.set(uri, provider);
 
@@ -204,11 +210,12 @@ function makeHoverMessage(
     );
 
     const markdown = new vscode.MarkdownString(
-        md.makeUserAndDateSummary(change) +
+        md.makeUserAndDateSummary(underlying, change) +
             "\n\n" +
             links +
             "\n\n" +
-            md.convertToMarkdown(change.description)
+            md.convertToMarkdown(change.description),
+        true
     );
     markdown.isTrusted = true;
 
@@ -327,6 +334,7 @@ function getDecorations(
         .filter(isTruthy);
 }
 
-export async function annotate(uri: vscode.Uri, swarmHost?: string) {
+export async function annotate(uri: vscode.Uri) {
+    const swarmHost = new ConfigAccessor().swarmHost;
     return AnnotationProvider.annotate(uri, swarmHost);
 }

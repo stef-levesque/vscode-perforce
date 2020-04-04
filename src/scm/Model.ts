@@ -679,7 +679,7 @@ export class Model implements Disposable {
         const re = new RegExp(/^[a-z0-9]+$/i);
         return await window.showInputBox({
             prompt: "Enter the job to be fixed by changelist " + chnum,
-            placeHolder: "jobNNNNN",
+            placeHolder: "jobNNNNNN",
             validateInput: val => {
                 if (val.trim() === "") {
                     return "Enter a job name";

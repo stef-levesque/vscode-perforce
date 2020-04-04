@@ -9,6 +9,9 @@ import * as chai from "chai";
 import chaiAsPromised from "chai-as-promised";
 import sinonChai from "sinon-chai";
 import { ChangeSpec, ChangeInfo, FixedJob } from "../../api/CommonTypes";
+import { Direction, DescribedChangelist } from "../../api/PerforceApi";
+import * as PerforceUri from "../../PerforceUri";
+import { parseDate } from "../../TsUtils";
 
 chai.use(sinonChai);
 chai.use(chaiAsPromised);
@@ -639,6 +642,87 @@ describe("Perforce API", () => {
             ]);
         });
     });
+    describe("describe", () => {
+        it("Returns the set of known describe fields", async () => {
+            const describeLines = [
+                "Change 46 by user@cli on 2020/04/02 16:36:07",
+                "",
+                "\tdo some stuff in branch1",
+                "",
+                "Jobs fixed ...",
+                "",
+                "job000001 on 2020/04/03 by user *closed*",
+                "",
+                "\tmy job",
+                "",
+                "Affected files ...",
+                "",
+                "... //depot/branches/branch1/anotherfile-moved.txt#1 move/add",
+                "... //depot/branches/branch1/anotherfile.txt#2 move/delete",
+                "... //depot/branches/branch1/newFile.txt#10 edit",
+                "",
+                "Change 35 by user2@clia on 2020/03/16 11:15:19 *pending*",
+                "",
+                "\tchanging a list again",
+                "\t",
+                "\thmm",
+                "",
+                "Affected files ...",
+                "",
+                "",
+                ""
+            ];
+            execute.callsFake(execWithStdOut(describeLines.join("\n")));
+
+            const expected: DescribedChangelist[] = [
+                {
+                    chnum: "46",
+                    user: "user",
+                    client: "cli",
+                    isPending: false,
+                    date: parseDate("2020/04/02 16:36:07"),
+                    description: ["do some stuff in branch1"],
+                    fixedJobs: [
+                        {
+                            id: "job000001",
+                            description: ["my job"]
+                        }
+                    ],
+                    affectedFiles: [
+                        {
+                            depotPath: "//depot/branches/branch1/anotherfile-moved.txt",
+                            operation: "move/add",
+                            revision: "1"
+                        },
+                        {
+                            depotPath: "//depot/branches/branch1/anotherfile.txt",
+                            operation: "move/delete",
+                            revision: "2"
+                        },
+                        {
+                            depotPath: "//depot/branches/branch1/newFile.txt",
+                            operation: "edit",
+                            revision: "10"
+                        }
+                    ],
+                    shelvedFiles: []
+                },
+                {
+                    chnum: "35",
+                    user: "user2",
+                    client: "clia",
+                    isPending: true,
+                    date: parseDate("2020/03/16 11:15:19"),
+                    description: ["changing a list again", "", "hmm"],
+                    fixedJobs: [],
+                    affectedFiles: [],
+                    shelvedFiles: []
+                }
+            ];
+            const output = await p4.describe(ws, { chnums: ["46", "35"] });
+            expect(output).to.deep.equal(expected);
+        });
+    });
     describe("getShelvedFiles", () => {
         it("Returns an empty list when no changelists are specified", async () => {
             await expect(p4.getShelvedFiles(ws, { chnums: [] })).to.eventually.eql([]);
@@ -766,6 +850,39 @@ describe("Perforce API", () => {
             expect(execute).to.have.been.calledWith(ws, "info");
         });
     });
+    describe("have", () => {
+        it("Uses the correct arguments", async () => {
+            await p4.have(ws, { file: "//depot/testArea/myFile.txt" });
+            expect(execute).to.have.been.calledWith(ws, "have", sinon.match.any, [
+                "//depot/testArea/myFile.txt"
+            ]);
+        });
+        it("Returns the depot and local file details", async () => {
+            execute.callsFake(
+                execWithStdOut(
+                    "//depot/testArea/Makefile#4 - /home/perforce/TestArea/Makefile"
+                )
+            );
+            const localUri = vscode.Uri.file("/home/perforce/TestArea/Makefile");
+            await expect(
+                p4.have(ws, { file: "//depot/testArea/myFile.txt " })
+            ).to.eventually.deep.equal({
+                depotPath: "//depot/testArea/Makefile",
+                revision: "4",
+                depotUri: PerforceUri.fromDepotPath(ws, "//depot/testArea/Makefile", "4"),
+                localUri
+            });
+        });
+        it("Returns undefined on stderr", async () => {
+            execute.callsFake(
+                execWithStdErr(
+                    "//depot/testArea/Makefile#4 - /home/perforce/TestArea/Makefile"
+                )
+            );
+            await expect(p4.have(ws, { file: "//depot/testArea/myFile.txt " })).to
+                .eventually.be.undefined;
+        });
+    });
     describe("have file", () => {
         it("Uses the correct arguments", async () => {
             await p4.haveFile(ws, { file: "//depot/testArea/myFile.txt" }); // TODO local path
@@ -776,17 +893,17 @@ describe("Perforce API", () => {
         it("Returns true if stdout has output", async () => {
             execute.callsFake(
                 execWithStdOut(
-                    "//depot/testArea/Makefile#4 - /home/peforce/TestArea/Makefile"
+                    "//depot/testArea/Makefile#4 - /home/perforce/TestArea/Makefile"
                 )
             );
-            await expect(p4.haveFile(ws, { file: "/home/peforce/TestArea/Makefile" })).to
+            await expect(p4.haveFile(ws, { file: "/home/perforce/TestArea/Makefile" })).to
                 .eventually.be.true;
         });
         it("Returns false if stderr has output", async () => {
             execute.callsFake(
                 execWithStdErr("//depot/testArea/Makefile#4 - no such file")
             );
-            await expect(p4.haveFile(ws, { file: "/home/peforce/TestArea/Makefile" })).to
+            await expect(p4.haveFile(ws, { file: "/home/perforce/TestArea/Makefile" })).to
                 .eventually.be.false;
         });
         it("Throws on error", async () => {
@@ -979,10 +1096,12 @@ describe("Perforce API", () => {
             "\tmake some changes to the new file",
             "",
             "... ... branch into //depot/brancha/newFile.txt#1",
+            "... ... integrate into //depot/branchb/newFile.txt#7",
             "... #1 change 21 add on 2018/03/09 21:29:32 by user.x@stuff (text)",
             "",
             "\tadd a file",
-            ""
+            "",
+            "... ... branch from //depot/old/newFile.txt#1"
         ];
 
         const date1 = new Date(2020, 2, 9, 22, 22, 42);
@@ -1003,6 +1122,7 @@ describe("Perforce API", () => {
                     description: "make some changes in the branch\nover multiple lines",
                     revision: "2",
                     chnum: "24",
+                    integrations: [],
                     operation: "edit",
                     date: date1,
                     user: "user.b",
@@ -1013,6 +1133,15 @@ describe("Perforce API", () => {
                     description: "move the file",
                     revision: "1",
                     chnum: "23",
+                    integrations: [
+                        {
+                            direction: Direction.FROM,
+                            file: "//depot/TestArea/newFile.txt",
+                            startRev: "1",
+                            endRev: "2",
+                            operation: "move"
+                        }
+                    ],
                     operation: "move/add",
                     date: date2,
                     user: "user.a",
@@ -1040,6 +1169,7 @@ describe("Perforce API", () => {
                     description: "make some changes in the branch\nover multiple lines",
                     revision: "2",
                     chnum: "24",
+                    integrations: [],
                     operation: "edit",
                     date: date1,
                     user: "user.b",
@@ -1050,6 +1180,15 @@ describe("Perforce API", () => {
                     description: "move the file",
                     revision: "1",
                     chnum: "23",
+                    integrations: [
+                        {
+                            direction: Direction.FROM,
+                            file: "//depot/TestArea/newFile.txt",
+                            startRev: "1",
+                            endRev: "2",
+                            operation: "move"
+                        }
+                    ],
                     operation: "move/add",
                     date: date2,
                     user: "user.a",
@@ -1060,6 +1199,22 @@ describe("Perforce API", () => {
                     description: "make some changes to the new file",
                     revision: "2",
                     chnum: "22",
+                    integrations: [
+                        {
+                            direction: Direction.TO,
+                            file: "//depot/brancha/newFile.txt",
+                            startRev: undefined,
+                            endRev: "1",
+                            operation: "branch"
+                        },
+                        {
+                            direction: Direction.TO,
+                            file: "//depot/branchb/newFile.txt",
+                            startRev: undefined,
+                            endRev: "7",
+                            operation: "integrate"
+                        }
+                    ],
                     operation: "edit",
                     date: date3,
                     user: "user.a",
@@ -1070,6 +1225,15 @@ describe("Perforce API", () => {
                     description: "add a file",
                     revision: "1",
                     chnum: "21",
+                    integrations: [
+                        {
+                            direction: Direction.FROM,
+                            file: "//depot/old/newFile.txt",
+                            startRev: undefined,
+                            endRev: "1",
+                            operation: "branch"
+                        }
+                    ],
                     operation: "add",
                     date: date4,
                     user: "user.x",
@@ -1083,6 +1247,89 @@ describe("Perforce API", () => {
                 "-i",
                 "//depot/branch/newFile.txt"
             ]);
+        });
+    });
+    describe("integrated", () => {
+        it("Uses the correct arguements", async () => {
+            execute.callsFake(
+                execWithStdOut(
+                    "//depot/branches/branch1/newFile.txt#1 - edit into //depot/branches/branch2/newFile.txt#2"
+                )
+            );
+            await p4.integrated(ws, {
+                file: "//depot/branches/branch1/newFile.txt",
+                intoOnly: true,
+                startingChnum: "4"
+            });
+
+            expect(execute).to.have.been.calledWith(ws, "integrated", sinon.match.any, [
+                "-s",
+                "4",
+                "--into-only",
+                "//depot/branches/branch1/newFile.txt"
+            ]);
+        });
+        it("Returns the integrations for a file", async () => {
+            const lines = [
+                "//depot/branches/branch1/newFile.txt#1 - edit into //depot/branches/branch2/newFile.txt#2",
+                "//depot/branches/branch1/newFile.txt#1 - branch from //depot/TestArea/newFile.txt#1",
+                "//depot/branches/branch1/newFile.txt#9 - edit from //depot/TestArea/newFile.txt#3,#4",
+                "//depot/branches/branch1/newFile.txt#2,#9 - copy into //depot/TestArea/newFile.txt#5"
+            ];
+            execute.callsFake(execWithStdOut([...lines].join("\n")));
+
+            const depotPath = "//depot/branches/branch1/newFile.txt";
+            const b2 = "//depot/branches/branch2/newFile.txt";
+            const main = "//depot/TestArea/newFile.txt";
+            const expected: p4.IntegratedRevision[] = [
+                {
+                    displayDirection: "into",
+                    fromFile: depotPath,
+                    fromStartRev: undefined,
+                    fromEndRev: "1",
+                    operation: "edit",
+                    toFile: b2,
+                    toRev: "2"
+                },
+                {
+                    displayDirection: "from",
+                    fromFile: main,
+                    fromStartRev: undefined,
+                    fromEndRev: "1",
+                    operation: "branch",
+                    toFile: depotPath,
+                    toRev: "1"
+                },
+                {
+                    displayDirection: "from",
+                    fromFile: main,
+                    fromStartRev: "3",
+                    fromEndRev: "4",
+                    operation: "edit",
+                    toFile: depotPath,
+                    toRev: "9"
+                },
+                {
+                    displayDirection: "into",
+                    fromFile: depotPath,
+                    fromStartRev: "2",
+                    fromEndRev: "9",
+                    operation: "copy",
+                    toFile: main,
+                    toRev: "5"
+                }
+            ];
+
+            const output = await p4.integrated(ws, {
+                file: "//depot/branches/branch1/newFile.txt"
+            });
+
+            expect(output).to.deep.equal(expected);
+        });
+        it("Returns empty list on stderr", async () => {
+            execute.callsFake(execWithStdErr("No integrations"));
+
+            expect(await p4.integrated(ws, {})).to.deep.equal([]);
         });
     });
 });

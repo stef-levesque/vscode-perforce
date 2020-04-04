@@ -15,6 +15,7 @@ import * as DiffProvider from "../../DiffProvider";
 import { getLocalFile, getWorkspaceUri } from "../helpers/testUtils";
 import Sinon from "sinon";
 import { Display } from "../../Display";
+import { HaveFile } from "../../api/PerforceApi";
 
 chai.use(sinonChai);
 chai.use(p4Commands);
@@ -199,10 +200,17 @@ describe("Diff Provider", () => {
         describe("When the URI fragment is not a revision", () => {
             it("Finds and diffs against the have revision, supplying a haveRev arg", async () => {
                 const { localFile, depotPath } = basicFiles.edit();
-                const have = PerforceUri.fromDepotPath(localFile, depotPath, "4");
+                const have: HaveFile = {
+                    localUri: localFile,
+                    depotPath: depotPath,
+                    revision: "4",
+                    depotUri: PerforceUri.fromDepotPath(localFile, depotPath, "4")
+                };
                 stubModel.have.resolves(have);
 
-                const expectedLeft = PerforceUri.withArgs(have, { haveRev: "4" });
+                const expectedLeft = PerforceUri.withArgs(have.depotUri, {
+                    haveRev: "4"
+                });
                 const expectedRight = PerforceUri.withArgs(localFile, {
                     haveRev: "4",
                     leftUri: expectedLeft.toString(),

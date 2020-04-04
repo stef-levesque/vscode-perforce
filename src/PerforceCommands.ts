@@ -20,6 +20,8 @@ import * as PerforceUri from "./PerforceUri";
 import { PerforceSCMProvider } from "./ScmProvider";
 import * as AnnotationProvider from "./annotations/AnnotationProvider";
 import * as DiffProvider from "./DiffProvider";
+import * as QuickPicks from "./quickPick/QuickPicks";
+import { showQuickPick } from "./quickPick/QuickPickProvider";
 
 // TODO resolve
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -34,6 +36,8 @@ export namespace PerforceCommands {
         commands.registerCommand("perforce.diffRevision", diffRevision);
         commands.registerCommand("perforce.diffPrevious", diffPrevious);
         commands.registerCommand("perforce.diffNext", diffNext);
+        commands.registerCommand("perforce.depotActions", showDepotActions);
+        commands.registerCommand("perforce.showQuickPick", showQuickPick);
         commands.registerCommand("perforce.annotate", annotate);
         commands.registerCommand("perforce.opened", opened);
         commands.registerCommand("perforce.logout", logout);
@@ -352,6 +356,16 @@ export namespace PerforceCommands {
         return doc.uri;
     }
 
+    async function showDepotActions() {
+        // DO NOT USE URI from vscode command - only returns the right uri - we need the active editor
+        const fromDoc = window.activeTextEditor?.document.uri;
+        if (!fromDoc) {
+            Display.showError("No document selected");
+            return;
+        }
+        await QuickPicks.showQuickPickForFile(fromDoc);
+    }
+
     export async function annotate(file?: string) {
         const uri = file ? Uri.parse(file) : getOpenDocUri();
 
@@ -359,9 +373,7 @@ export namespace PerforceCommands {
             return false;
         }
 
-        const conf = workspace.getConfiguration("perforce");
-        const swarmHost = conf.get<string>("swarmHost");
-        await AnnotationProvider.annotate(uri, swarmHost);
+        await AnnotationProvider.annotate(uri);
     }
 
     export function opened() {

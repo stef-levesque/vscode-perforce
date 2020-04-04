@@ -1,5 +1,7 @@
 import { Uri } from "vscode";
 
+export type NoOpts = {};
+
 export type FixedJob = { id: string; description: string[] };
 
 export type ChangeInfo = {

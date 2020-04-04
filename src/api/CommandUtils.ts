@@ -4,16 +4,13 @@ import * as vscode from "vscode";
 import * as PerforceUri from "../PerforceUri";
 import { PerforceService } from "../PerforceService";
 import { Display } from "../Display";
+import { isTruthy } from "../TsUtils";
 
-/**
- * Predicate used for filtering out undefined or null values from an array,
- * and resulting in an array of type T
- * @param obj a single element
- * @returns the truthiness of the value, and narrows the type to T
- */
-export function isTruthy<T>(obj: T | undefined | null): obj is T {
-    return !!obj;
-}
+export const removeLeadingNewline = (value: string) => value.replace(/^\r*?\n/, "");
+export const splitIntoLines = (value: string) => value.split(/\r*?\n/);
+export const splitIntoSections = (str: string) => str.split(/\r*?\n\r*?\n/);
+export const removeIndent = (lines: string[]) =>
+    lines.map(line => line.replace(/^\t/, ""));
 
 /**
  * Extract a section of an array between two matching predicates

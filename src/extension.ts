@@ -17,6 +17,7 @@ import { Disposable } from "vscode";
 import { WorkspaceConfigAccessor } from "./ConfigService";
 import { AnnotationProvider } from "./annotations/AnnotationProvider";
 import * as ContextVars from "./ContextVars";
+import * as QuickPicks from "./quickPick/QuickPicks";
 
 let _isRegistered = false;
 const _disposable: vscode.Disposable[] = [];
@@ -227,6 +228,8 @@ function TryCreateP4(uri: vscode.Uri): Promise<boolean> {
 export function activate(ctx: vscode.ExtensionContext): void {
     // ALWAYS register the edit and save command
     PerforceCommands.registerImportantCommands(_disposable);
+
+    QuickPicks.registerQuickPicks();
 
     if (vscode.workspace.getConfiguration("perforce").get("activationMode") === "off") {
         return;

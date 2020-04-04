@@ -192,7 +192,7 @@ export class StubPerforceModel {
     resolveHave(
         resource: vscode.Uri,
         options: p4.HaveFileOptions
-    ): Promise<vscode.Uri | undefined> {
+    ): Promise<p4.HaveFile | undefined> {
         if (!isUri(options.file)) {
             throw new Error("Doesn't support non-uri types yet");
         }
@@ -201,13 +201,16 @@ export class StubPerforceModel {
             return Promise.resolve(undefined);
         }
         const [, file] = details;
-        return Promise.resolve(
-            PerforceUri.fromDepotPath(
+        return Promise.resolve({
+            depotPath: file.depotPath,
+            revision: file.depotRevision.toString(),
+            depotUri: PerforceUri.fromDepotPath(
                 resource,
                 file.depotPath,
                 file.depotRevision.toString()
-            )
-        );
+            ),
+            localUri: file.localFile
+        });
     }
 
     resolveFixedJobs(

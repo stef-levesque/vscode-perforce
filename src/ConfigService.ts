@@ -56,6 +56,10 @@ export class ConfigAccessor {
     public get deleteOnFileDelete(): boolean {
         return this.getConfigItem("deleteOnFileDelete") ?? false;
     }
+
+    public get swarmHost(): string | undefined {
+        return this.getConfigItem("swarmHost");
+    }
 }
 
 export class WorkspaceConfigAccessor extends ConfigAccessor {

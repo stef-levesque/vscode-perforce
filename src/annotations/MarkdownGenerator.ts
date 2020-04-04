@@ -3,10 +3,15 @@ import * as p4 from "../api/PerforceApi";
 
 import * as PerforceUri from "../PerforceUri";
 import * as DiffProvider from "../DiffProvider";
-import { isTruthy } from "../api/CommandUtils";
+import { isTruthy } from "../TsUtils";
+import { toReadableDateTime } from "../DateFormatter";
+
+export function codicon(name: string) {
+    return "$(" + name + ")";
+}
 
 export function makeSwarmHostURL(change: p4.FileLogItem, swarmHost: string) {
-    return swarmHost + "/changes/" + change.chnum;
+    return swarmHost + "/changes/" + change.chnum + ' "Open in swarm"';
 }
 
 function makeCommandURI(command: string, ...args: any[]) {
@@ -40,6 +45,30 @@ function makePerforceURI(underlying: vscode.Uri, change: p4.FileLogItem) {
     return PerforceUri.fromDepotPath(underlying, change.file, change.revision);
 }
 
+function makeQuickPickFileURI(underlying: vscode.Uri, change: p4.FileLogItem) {
+    return (
+        makeCommandURI(
+            "perforce.showQuickPick",
+            "file",
+            makePerforceURI(underlying, change).toString()
+        ) + ' "Show more actions for this file"'
+    );
+}
+
+function makeQuickPickChangeURI(underlying: vscode.Uri, change: p4.FileLogItem) {
+    return (
+        makeCommandURI(
+            "perforce.showQuickPick",
+            "change",
+            underlying.toString(),
+            change.chnum
+        ) +
+        ' "Show actions for changelist ' +
+        change.chnum +
+        '"'
+    );
+}
+
 export function makeAnnotateURI(underlying: vscode.Uri, change: p4.FileLogItem) {
     const args = makePerforceURI(underlying, change).toString();
     return (
@@ -52,8 +81,10 @@ export function makeAnnotateURI(underlying: vscode.Uri, change: p4.FileLogItem) 
     );
 }
 
-export function makeMarkdownLink(text: string, link: string) {
-    return "\\[[" + text + "](" + link + ")\\]";
+export function makeMarkdownLink(text: string, link: string, withoutBrackets?: boolean) {
+    return withoutBrackets
+        ? "[" + text + "](" + link + ")"
+        : "\\[[" + text + "](" + link + ")\\]";
 }
 
 export function makeAllLinks(
@@ -69,7 +100,7 @@ export function makeAllLinks(
     const diffLatestLink =
         change !== latestChange
             ? makeMarkdownLink(
-                  "Diff vs this Revision",
+                  "Diff this Revision",
                   makeDiffURI(underlying, change, latestChange)
               )
             : undefined;
@@ -78,36 +109,38 @@ export function makeAllLinks(
             ? makeMarkdownLink("Annotate", makeAnnotateURI(underlying, change))
             : undefined;
     const swarmLink = swarmHost
-        ? makeMarkdownLink("Open in Swarm", makeSwarmHostURL(change, swarmHost))
+        ? makeMarkdownLink(codicon("eye"), makeSwarmHostURL(change, swarmHost), true)
         : undefined;
+    const moreLink = makeMarkdownLink(
+        "…",
+        makeQuickPickFileURI(underlying, change),
+        true
+    );
 
-    return [swarmLink, diffLink, diffLatestLink, annotateLink].filter(isTruthy).join(" ");
+    return [diffLink, diffLatestLink, annotateLink, swarmLink, moreLink]
+        .filter(isTruthy)
+        .join(" ");
 }
 
 function doubleUpNewlines(str: string) {
     return str.replace(/\n+/g, "\n\n");
 }
 
-export function makeUserAndDateSummary(change: p4.FileLogItem) {
-    const dateOptions: Intl.DateTimeFormatOptions = {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric"
-    };
+export function makeUserAndDateSummary(underlying: vscode.Uri, change: p4.FileLogItem) {
     return (
         change.file +
         "#" +
         change.revision +
         "\n\n" +
-        "**Change `#" +
-        change.chnum +
-        "`** by **`" +
+        makeMarkdownLink(
+            "Change " + change.chnum,
+            makeQuickPickChangeURI(underlying, change),
+            true
+        ) +
+        " by **`" +
         change.user +
         "`** on `" +
-        (change.date?.toLocaleString(vscode.env.language, dateOptions) ?? "???") +
+        toReadableDateTime(change.date) +
         "`"
     );
 }

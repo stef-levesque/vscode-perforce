@@ -1,7 +1,8 @@
 import { window, workspace, Uri, Disposable, Event, EventEmitter } from "vscode";
 import { Display } from "./Display";
 import * as PerforceUri from "./PerforceUri";
-import { runPerforceCommand, pathsToArgs, isTruthy } from "./api/CommandUtils";
+import { runPerforceCommand, pathsToArgs } from "./api/CommandUtils";
+import { isTruthy } from "./TsUtils";
 
 export class PerforceContentProvider {
     private onDidChangeEmitter = new EventEmitter<Uri>();

@@ -452,6 +452,13 @@
                 "command": "perforce.opened",
                 "title": "Opened - Display 'open' files, and open one in the editor",
                 "category": "Perforce"
+            },
+            {
+                "command": "perforce.depotActions",
+                "title": "Show actions for this revision of the depot file",
+                "category": "Perforce",
+                "icon": "$(git-commit)",
+                "enablement": "perforce.currentFile.hasRevision"
             }
         ],
         "menus": {
@@ -740,8 +747,13 @@
             "editor/title": [
                 {
                     "command": "perforce.diffPrevious",
-                    "group": "navigation@-10",
+                    "group": "navigation@-11",
                     "when": "perforce.currentFile.showDiffPrev && config.perforce.editorButtons.diffPrevAndNext =~ /All/ || perforce.currentFile.showDiffPrev && config.perforce.editorButtons.diffPrevAndNext =~ /Only/ && perforce.currentFile.isPerforceOrDiff"
+                },
+                {
+                    "command": "perforce.depotActions",
+                    "group": "navigation@-10",
+                    "when": "perforce.currentFile.isPerforceOrDiff"
                 },
                 {
                     "command": "perforce.diffNext",

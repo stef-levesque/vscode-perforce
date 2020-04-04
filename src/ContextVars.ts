@@ -15,7 +15,8 @@ const makeDefault = () => {
         showDiffNext: false,
         canDiffPrev: false,
         canDiffNext: false,
-        isPerforceOrDiff: false
+        isPerforceOrDiff: false,
+        hasRevision: false
     };
 };
 
@@ -69,6 +70,7 @@ function calculateDiffOptions(file?: vscode.Uri, status?: ActiveEditorStatus) {
     const showDiffPrev = isNotUnknown || isPerforceOrDiff;
 
     const rev = getRevision(file);
+    const hasRevision = rev > 0;
 
     // show next diff button only for diffs (including diffs without a revision - for consistent button placement)
     const showDiffNext = showDiffPrev && (rev >= 0 || isRightWindow);
@@ -82,7 +84,8 @@ function calculateDiffOptions(file?: vscode.Uri, status?: ActiveEditorStatus) {
         showDiffPrev,
         canDiffNext: !disableDiffNext,
         canDiffPrev: !disableDiffPrev,
-        isPerforceOrDiff
+        isPerforceOrDiff,
+        hasRevision
     };
 }
 

@@ -1,15 +1,10 @@
 import * as p4 from "../api/PerforceApi";
 
-import TimeAgo from "javascript-time-ago";
-import * as en from "javascript-time-ago/locale/en";
+import { timeAgo } from "../DateFormatter";
 import { Display } from "../Display";
-import { isTruthy } from "../api/CommandUtils";
-
-TimeAgo.addLocale(en);
+import { isTruthy } from "../TsUtils";
 
 const nbsp = "\xa0";
-
-const timeAgo = new TimeAgo("en-US");
 
 export type ColumnOption = {
     name: ValidColumn;
