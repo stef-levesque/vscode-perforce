@@ -520,6 +520,7 @@ export namespace PerforceCommands {
                     Display.showMessage("Login successful");
                     Display.updateEditor();
                     loggedIn = true;
+                    PerforceSCMProvider.RefreshAll();
                 } catch {}
             }
         } else {
