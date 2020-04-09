@@ -22,7 +22,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.42.0"
+        "vscode": "^1.44.0"
     },
     "enableProposedApi": false,
     "keywords": [
@@ -37,6 +37,42 @@
         "*"
     ],
     "contributes": {
+        "viewsWelcome": [
+            {
+                "view": "scm",
+                "contents": "Perforce\nNo perforce client workspace detected for the open folder(s)",
+                "when": "config.perforce.activationMode != off && perforce.activation.status == complete"
+            },
+            {
+                "view": "scm",
+                "contents": "Perforce\nLooking for perforce client workspaces...",
+                "when": "config.perforce.activationMode != off && !perforce.activation.status"
+            },
+            {
+                "view": "scm",
+                "contents": "Perforce\nOpen a folder to detect perforce client workspaces",
+                "when": "config.perforce.activationMode != off && perforce.activation.status == noworkspace"
+            },
+            {
+                "view": "scm",
+                "contents": "Perforce\nperforce.activationMode is set to `off`",
+                "when": "config.perforce.activationMode == off"
+            },
+            {
+                "view": "scm",
+                "contents": "[Check the Perforce Output Logs](command:perforce.showOutput)\nFor more help:\n[Read the Perforce Setup Guide](https://github.com/mjcrouch/vscode-perforce#setup)\n"
+            },
+            {
+                "view": "scm",
+                "contents": "Note: A possible perforce client was detected, but the open folder is not within the client root, and vice versa. [Check the output log](command:perforce.showOutput) for client names and paths",
+                "when": "perforce.activation.foundOutOfRoot"
+            },
+            {
+                "view": "scm",
+                "contents": "Note: P4CONFIG is not set in your environment, so P4CONFIG files will not be detected",
+                "when": "perforce.activation.noP4Config"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "VS Code Perforce Configuration",
@@ -134,7 +170,7 @@
                 "perforce.dir": {
                     "type": "string",
                     "default": "none",
-                    "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory",
+                    "description": "Overrides any PWD setting (current working directory) and replaces it with the specified directory. This item should NOT normally be used - it is only useful in very specific cases, typically when the vs code workspace contains filesystem links to an actual perforce client workspace.",
                     "scope": "resource"
                 },
                 "perforce.command": {
@@ -223,6 +259,17 @@
                     ],
                     "default": "All diffable files",
                     "description": "When to show buttons on the editor title menu for diffing the next / previous revision"
+                },
+                "perforce.enableP4ConfigScanOnStartup": {
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Whether to scan the workspace for perforce P4CONFIG files, in order to find perforce clients to show in the SCM Provider view. Disabling this setting is NOT generally recommeded, but if you have a very large workspace containing many directories, and you do NOT have P4CONFIG files outside of the workspace root, this can reduce startup time",
+                    "scope": "resource"
+                },
+                "perforce.warnOnMissingP4CONFIG": {
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "When enabled, if a .p4config file is found in the workspace, but P4CONFIG is not set in the environment, a warning will be shown. This is due to a change in behaviour of handling these files in v4 which may break backward compatibility"
                 }
             }
         },
@@ -243,8 +290,18 @@
                 "category": "Perforce"
             },
             {
+                "command": "perforce.loginScm",
+                "title": "Log in to Perforce",
+                "category": "Perforce"
+            },
+            {
                 "command": "perforce.logout",
                 "title": "Log out from Perforce",
+                "category": "Perforce"
+            },
+            {
+                "command": "perforce.logoutScm",
+                "title": "Log out of Perforce",
                 "category": "Perforce"
             },
             {
@@ -546,6 +603,14 @@
                 {
                     "command": "perforce.diffFiles",
                     "when": "0"
+                },
+                {
+                    "command": "perforce.loginScm",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.logoutScm",
+                    "when": "0"
                 }
             ],
             "scm/title": [
@@ -570,12 +635,12 @@
                     "when": "scmProvider == perforce"
                 },
                 {
-                    "command": "perforce.login",
+                    "command": "perforce.loginScm",
                     "group": "2_login",
                     "when": "scmProvider == perforce"
                 },
                 {
-                    "command": "perforce.logout",
+                    "command": "perforce.logoutScm",
                     "group": "2_login",
                     "when": "scmProvider == perforce"
                 },

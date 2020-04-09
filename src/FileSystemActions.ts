@@ -38,8 +38,6 @@ export default class FileSystemActions {
     constructor(workspace: FileSystemEventProvider, config: ConfigAccessor) {
         const subscriptions: Disposable[] = [];
 
-        window.onDidChangeActiveTextEditor(Display.updateEditor, this, subscriptions);
-
         if (PerforceCommands.checkFolderOpened()) {
             FileSystemActions.registerEvents(workspace, config);
         }

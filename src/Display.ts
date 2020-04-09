@@ -32,9 +32,13 @@ export namespace Display {
     export const onActiveFileStatusKnown = _onActiveFileStatusKnown.event;
     const _onActiveFileStatusCleared = new EventEmitter<Uri | undefined>();
     export const onActiveFileStatusCleared = _onActiveFileStatusCleared.event;
-    let _initialisedChannel = false;
+
+    let _statusBarActivated = false;
 
     export const updateEditor = debounce(updateEditorImpl, 1000, () => {
+        if (!_statusBarActivated) {
+            return;
+        }
         _onActiveFileStatusCleared.fire(window.activeTextEditor?.document.uri);
         if (_statusBarItem) {
             _statusBarItem.show();
@@ -44,24 +48,28 @@ export namespace Display {
     });
 
     export function initialize(subscriptions: { dispose(): any }[]) {
+        subscriptions.push(commands.registerCommand("perforce.showOutput", showOutput));
+        subscriptions.push(channel);
+
         _statusBarItem = window.createStatusBarItem(
             StatusBarAlignment.Left,
             Number.MIN_VALUE
         );
+
         _statusBarItem.command = "perforce.menuFunctions";
         subscriptions.push(_statusBarItem);
         subscriptions.push(_onActiveFileStatusKnown);
+        subscriptions.push(_onActiveFileStatusCleared);
+
+        subscriptions.push(window.onDidChangeActiveTextEditor(updateEditor));
 
         updateEditor();
     }
 
-    export function initializeChannel(subscriptions: { dispose(): any }[]) {
-        if (!_initialisedChannel) {
-            _initialisedChannel = true;
-            subscriptions.push(
-                commands.registerCommand("perforce.showOutput", showOutput)
-            );
-            subscriptions.push(channel);
+    export function activateStatusBar() {
+        if (!_statusBarActivated) {
+            _statusBarActivated = true;
+            updateEditor();
         }
     }
 
@@ -70,6 +78,10 @@ export namespace Display {
     }
 
     async function updateEditorImpl() {
+        if (!_statusBarActivated) {
+            return;
+        }
+
         const editor = window.activeTextEditor;
         if (!editor) {
             if (_statusBarItem) {
@@ -137,5 +149,39 @@ export namespace Display {
     export function showImportantError(error: string) {
         window.showErrorMessage(error);
         channel.appendLine(`ERROR: ${JSON.stringify(error)}`);
+    }
+
+    export async function doLoginFlow(resource: Uri) {
+        let loggedIn = await p4.isLoggedIn(resource);
+        if (!loggedIn) {
+            const password = await window.showInputBox({
+                prompt: "Enter password",
+                password: true,
+            });
+            if (password) {
+                try {
+                    await p4.login(resource, { password });
+
+                    Display.showMessage("Login successful");
+                    Display.updateEditor();
+                    loggedIn = true;
+                } catch {}
+            }
+        } else {
+            Display.showMessage("Login successful");
+            Display.updateEditor();
+            loggedIn = true;
+        }
+        return loggedIn;
+    }
+
+    export async function doLogoutFlow(resource: Uri) {
+        try {
+            await p4.logout(resource, {});
+            Display.showMessage("Logout successful");
+            Display.updateEditor();
+            return true;
+        } catch {}
+        return false;
     }
 }

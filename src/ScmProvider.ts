@@ -14,15 +14,12 @@ import { Resource } from "./scm/Resource";
 import { Status } from "./scm/Status";
 import { mapEvent } from "./Utils";
 import { FileType } from "./scm/FileTypes";
-import { IPerforceConfig, matchConfig } from "./PerforceService";
 import { WorkspaceConfigAccessor } from "./ConfigService";
 import * as DiffProvider from "./DiffProvider";
 import * as PerforceUri from "./PerforceUri";
+import { ClientRoot } from "./extension";
 
 export class PerforceSCMProvider {
-    private wksFolder: Uri;
-    private config: IPerforceConfig;
-
     private disposables: Disposable[] = [];
     dispose(): void {
         this.disposables.forEach((d) => d.dispose());
@@ -84,18 +81,14 @@ export class PerforceSCMProvider {
     }
 
     constructor(
-        config: IPerforceConfig,
-        wksFolder: Uri,
+        private _clientRoot: ClientRoot,
         private _workspaceConfig: WorkspaceConfigAccessor
     ) {
-        this.wksFolder = wksFolder;
-        this.config = config;
-
         this._model = new Model(
-            this.config,
-            this.wksFolder,
+            this._clientRoot.configSource,
+            this._clientRoot.clientName,
             this._workspaceConfig,
-            scm.createSourceControl(this.id, this.label, Uri.file(this.config.localDir))
+            scm.createSourceControl(this.id, this.label, this._clientRoot.clientRoot)
         );
 
         this.disposables.push(this._model);
@@ -216,6 +209,14 @@ export class PerforceSCMProvider {
             "perforce.unfixJob",
             PerforceSCMProvider.UnfixJob.bind(this)
         );
+        commands.registerCommand(
+            "perforce.loginScm",
+            PerforceSCMProvider.Login.bind(this)
+        );
+        commands.registerCommand(
+            "perforce.logoutScm",
+            PerforceSCMProvider.Logout.bind(this)
+        );
     }
 
     private onDidModelChange(): void {
@@ -223,22 +224,45 @@ export class PerforceSCMProvider {
         commands.executeCommand("setContext", "perforceState", this.stateContextKey);
     }
 
-    private static GetInstance(uri?: Uri | null): PerforceSCMProvider | null {
-        if (!uri) {
-            return PerforceSCMProvider.instances
-                ? PerforceSCMProvider.instances[0]
-                : null;
-        } else {
-            const wksFolder = workspace.getWorkspaceFolder(uri);
-            if (wksFolder) {
-                for (const provider of PerforceSCMProvider.instances) {
-                    if (matchConfig(provider.config, wksFolder.uri)) {
-                        return provider;
-                    }
-                }
-            }
+    private static isSourceControl(arg: any): arg is SourceControl {
+        return arg && arg.inputBox;
+    }
+
+    private static GetInstance(
+        sourceControl?: SourceControl | undefined
+    ): PerforceSCMProvider | undefined {
+        if (!this.isSourceControl(sourceControl)) {
+            return PerforceSCMProvider.instances?.[0];
         }
-        return null;
+        return this.instances.find(
+            (instance) => instance.sourceControl === sourceControl
+        );
+    }
+
+    static isSameClient(a: ClientRoot, b: ClientRoot) {
+        return (
+            a.clientName === b.clientName &&
+            a.clientRoot.fsPath === b.clientRoot.fsPath &&
+            a.userName === b.userName &&
+            a.serverAddress === b.serverAddress
+        );
+    }
+
+    public static GetInstanceByClient(clientRoot: ClientRoot) {
+        // TODO
+        return this.instances.find((instance) =>
+            this.isSameClient(instance._clientRoot, clientRoot)
+        );
+    }
+
+    public static async Login(sourceControl?: SourceControl) {
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl);
+        await perforceProvider?._model.Login();
+    }
+
+    public static async Logout(sourceControl?: SourceControl) {
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl);
+        await perforceProvider?._model.Logout();
     }
 
     public static async OpenFile(...resourceStates: SourceControlResourceState[]) {
@@ -283,16 +307,12 @@ export class PerforceSCMProvider {
     }
 
     public static Sync(sourceControl: SourceControl) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(
-            sourceControl ? sourceControl.rootUri : null
-        );
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl);
         perforceProvider?._model.Sync();
     }
 
     public static async Refresh(sourceControl: SourceControl) {
-        const perforceProvider = PerforceSCMProvider.GetInstance(
-            sourceControl ? sourceControl.rootUri : null
-        );
+        const perforceProvider = PerforceSCMProvider.GetInstance(sourceControl);
         await perforceProvider?._model.RefreshPolitely();
     }
 
@@ -304,16 +324,12 @@ export class PerforceSCMProvider {
     }
 
     public static Info(sourceControl: SourceControl) {
-        const provider = PerforceSCMProvider.GetInstance(
-            sourceControl ? sourceControl.rootUri : null
-        );
+        const provider = PerforceSCMProvider.GetInstance(sourceControl);
         provider?._model.Info();
     }
 
     public static async ProcessChangelist(sourceControl: SourceControl) {
-        const provider = PerforceSCMProvider.GetInstance(
-            sourceControl ? sourceControl.rootUri : null
-        );
+        const provider = PerforceSCMProvider.GetInstance(sourceControl);
         await provider?._model.ProcessChangelist();
     }
 
@@ -332,9 +348,7 @@ export class PerforceSCMProvider {
     }
 
     public static async SubmitDefault(sourceControl: SourceControl) {
-        const provider = PerforceSCMProvider.GetInstance(
-            sourceControl ? sourceControl.rootUri : null
-        );
+        const provider = PerforceSCMProvider.GetInstance(sourceControl);
         await provider?._model.SubmitDefault();
     }
 

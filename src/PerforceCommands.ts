@@ -478,57 +478,29 @@ export namespace PerforceCommands {
     // Try to guess the proper workspace to use
     function guessWorkspaceUri(): Uri {
         if (window.activeTextEditor && !window.activeTextEditor.document.isUntitled) {
-            const wksFolder = workspace.getWorkspaceFolder(
-                window.activeTextEditor.document.uri
-            );
-            if (wksFolder) {
-                return wksFolder.uri;
-            }
+            return window.activeTextEditor.document.uri;
         }
 
         if (workspace.workspaceFolders) {
             return workspace.workspaceFolders[0].uri;
-        } else {
-            return Uri.parse("");
         }
+
+        return Uri.parse("");
     }
 
     export async function logout() {
         const resource = guessWorkspaceUri();
-        try {
-            await p4.logout(resource, {});
-            Display.showMessage("Logout successful");
-            Display.updateEditor();
-            return true;
-        } catch {}
-        return false;
+
+        await Display.doLogoutFlow(resource);
     }
 
     export async function login() {
         const resource = guessWorkspaceUri();
 
-        let loggedIn = await p4.isLoggedIn(resource);
-        if (!loggedIn) {
-            const password = await window.showInputBox({
-                prompt: "Enter password",
-                password: true,
-            });
-            if (password) {
-                try {
-                    await p4.login(resource, { password });
-
-                    Display.showMessage("Login successful");
-                    Display.updateEditor();
-                    loggedIn = true;
-                    PerforceSCMProvider.RefreshAll();
-                } catch {}
-            }
-        } else {
-            Display.showMessage("Login successful");
-            Display.updateEditor();
-            loggedIn = true;
+        const ok = await Display.doLoginFlow(resource);
+        if (ok) {
+            PerforceSCMProvider.RefreshAll();
         }
-        return loggedIn;
     }
 
     export function menuFunctions() {

@@ -6,11 +6,9 @@ import sinonChai from "sinon-chai";
 import * as vscode from "vscode";
 
 import sinon from "sinon";
-import { IPerforceConfig } from "../../PerforceService";
 import { PerforceSCMProvider } from "../../ScmProvider";
 import { PerforceContentProvider } from "../../ContentProvider";
 import { Display, ActiveStatusEvent, ActiveEditorStatus } from "../../Display";
-import { Utils } from "../../Utils";
 import * as PerforceUri from "../../PerforceUri";
 import { Resource } from "../../scm/Resource";
 import { Status } from "../../scm/Status";
@@ -28,6 +26,7 @@ import {
 } from "../helpers/testUtils";
 import { ChangeSpec } from "../../api/CommonTypes";
 import { SubmitChangelistOptions } from "../../api/PerforceApi";
+import { ClientRoot } from "../../extension";
 
 chai.use(sinonChai);
 chai.use(p4Commands);
@@ -193,12 +192,13 @@ describe("Model & ScmProvider modules (integration)", () => {
         },
     };
 
-    const localDir = Utils.normalize(workspaceUri.fsPath) + "/";
-
-    const config: IPerforceConfig = {
-        localDir,
-        p4Client: "cli",
-        p4User: "user",
+    const clientRoot: ClientRoot = {
+        clientName: "cli",
+        userName: "user",
+        clientRoot: workspaceUri,
+        configSource: workspaceUri,
+        isInRoot: true,
+        serverAddress: "somewhere over the rainbow",
     };
 
     let items: TestItems;
@@ -209,7 +209,6 @@ describe("Model & ScmProvider modules (integration)", () => {
         await vscode.commands.executeCommand("workbench.action.closeAllEditors");
         const doc = new PerforceContentProvider();
         outerSubs.push(doc);
-        Display.initialize(outerSubs);
     });
     after(() => {
         outerSubs.forEach((d) => d.dispose());
@@ -236,7 +235,16 @@ describe("Model & ScmProvider modules (integration)", () => {
             // save time on refresh function calls
             sinon.stub(workspaceConfig, "refreshDebounceTime").get(() => 100);
 
-            instance = new PerforceSCMProvider(config, workspaceUri, workspaceConfig);
+            const clientRoot: ClientRoot = {
+                clientName: "cli",
+                userName: "user",
+                clientRoot: workspaceUri,
+                configSource: workspaceUri,
+                isInRoot: true,
+                serverAddress: "somewhere over the rainbow",
+            };
+
+            instance = new PerforceSCMProvider(clientRoot, workspaceConfig);
             subscriptions.push(instance);
         });
         this.afterEach(async () => {
@@ -1012,11 +1020,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             const workspaceConfig = new WorkspaceConfigAccessor(workspaceUri);
             sinon.stub(workspaceConfig, "refreshDebounceTime").get(() => 0);
 
-            const instance = new PerforceSCMProvider(
-                config,
-                workspaceUri,
-                workspaceConfig
-            );
+            const instance = new PerforceSCMProvider(clientRoot, workspaceConfig);
             subscriptions.push(instance);
 
             if (!skipInitialise) {

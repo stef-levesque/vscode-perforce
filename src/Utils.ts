@@ -1,5 +1,4 @@
 import { Event, workspace } from "vscode";
-import { PerforceService } from "./PerforceService";
 
 import * as fs from "fs";
 
@@ -35,7 +34,6 @@ export namespace Utils {
             .replace(/\*/g, "%2A")
             .replace(/#/g, "%23")
             .replace(/@/g, "%40");
-        const relativeToRoot = PerforceService.convertToRel(fixup);
-        return relativeToRoot;
+        return fixup;
     }
 }

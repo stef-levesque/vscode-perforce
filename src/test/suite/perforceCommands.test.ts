@@ -42,7 +42,6 @@ describe("Perforce Command Module (integration)", () => {
     });
 
     beforeEach(() => {
-        Display.initialize(subscriptions);
         stubExecute();
         stubModel = new StubPerforceModel();
         execCommand = sinon.spy(vscode.commands, "executeCommand");
