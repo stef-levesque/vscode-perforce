@@ -19,6 +19,7 @@ import { Display } from "./Display";
 import { PerforceCommands } from "./PerforceCommands";
 import { PerforceSCMProvider } from "./ScmProvider";
 import { ConfigAccessor } from "./ConfigService";
+import * as Path from "path";
 
 export interface FileSystemEventProvider {
     onWillSaveTextDocument: typeof workspace.onWillSaveTextDocument;
@@ -175,8 +176,11 @@ export default class FileSystemActions {
 
         const fullUri = isDirectory ? uri.with({ path: uri.path + "/..." }) : uri;
 
+        // run from the containing location (can't run from the directory as it probably doesn't exist any more)
+        const runFrom = Uri.file(Path.dirname(uri.fsPath));
+
         // DO NOT AWAIT the revert, because we are holding up the deletion
-        PerforceCommands.p4revertAndDelete(fullUri);
+        PerforceCommands.p4revertAndDelete(fullUri, runFrom);
     }
 
     private static shouldExclude(uri: Uri): boolean {

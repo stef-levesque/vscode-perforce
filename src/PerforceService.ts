@@ -130,6 +130,13 @@ export namespace PerforceService {
         });
     }
 
+    async function isDirectory(uri: Uri): Promise<boolean> {
+        try {
+            return (await workspace.fs.stat(uri)).type === FileType.Directory;
+        } catch {}
+        return false;
+    }
+
     async function execCommand(
         resource: Uri,
         command: string,
@@ -147,12 +154,9 @@ export namespace PerforceService {
             allArgs.push(...args);
         }
 
-        const isDirectory =
-            (await workspace.fs.stat(actualResource)).type === FileType.Directory;
+        const isDir = await isDirectory(actualResource);
 
-        const cwd = isDirectory
-            ? actualResource.fsPath
-            : Path.dirname(actualResource.fsPath);
+        const cwd = isDir ? actualResource.fsPath : Path.dirname(actualResource.fsPath);
 
         const env = { ...process.env, PWD: cwd };
         const spawnArgs: CP.SpawnOptions = { cwd, env };

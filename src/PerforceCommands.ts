@@ -152,10 +152,10 @@ export namespace PerforceCommands {
         await p4delete(fileUri);
     }
 
-    export async function p4delete(fileUri: Uri) {
+    export async function p4delete(fileUri: Uri, resource?: Uri) {
         const deleteOpts: p4.DeleteOptions = { paths: [fileUri] };
         try {
-            await p4.del(fileUri, deleteOpts);
+            await p4.del(resource ?? fileUri, deleteOpts);
             Display.showMessage(fileUri.fsPath + " deleted.");
             Display.updateEditor();
             PerforceSCMProvider.RefreshAll();
@@ -179,10 +179,10 @@ export namespace PerforceCommands {
         await p4revert(fileUri);
     }
 
-    export async function p4revert(fileUri: Uri) {
+    export async function p4revert(fileUri: Uri, resource?: Uri) {
         const revertOpts: p4.RevertOptions = { paths: [fileUri] };
         try {
-            await p4.revert(fileUri, revertOpts);
+            await p4.revert(resource ?? fileUri, revertOpts);
             Display.showMessage(fileUri.fsPath + " reverted.");
             Display.updateEditor();
             PerforceSCMProvider.RefreshAll();
@@ -192,9 +192,9 @@ export namespace PerforceCommands {
         }
     }
 
-    export async function p4revertAndDelete(uri: Uri) {
-        await PerforceCommands.p4revert(uri);
-        await PerforceCommands.p4delete(uri);
+    export async function p4revertAndDelete(uri: Uri, resource?: Uri) {
+        await PerforceCommands.p4revert(uri, resource);
+        await PerforceCommands.p4delete(uri, resource);
     }
 
     export async function submitSingle() {
