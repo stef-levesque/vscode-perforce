@@ -2,7 +2,7 @@
     "name": "perforce",
     "displayName": "Perforce for VS Code",
     "description": "(2020 Fork) Perforce integration with VS Code's SCM features",
-    "version": "3.10.0",
+    "version": "4.0.0",
     "publisher": "mjcrouch",
     "license": "MIT",
     "categories": [
