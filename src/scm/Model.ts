@@ -10,7 +10,7 @@ import {
     workspace,
     commands,
 } from "vscode";
-import { WorkspaceConfigAccessor } from "../ConfigService";
+import { WorkspaceConfigAccessor, HideNonWorkspace } from "../ConfigService";
 import * as PerforceUri from "../PerforceUri";
 import { Display, ActiveStatusEvent, ActiveEditorStatus } from "../Display";
 import { Resource } from "./Resource";
@@ -20,6 +20,7 @@ import * as vscode from "vscode";
 import { DebouncedFunction, debounce } from "../Debounce";
 import * as p4 from "../api/PerforceApi";
 import { ChangeInfo, ChangeSpec } from "../api/CommonTypes";
+import { isTruthy } from "../TsUtils";
 
 function isResourceGroup(arg: any): arg is SourceControlResourceGroup {
     return arg && arg.id !== undefined;
@@ -91,19 +92,7 @@ export class Model implements Disposable {
             result.push(this._defaultGroup);
         }
 
-        this._pendingGroups.forEach((value) => {
-            const config = workspace.getConfiguration("perforce");
-            if (
-                config.get<boolean>("hideEmptyChangelists") &&
-                value.group.resourceStates.length === 0
-            ) {
-                value.group.dispose();
-            } else {
-                result.push(value.group);
-            }
-        });
-
-        return result;
+        return result.concat([...this._pendingGroups.values()].map((v) => v.group));
     }
 
     public constructor(
@@ -262,6 +251,10 @@ export class Model implements Disposable {
         return !!clientFile && !!workspace.getWorkspaceFolder(Uri.file(clientFile));
     }
 
+    private isUriInWorkspace(uri?: vscode.Uri): boolean {
+        return !!uri && !!workspace.getWorkspaceFolder(uri);
+    }
+
     public async SaveToChangelist(
         descStr: string,
         existingChangelist?: string
@@ -274,7 +267,10 @@ export class Model implements Disposable {
             existingChangelist,
         });
 
-        if (this._workspaceConfig.hideNonWorkspaceFiles && changeFields.files) {
+        if (
+            this._workspaceConfig.hideNonWorkspaceFiles === HideNonWorkspace.HIDE_FILES &&
+            changeFields.files
+        ) {
             const infos = await p4.getFstatInfo(this._workspaceUri, {
                 depotPaths: changeFields.files.map((file) => file.depotPath),
             });
@@ -389,7 +385,10 @@ export class Model implements Disposable {
         }
 
         if (pick === "Submit") {
-            if (this._workspaceConfig.hideNonWorkspaceFiles) {
+            if (
+                this._workspaceConfig.hideNonWorkspaceFiles ===
+                HideNonWorkspace.HIDE_FILES
+            ) {
                 // TODO - relies on state - i.e. that savetochangelist applies hideNonWorkspaceFiles
                 const changeListNr = await this.SaveToChangelist(descStr);
 
@@ -899,9 +898,8 @@ export class Model implements Disposable {
         const depotPath = Uri.file(fstatInfo["depotFile"]);
 
         const uri = Uri.file(clientFile);
-        if (this._workspaceConfig.hideNonWorkspaceFiles) {
-            const workspaceFolder = workspace.getWorkspaceFolder(uri);
-            if (!workspaceFolder) {
+        if (this._workspaceConfig.hideNonWorkspaceFiles === HideNonWorkspace.HIDE_FILES) {
+            if (!this.isUriInWorkspace(uri)) {
                 return;
             }
         }
@@ -939,20 +937,41 @@ export class Model implements Disposable {
                 !!resource && resource.change === "default"
         );
 
-        const groups = changelists.map((c) => {
-            const group = sc.createResourceGroup(
-                "pending:" + c.chnum,
-                "#" + c.chnum + ": " + c.description
-            ) as ResourceGroup;
-            group.model = this;
-            group.isDefault = false;
-            group.chnum = c.chnum.toString();
-            group.resourceStates = resources.filter(
-                (resource): resource is Resource =>
-                    !!resource && resource.change === c.chnum.toString()
-            );
-            return group;
-        });
+        const groups = changelists
+            .map((c) => {
+                const resourceStates = resources.filter(
+                    (resource) => resource.change === c.chnum.toString()
+                );
+                if (
+                    this._workspaceConfig.hideEmptyChangelists &&
+                    resourceStates.length < 1
+                ) {
+                    return;
+                }
+                if (
+                    this._workspaceConfig.hideNonWorkspaceFiles ===
+                    HideNonWorkspace.HIDE_CHANGELISTS
+                ) {
+                    const onlyHasNonWorkspace =
+                        resourceStates.length > 0 &&
+                        resourceStates.every(
+                            (r) => !this.isUriInWorkspace(r.underlyingUri)
+                        );
+                    if (onlyHasNonWorkspace) {
+                        return;
+                    }
+                }
+                const group = sc.createResourceGroup(
+                    "pending:" + c.chnum,
+                    "#" + c.chnum + ": " + c.description
+                ) as ResourceGroup;
+                group.model = this;
+                group.isDefault = false;
+                group.chnum = c.chnum.toString();
+                group.resourceStates = resourceStates;
+                return group;
+            })
+            .filter(isTruthy);
 
         resources.forEach((resource) => {
             if (!resource.isShelved && resource.underlyingUri) {
@@ -1004,6 +1023,12 @@ export class Model implements Disposable {
             ? Uri.file(fstatInfo["clientFile"])
             : undefined;
 
+        if (this._workspaceConfig.hideNonWorkspaceFiles === HideNonWorkspace.HIDE_FILES) {
+            if (!this.isUriInWorkspace(underlyingUri)) {
+                return;
+            }
+        }
+
         const resource: Resource = new Resource(
             this,
             PerforceUri.fromDepotPath(
@@ -1035,21 +1060,24 @@ export class Model implements Disposable {
 
         return fstatInfo.flatMap((cur, i) =>
             cur
-                .filter((f): f is FstatInfo => !!f)
+                .filter(isTruthy)
                 .map((f) => this.makeResourceForShelvedFile(files[i].chnum.toString(), f))
+                .filter(isTruthy)
         );
     }
 
     private async getDepotOpenedResources(): Promise<Resource[]> {
         const depotPaths = await this.getDepotOpenedFilePaths();
-        const fstatInfo = await p4.getFstatInfo(this._workspaceUri, {
-            depotPaths,
-            outputPendingRecord: true,
-        });
+        const fstatInfo = (
+            await p4.getFstatInfo(this._workspaceUri, {
+                depotPaths,
+                outputPendingRecord: true,
+            })
+        ).filter(isTruthy);
+
         return fstatInfo
-            .filter((info): info is FstatInfo => !!info) // in case fstat doesn't have output for this file
             .map((info) => this.makeResourceForOpenFile(info))
-            .filter((resource): resource is Resource => resource !== undefined); // for files out of workspace
+            .filter(isTruthy); // for files out of workspace
     }
 
     private async getDepotOpenedFilePaths(): Promise<string[]> {

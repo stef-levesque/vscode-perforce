@@ -479,6 +479,13 @@ const settingsRequiringRestart = [
     "perforce.bottleneck.maxConcurrent",
 ];
 
+const settingsRequiringRefresh = [
+    "perforce.hideEmptyChangelists",
+    "perforce.hideNonWorkspaceFiles",
+    "perforce.hideShelvedFiles",
+    "perforce.ignoredChangelistPrefix",
+];
+
 let didShowConfigWarning = false;
 
 async function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
@@ -498,6 +505,12 @@ async function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) 
                 vscode.commands.executeCommand("workbench.action.reloadWindow");
             }
             return;
+        }
+    }
+
+    for (const setting of settingsRequiringRefresh) {
+        if (event.affectsConfiguration(setting)) {
+            PerforceSCMProvider.RefreshAll();
         }
     }
 }

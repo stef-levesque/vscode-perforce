@@ -1,5 +1,11 @@
 import { Uri, workspace } from "vscode";
 
+export enum HideNonWorkspace {
+    SHOW_ALL,
+    HIDE_FILES,
+    HIDE_CHANGELISTS,
+}
+
 export class ConfigAccessor {
     constructor() {
         /**/
@@ -17,8 +23,26 @@ export class ConfigAccessor {
         return this.getConfigItem("ignoredChangelistPrefix");
     }
 
-    public get hideNonWorkspaceFiles(): boolean {
-        return this.getConfigItem("hideNonWorkspaceFiles") ?? false;
+    public get hideNonWorkspaceFiles(): HideNonWorkspace {
+        const val = this.getConfigItem("hideNonWorkspaceFiles");
+        if (typeof val === "boolean") {
+            return val ? HideNonWorkspace.HIDE_FILES : HideNonWorkspace.SHOW_ALL;
+        } else if (typeof val === "string") {
+            if (val === "show all files") {
+                return HideNonWorkspace.SHOW_ALL;
+            }
+            if (val.startsWith("hide changelists")) {
+                return HideNonWorkspace.HIDE_CHANGELISTS;
+            }
+            if (val.startsWith("show all changelists")) {
+                return HideNonWorkspace.HIDE_FILES;
+            }
+        }
+        return HideNonWorkspace.SHOW_ALL;
+    }
+
+    public get hideEmptyChangelists(): boolean {
+        return this.getConfigItem("hideEmptyChangelists") ?? false;
     }
 
     public get hideShelvedFiles(): boolean {

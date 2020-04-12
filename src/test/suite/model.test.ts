@@ -13,7 +13,7 @@ import * as PerforceUri from "../../PerforceUri";
 import { Resource } from "../../scm/Resource";
 import { Status } from "../../scm/Status";
 import p4Commands from "../helpers/p4Commands";
-import { WorkspaceConfigAccessor } from "../../ConfigService";
+import { WorkspaceConfigAccessor, HideNonWorkspace } from "../../ConfigService";
 import { StubPerforceModel, stubExecute, StubFile } from "../helpers/StubPerforceModel";
 
 import {
@@ -172,6 +172,15 @@ describe("Model & ScmProvider modules (integration)", () => {
                 suppressFstatClientFile: true,
                 depotRevision: 1,
                 operation: Status.ADD,
+            };
+        },
+        shelveOutOfWorkspace: () => {
+            return {
+                depotPath: "//depot/outOfWorkspace.txt",
+                localFile: getLocalFile(workspaceUri, "..", "outOfWorkspace.txt"),
+                suppressFstatClientFile: false,
+                depotRevision: 55,
+                operation: Status.EDIT,
             };
         },
         shelveEdit: () => {
@@ -720,7 +729,9 @@ describe("Model & ScmProvider modules (integration)", () => {
             ]);
         });
         it("Can hide non-workspace files", async () => {
-            sinon.stub(workspaceConfig, "hideNonWorkspaceFiles").get(() => true);
+            sinon
+                .stub(workspaceConfig, "hideNonWorkspaceFiles")
+                .get(() => HideNonWorkspace.HIDE_FILES);
 
             stubModel.changelists = [
                 {
@@ -730,6 +741,11 @@ describe("Model & ScmProvider modules (integration)", () => {
                         basicFiles.add(),
                         basicFiles.outOfWorkspaceAdd(),
                         basicFiles.outOfWorkspaceEdit(),
+                    ],
+                    shelvedFiles: [
+                        basicFiles.shelveNoWorkspace(),
+                        basicFiles.shelveOutOfWorkspace(),
+                        basicFiles.shelveEdit(),
                     ],
                 },
             ];
@@ -743,7 +759,55 @@ describe("Model & ScmProvider modules (integration)", () => {
 
             expect(instance.resources[1].id).to.equal("pending:1");
             expect(instance.resources[1].label).to.equal("#1: mixed changelist 1");
-            expect(instance.resources[1].resourceStates).to.be.resources([
+            expect(instance.resources[1].resourceStates).to.have.length(2);
+            expect(
+                instance.resources[1].resourceStates.slice(0, 1)
+            ).to.be.shelvedResources({ chnum: "1" }, [basicFiles.shelveEdit()]);
+            expect(instance.resources[1].resourceStates.slice(1, 2)).to.be.resources([
+                basicFiles.add(),
+            ]);
+        });
+        it("Can hide non-empty changelists with only non-workspace files", async () => {
+            sinon
+                .stub(workspaceConfig, "hideNonWorkspaceFiles")
+                .get(() => HideNonWorkspace.HIDE_CHANGELISTS);
+
+            stubModel.changelists = [
+                {
+                    chnum: "1",
+                    description: "non-workspace changelist",
+                    files: [
+                        basicFiles.outOfWorkspaceAdd(),
+                        basicFiles.outOfWorkspaceEdit(),
+                    ],
+                },
+                {
+                    chnum: "2",
+                    description: "empty changelist",
+                    files: [],
+                },
+                {
+                    chnum: "3",
+                    description: "mixed changelist",
+                    files: [basicFiles.add()],
+                    shelvedFiles: [basicFiles.shelveNoWorkspace()],
+                },
+            ];
+
+            await instance.Initialize();
+
+            expect(instance.resources).to.have.lengthOf(3);
+
+            expect(instance.resources[0].id).to.equal("default");
+            expect(instance.resources[0].resourceStates).to.be.empty;
+            expect(instance.resources[1].id).to.equal("pending:2");
+            expect(instance.resources[1].resourceStates).to.be.empty;
+            expect(instance.resources[2].id).to.equal("pending:3");
+            expect(instance.resources[2].resourceStates).to.have.length(2);
+            expect(
+                instance.resources[2].resourceStates.slice(0, 1)
+            ).to.be.shelvedResources({ chnum: "3" }, [basicFiles.shelveNoWorkspace()]);
+            expect(instance.resources[2].resourceStates.slice(1, 2)).to.be.resources([
                 basicFiles.add(),
             ]);
         });
@@ -1984,7 +2048,7 @@ describe("Model & ScmProvider modules (integration)", () => {
             it("Excludes files not in the workspace when configured to hide them", async () => {
                 sinon
                     .stub(items.workspaceConfig, "hideNonWorkspaceFiles")
-                    .get(() => true);
+                    .get(() => HideNonWorkspace.HIDE_FILES);
 
                 sinon.stub(vscode.window, "showInputBox").resolves("my description");
 

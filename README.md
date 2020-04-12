@@ -339,7 +339,7 @@ You can specify how you want the extension to activate by setting the parameter 
 |`perforce.changelistOrder`         |`string`   |Specifies the direction of the chnagelist sorting (`descending`,`ascending`)
 |`perforce.scmFileChanges`          |`boolean`  |Open file changes when selected in SCM Explorer
 |`perforce.ignoredChangelistPrefix` |`string`   |Specifies the prefix of the changelists to be ignored.
-|`perforce.hideNonWorkspaceFiles`   |`boolean`  |Hide non workspace files in the SCM Explorer. Default changelist only submits files that are opened in current workspace. Warning: If you submit other changelists than the default it will submit files that are not visible.
+|`perforce.hideNonWorkspaceFiles`   |`enum`     |Controls how files outside of the current VS Code workspace are shown in the SCM Provider
 |`perforce.swarmHost`               |`string`   |Specifies the hostname of the Swarm server for annotation links. (`https://localhost`)
 |`perforce.hideShelvedFiles`        |`boolean`  |Hide shelved files in the SCM Explorer.
 |`perforce.hideEmptyChangelists`    |`boolean`  |Hide changelists with no file in the SCM Explorer.

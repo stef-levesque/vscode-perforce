@@ -2,7 +2,7 @@
     "perforce.client": "",
     "perforce.user": "",
     "perforce.bottleneck.maxConcurrent": 1000,
-    "perforce.hideNonWorkspaceFiles": false,
+    "perforce.hideNonWorkspaceFiles": "show all files",
     "perforce.hideShelvedFiles": false,
     "perforce.activationMode": "autodetect",
     "perforce.promptBeforeSubmit": false,

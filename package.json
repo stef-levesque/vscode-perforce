@@ -222,9 +222,14 @@
                     "description": "Specifies the prefix of the changelists to be ignored."
                 },
                 "perforce.hideNonWorkspaceFiles": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Don't show files that are not in the current opened workspace. Default changelist only submits files that are opened in current workspace.  Warning: If you submit other changelists than the default it will submit files that are not visible."
+                    "type": "string",
+                    "enum": [
+                        "show all files",
+                        "hide changelists that contain ONLY non-workspace files, but show non-workspace files in other changelists",
+                        "show all changelists, but hide all non-workspace files within them (see WARNING)"
+                    ],
+                    "default": "show all files",
+                    "description": "Controls how files outside of the current VS Code workspace are shown in the SCM Provider. WARNING: If you select `hide all non-workspace files`, and submit changelists other than the default, it will submit files that are not visible! It is recommeded to hide changelists instead"
                 },
                 "perforce.hideShelvedFiles": {
                     "type": "boolean",
