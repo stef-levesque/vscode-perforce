@@ -21,6 +21,7 @@ import { isTruthy } from "./TsUtils";
 let _isRegistered = false;
 const _disposable: vscode.Disposable[] = [];
 let _perforceContentProvider: PerforceContentProvider | undefined;
+const _dirsWithNoClient = new Set<string>();
 
 function logInitProgress(uri: vscode.Uri, message: string) {
     Display.channel.appendLine("> " + uri + ": " + message);
@@ -206,7 +207,8 @@ function getOverrideInfo(workspaceUri: vscode.Uri) {
 }
 
 function initClientRoot(workspaceUri: vscode.Uri, client: ClientRoot): boolean {
-    if (PerforceSCMProvider.GetInstanceByClient(client)) {
+    const existing = PerforceSCMProvider.GetInstanceByClient(client);
+    if (existing) {
         logInitProgress(
             workspaceUri,
             "SCM provider already exists for " +
@@ -216,6 +218,9 @@ function initClientRoot(workspaceUri: vscode.Uri, client: ClientRoot): boolean {
                 " - not creating another for source : " +
                 client.configSource.fsPath
         );
+
+        existing.addContributingDir(client.configSource);
+
         return false;
     } else {
         logInitProgress(
@@ -228,17 +233,24 @@ function initClientRoot(workspaceUri: vscode.Uri, client: ClientRoot): boolean {
                 client.configSource.fsPath
         );
 
-        const workspaceConfig = new WorkspaceConfigAccessor(client.configSource); // TODO doesn't make sense any more
-        const scm = new PerforceSCMProvider(client, workspaceConfig);
+        const scm = initScmProvider(client);
+        scm.addContributingDir(client.configSource);
 
-        scm.Initialize();
-        _disposable.push(scm);
-        _disposable.push(new FileSystemActions(vscode.workspace, workspaceConfig));
-
-        doOneTimeRegistration();
-        Display.activateStatusBar();
         return true;
     }
+}
+
+function initScmProvider(client: ClientRoot): PerforceSCMProvider {
+    const workspaceConfig = new WorkspaceConfigAccessor(client.configSource); // TODO doesn't make sense any more
+    const scm = new PerforceSCMProvider(client, workspaceConfig);
+
+    scm.Initialize();
+    _disposable.push(scm);
+    _disposable.push(new FileSystemActions(vscode.workspace, workspaceConfig));
+
+    doOneTimeRegistration();
+    Display.activateStatusBar();
+    return scm;
 }
 
 function initClientRoots(workspaceUri: vscode.Uri, ...clientRoots: ClientRoot[]) {
@@ -398,9 +410,21 @@ async function initWorkspace(wksFolder: vscode.WorkspaceFolder) {
     // folders are files are removed we know if we still need the scm provider
 }
 
-export function activate(ctx: vscode.ExtensionContext): void {
+function removeWorkspace(wksFolder: vscode.WorkspaceFolder) {
+    logInitProgress(
+        wksFolder.uri,
+        "This workspace was removed. Checking for SCM providers that used it"
+    );
+    PerforceSCMProvider.removeContributingDirsUnder(wksFolder.uri);
+}
+
+export async function activate(ctx: vscode.ExtensionContext) {
     // ALWAYS register the edit and save command
     PerforceCommands.registerImportantCommands(_disposable);
+
+    ctx.subscriptions.push(
+        new vscode.Disposable(() => Disposable.from(..._disposable).dispose())
+    );
 
     const activationMode = vscode.workspace
         .getConfiguration("perforce")
@@ -415,32 +439,32 @@ export function activate(ctx: vscode.ExtensionContext): void {
         Display.activateStatusBar();
     }
 
-    QuickPicks.registerQuickPicks();
-
-    ctx.subscriptions.push(
-        new vscode.Disposable(() => Disposable.from(..._disposable).dispose())
-    );
-
     vscode.workspace.onDidChangeWorkspaceFolders(
         onDidChangeWorkspaceFolders,
         null,
         ctx.subscriptions
     );
-    onDidChangeWorkspaceFolders({
-        added: vscode.workspace.workspaceFolders || [],
-        removed: [],
-    });
 
     vscode.workspace.onDidChangeConfiguration(
         onDidChangeConfiguration,
         null,
         ctx.subscriptions
     );
+
+    await onDidChangeWorkspaceFolders({
+        added: vscode.workspace.workspaceFolders || [],
+        removed: [],
+    });
+
+    // don't get events for these when the editor first loads
+    vscode.workspace.textDocuments.map(onDidOpenTextDocument);
 }
 
 function doOneTimeRegistration() {
     if (!_isRegistered) {
         _isRegistered = true;
+
+        QuickPicks.registerQuickPicks();
 
         Display.channel.appendLine(
             "Performing one-time registration of perforce commands"
@@ -457,6 +481,9 @@ function doOneTimeRegistration() {
                 _perforceContentProvider?.requestUpdatedDocument(uri)
             )
         );
+
+        _disposable.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
+        _disposable.push(vscode.workspace.onDidCloseTextDocument(onDidCloseTextDocument));
 
         // todo: fix dependency / order of operations issues
         PerforceCommands.registerCommands();
@@ -488,36 +515,62 @@ const settingsRequiringRefresh = [
 
 let didShowConfigWarning = false;
 
-async function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
-    if (didShowConfigWarning) {
-        return;
-    }
-
-    for (const setting of settingsRequiringRestart) {
+function checkSettings(
+    event: vscode.ConfigurationChangeEvent,
+    settings: string[],
+    action: (setting: string) => void | Promise<void>,
+    breakOnMatch?: boolean
+) {
+    for (const setting of settings) {
         if (event.affectsConfiguration(setting)) {
-            didShowConfigWarning = true;
-            const restart = "Restart Now";
-            const answer = await vscode.window.showWarningMessage(
-                "You have changed a perforce setting that may require a restart to take effect. When you are done, please restart VS Code",
-                restart
-            );
-            if (answer === restart) {
-                vscode.commands.executeCommand("workbench.action.reloadWindow");
+            action(setting);
+            if (breakOnMatch) {
+                break;
             }
-            return;
-        }
-    }
-
-    for (const setting of settingsRequiringRefresh) {
-        if (event.affectsConfiguration(setting)) {
-            PerforceSCMProvider.RefreshAll();
         }
     }
 }
 
-async function onDidChangeWorkspaceFolders({
-    added,
-}: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
+function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+    if (!didShowConfigWarning) {
+        checkSettings(
+            event,
+            settingsRequiringRestart,
+            async () => {
+                didShowConfigWarning = true;
+                const restart = "Restart Now";
+                const answer = await vscode.window.showWarningMessage(
+                    "You have changed a perforce setting that may require a restart to take effect. When you are done, please restart VS Code",
+                    restart
+                );
+                if (answer === restart) {
+                    vscode.commands.executeCommand("workbench.action.reloadWindow");
+                }
+            },
+            true
+        );
+    }
+    checkSettings(
+        event,
+        settingsRequiringRefresh,
+        () => PerforceSCMProvider.RefreshAll(),
+        true
+    );
+    if (
+        event.affectsConfiguration("perforce.scm.activateOnFileOpen") &&
+        vscode.workspace.getConfiguration("perforce").get("scm.activateOnFileOpen") &&
+        getActivationMode() !== "off"
+    ) {
+        // refresh the set of open documents when enabled
+        vscode.workspace.textDocuments.map(onDidOpenTextDocument);
+    }
+}
+
+async function onDidChangeWorkspaceFolders(
+    event: vscode.WorkspaceFoldersChangeEvent
+): Promise<void> {
+    const added = event.added;
+    const removed = event.removed;
     Display.channel.appendLine(
         "==============================\nWorkspace folders changed. Starting initialisation.\n"
     );
@@ -539,7 +592,114 @@ async function onDidChangeWorkspaceFolders({
         Display.channel.appendLine("Error: " + err);
     }
 
+    try {
+        if (removed.length > 0) {
+            Display.channel.appendLine("Workspaces were removed");
+            for (const workspace of removed) {
+                removeWorkspace(workspace);
+            }
+            const removedScms = PerforceSCMProvider.disposeInstancesWithoutContributors();
+
+            Display.channel.appendLine(
+                "\t>>> Removed " +
+                    removedScms.length +
+                    " SCM provider(s) with no remaining contributing workspaces"
+            );
+        }
+    } catch (err) {
+        Display.channel.appendLine("Error: " + err);
+    }
+
     Display.channel.appendLine(
         "\nInitialisation finished\n==============================\n"
     );
+}
+
+function logFileMessage(file: vscode.Uri, message: string, debug?: boolean) {
+    if (debug && !vscode.workspace.getConfiguration("perforce").get("debugModeActive")) {
+        return;
+    }
+    Display.channel.appendLine("\t>>> " + Path.basename(file.fsPath) + " : " + message);
+}
+
+async function initForUnknownDoc(event: vscode.TextDocument) {
+    const uri = event.uri;
+    const dir = vscode.Uri.file(Path.dirname(uri.fsPath));
+
+    if (_dirsWithNoClient.has(dir.fsPath)) {
+        logFileMessage(uri, "Already determined no client here", true);
+        return;
+    }
+
+    const client = await findClientRoot(dir);
+    logFileMessage(uri, clientRootLog(uri.fsPath, client), true);
+    if (client && (client.isInRoot || client?.isAboveRoot)) {
+        const instance = PerforceSCMProvider.GetInstanceByClient(client);
+        if (instance) {
+            logFileMessage(
+                uri,
+                "Already have an SCM provider for client " + client.clientName,
+                true
+            );
+            instance.addContributingDoc(event);
+        } else {
+            logFileMessage(
+                uri,
+                "Creating SCM provider for " +
+                    client.clientName +
+                    " @ " +
+                    client.clientRoot.fsPath +
+                    " because of source " +
+                    uri.fsPath
+            );
+            const scm = initScmProvider(client);
+            scm.addContributingDoc(event);
+        }
+    } else {
+        _dirsWithNoClient.add(dir.fsPath);
+        logFileMessage(uri, "NOT creating an SCM provider", true);
+    }
+}
+
+async function onDidOpenTextDocument(event: vscode.TextDocument) {
+    const uri = event.uri;
+    if (uri.scheme !== "file") {
+        return;
+    }
+    if (!vscode.workspace.getConfiguration("perforce").get("scm.activateOnFileOpen")) {
+        return;
+    }
+    logFileMessage(uri, "Editor opened " + event.uri.fsPath, true);
+    if (!PerforceSCMProvider.checkAndAddContributingDoc(event)) {
+        await initForUnknownDoc(event);
+    } else {
+        logFileMessage(
+            uri,
+            "Already have an SCM provider for this doc or a parent directory",
+            true
+        );
+    }
+}
+
+function onDidCloseTextDocument(event: vscode.TextDocument) {
+    if (event.uri.scheme !== "file") {
+        return;
+    }
+
+    // even if de-activation is disabled, keep track of which files were removed
+    const removedFrom = PerforceSCMProvider.removeContributingDoc(event);
+
+    if (!vscode.workspace.getConfiguration("perforce").get("scm.deactivateOnFileClose")) {
+        return;
+    }
+    if (removedFrom.length > 0) {
+        logFileMessage(
+            event.uri,
+            "Closed document " +
+                event.uri.fsPath +
+                " WAS contributing to an SCM provider. Checking if it can be removed"
+        );
+        const removed = PerforceSCMProvider.disposeInstancesWithoutContributors();
+        logFileMessage(event.uri, "Removed " + removed.length + " SCM providers");
+    }
 }

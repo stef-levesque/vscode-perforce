@@ -114,6 +114,7 @@ Internally, almost every feature has been refactored, rewritten or touched in so
 
 This fork fixes many issues from the original extension and adds a variety of other new features. A few more examples:
 
+* Automatically creates an SCM provider to manage changelists when you open a file from a different perforce client
 * Adds support for attaching jobs to changelists
 * Improved support for shelved files & changelists
 * Supports multiple P4CONFIG files in the same workspace
@@ -172,6 +173,8 @@ To see the output log, you can run the command "Perforce: Show Output", or you c
 The best way to setup your perforce workspace is using perforce's own standard behaviour and tools.
 
 The perforce extension works by running the standard p4 command line interface. If you can run perforce commands in your workspace directory without any additional setup, then you *should* in most cases be able to use the perforce extension without extra configuration.
+
+Having your perforce environment set up correctly also makes it possible to run commands and see changelists when you open a file from another folder, not in your workspace or current client - so this method is almost always better than overriding settings within VS Code!
 
 #### The simplest setup
 
@@ -269,7 +272,7 @@ The following VS Code settings will run all perforce commands using a specific u
 
 Remember that VS Code's settings operate in a hierarchy of `user` and `workspace`. These can be placed in the `settings.json` for your workspace, or in your user level settings.
 
-For example, If you set your `perforce.client` in the `user` level of the hierarchy, it will override the perforce client in **all** of your VS Code workspaces / windows - this may be undesirable. If you override the client, you **cannot** then create a P4CONFIG file that uses a different client, because it will run all commands using the manual override.
+For example, If you set your `perforce.client` in the `user` level of the hierarchy, it will override the perforce client in **all** of your VS Code workspaces / windows - this may be undesirable. If you override the client, you **cannot** then create a P4CONFIG file that uses a different client, and if you open files from a different perforce client, you will **not** be able to run perforce operations on them, because it will run all commands using the manual override.
 
 If you always connect to one server and host, You could set `perforce.user` and `perforce.port` at the `user` level, and then apply the `perforce.client` setting in each workspace.
 
@@ -295,12 +298,13 @@ You can specify how you want the extension to activate by setting the parameter 
 * `autodetect` (default)
   * The Source Control Provider and 'P4' status bar icon will only activate if it detects a valid perforce client that contains the workspace root, or a usable `.p4config` file in the workspace
   * If one is not detected, you will be able to view the perforce output log to see why the extension did not activate
-  * You will still be able to run commands on files that *are* in a proper perforce client, but only via the command palette and not via the status bar
+  * When you open files outside of the workspace, we attempt to detect the correct perforce client. If this works:
+    * You will be able to run commands on those files using the status bar or command palette
+    * An SCM provider will be created automatically for that client, unless `perforce.scm.activateOnFileOpen` is disabled
 * `always`
   * Always tries to activate the SCM Provider if any perforce client is detected, even if it's in a totally different directory
   * Always activates the 'P4' status bar icon
-  * This will allow you to manage changelists in your 'default' client, but is unlikely to be useful for files in the current VS Code workspace.
-  * This setting may be particularly useful if you work with files outside of the VS Code workspace, or without a VS Code workspace at-all
+  * This will allow you to manage changelists in your 'default' client, but is unlikely to be useful for files in the current VS Code workspace
 * `off`
   * Don't try to activate SCM Providers
   * No perforce log output will be produced
@@ -333,6 +337,9 @@ You can specify how you want the extension to activate by setting the parameter 
 |&nbsp; 
 |`perforce.activationMode`          |`string`   |Controls when to activate the extension (`always`,`autodetect`,`off`)
 |`perforce.enableP4ConfigScanOnStartup` | `boolean` | When enabled (default), the extension scans the workspace for `P4CONFIG` files on startup. In large workspaces without `P4CONFIG` files this can be disabled to improve performance
+|`perforce.scm.activateOnFileOpen`  | `boolean` | Controls whether the extension attempts to create an SCM provider each time a file outside of a known perforce client workspace is opened
+|`perforce.scm.deactivateOnFileClose` | `boolean` | Controls whether an SCM provider is de-activated when there are no more related files or folders open in the editor
+|&nbsp;
 |`perforce.countBadge`              |`string`   |Controls the badge counter for Perforce (`all`,`off`)
 |`perforce.annotate.followBranches` |`boolean`  |Whether to follow branch actions when annotating a file
 |`perforce.annotate.gutterColumns`  |`object`   |**Experimental** Format for annotation summary messages

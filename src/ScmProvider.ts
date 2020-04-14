@@ -8,6 +8,7 @@ import {
     SourceControlResourceState,
     Event,
     workspace,
+    TextDocument,
 } from "vscode";
 import { Model, ResourceGroup } from "./scm/Model";
 import { Resource } from "./scm/Resource";
@@ -18,6 +19,7 @@ import { WorkspaceConfigAccessor } from "./ConfigService";
 import * as DiffProvider from "./DiffProvider";
 import * as PerforceUri from "./PerforceUri";
 import { ClientRoot } from "./extension";
+import * as Path from "path";
 
 export class PerforceSCMProvider {
     private disposables: Disposable[] = [];
@@ -31,6 +33,25 @@ export class PerforceSCMProvider {
             PerforceSCMProvider.instances.splice(pos, 1);
         }
     }
+
+    /**
+     * The set of directories that would cause the SCM provider to be created on
+     * initialisation, i.e. as a result of initWorkspace and **no other reason**
+     * Contains URI fsPath as a string
+     */
+    private _contributingDirs: Set<string>;
+    /**
+     * the set of directories that are known to contain contributing *files*
+     * just to shortcut the p4 info - if a file is not in a contributingDir but is
+     * under a nonContributingDir then it can be added to contributingDocs. Items
+     * in this set will not keep the scm provider alive
+     */
+    private _nonContributingDirs: Set<string>;
+    /**
+     * the set of text documents that cause the SCM provider to exist and remain
+     * active as long as they are open
+     */
+    private _contributingDocs: Set<TextDocument>;
 
     private static instances: PerforceSCMProvider[] = [];
     private _model: Model;
@@ -84,14 +105,24 @@ export class PerforceSCMProvider {
         private _clientRoot: ClientRoot,
         private _workspaceConfig: WorkspaceConfigAccessor
     ) {
+        this._contributingDirs = new Set<string>();
+        this._nonContributingDirs = new Set<string>();
+        this._contributingDocs = new Set<TextDocument>();
+
+        const sourceControl = scm.createSourceControl(
+            this.id,
+            this.label,
+            this._clientRoot.clientRoot
+        );
+
         this._model = new Model(
             this._clientRoot.configSource,
             this._clientRoot.clientName,
             this._workspaceConfig,
-            scm.createSourceControl(this.id, this.label, this._clientRoot.clientRoot)
+            sourceControl
         );
 
-        this.disposables.push(this._model);
+        this.disposables.push(this._model, sourceControl);
 
         PerforceSCMProvider.instances.push(this);
         this._model._sourceControl.quickDiffProvider = this;
@@ -111,6 +142,99 @@ export class PerforceSCMProvider {
 
     public async Initialize() {
         await this._model.RefreshImmediately();
+    }
+
+    public addContributingDir(dir: Uri) {
+        this._contributingDirs.add(dir.fsPath);
+    }
+
+    private isInDir(dir: string, subDir: string) {
+        const relative = Path.relative(dir, subDir);
+        const isSubdir =
+            !relative || (!relative.startsWith("..") && !Path.isAbsolute(relative));
+        return isSubdir;
+    }
+
+    public removeContributingDirsUnder(dir: Uri) {
+        this._contributingDirs.forEach((cd) => {
+            if (this.isInDir(dir.fsPath, cd)) {
+                this._contributingDirs.delete(cd);
+            }
+        });
+    }
+
+    public addContributingDoc(doc: TextDocument) {
+        this._contributingDocs.add(doc);
+        this._nonContributingDirs.add(Path.dirname(doc.uri.fsPath));
+    }
+
+    public removeContributingDoc(doc: TextDocument): boolean {
+        return this._contributingDocs.delete(doc);
+    }
+
+    public hasContributingDirFor(doc: TextDocument) {
+        for (const dir of this._contributingDirs) {
+            if (this.isInDir(dir, doc.uri.fsPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public hasNonContributingDirFor(doc: TextDocument) {
+        for (const dir of this._nonContributingDirs) {
+            if (this.isInDir(dir, doc.uri.fsPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public checkAndAddContributingDoc(doc: TextDocument): boolean {
+        if (this._contributingDocs.has(doc)) {
+            return true;
+        }
+        if (this.hasContributingDirFor(doc)) {
+            // don't add - it's the dir that causes it to be added or removed
+            return true;
+        }
+        if (this.hasNonContributingDirFor(doc)) {
+            this.addContributingDoc(doc);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not there are still any contributing documents or workspaces open
+     */
+    public hasContributors() {
+        return this._contributingDirs.size > 0 || this._contributingDocs.size > 0;
+    }
+
+    public static checkAndAddContributingDoc(doc: TextDocument): boolean {
+        for (const instance of this.instances) {
+            if (instance.checkAndAddContributingDoc(doc)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static removeContributingDirsUnder(dir: Uri) {
+        this.instances.forEach((instance) => instance.removeContributingDirsUnder(dir));
+    }
+
+    public static removeContributingDoc(doc: TextDocument): PerforceSCMProvider[] {
+        return this.instances.filter((instance) => instance.removeContributingDoc(doc));
+    }
+
+    public static disposeInstancesWithoutContributors() {
+        const removed = this.instances.filter((instance) => !instance.hasContributors());
+        this.instances = this.instances.filter((instance) => instance.hasContributors());
+
+        removed.forEach((r) => r.dispose());
+        return removed;
     }
 
     public static registerCommands() {
