@@ -65,7 +65,9 @@ describe("Perforce Uris", () => {
             expect(uri.scheme).to.equal("perforce");
             expect(uri.authority).to.equal("depot");
             expect(uri.path).to.equal("/my/path/file.txt");
-            expect(uri.query).to.equal("command=print&p4Args=-q&depot&" + workspaceArg);
+            expect(uri.query).to.equal(
+                "command=print&p4Args=-q&depot&" + workspaceArg + "&depotName=depot"
+            );
             expect(uri.fragment).to.equal("2");
         });
         it("Has an optional revision", () => {
@@ -73,7 +75,9 @@ describe("Perforce Uris", () => {
             expect(uri.scheme).to.equal("perforce");
             expect(uri.authority).to.equal("depot");
             expect(uri.path).to.equal("/my/path/file.txt");
-            expect(uri.query).to.equal("command=print&p4Args=-q&depot&" + workspaceArg);
+            expect(uri.query).to.equal(
+                "command=print&p4Args=-q&depot&" + workspaceArg + "&depotName=depot"
+            );
             expect(uri.fragment).to.equal("");
         });
     });
@@ -94,6 +98,7 @@ describe("Perforce Uris", () => {
             expect(augmented.query).to.equal(
                 "command=print&p4Args=-q&depot&" +
                     workspaceArg +
+                    "&depotName=depot" +
                     "&leftUri=" +
                     encodeURIComponent(left.toString())
             );
@@ -102,14 +107,14 @@ describe("Perforce Uris", () => {
             const uri = PerforceUri.fromDepotPath(localUri, depotPath, "2");
             const augmented = PerforceUri.withArgs(uri, { p4Args: "hello" });
             expect(augmented.query).to.equal(
-                "command=print&p4Args=hello&depot&" + workspaceArg
+                "command=print&p4Args=hello&depot&" + workspaceArg + "&depotName=depot"
             );
         });
         it("Accepts an optional revision", () => {
             const uri = PerforceUri.fromDepotPath(localUri, depotPath, "2");
             const augmented = PerforceUri.withArgs(uri, { p4Args: "hello" }, "3");
             expect(augmented.query).to.equal(
-                "command=print&p4Args=hello&depot&" + workspaceArg
+                "command=print&p4Args=hello&depot&" + workspaceArg + "&depotName=depot"
             );
             expect(augmented.fragment).to.equal("3");
         });
@@ -117,7 +122,7 @@ describe("Perforce Uris", () => {
             const uri = PerforceUri.fromDepotPath(localUri, depotPath, "2");
             const augmented = PerforceUri.withArgs(uri, { p4Args: "hello" });
             expect(augmented.query).to.equal(
-                "command=print&p4Args=hello&depot&" + workspaceArg
+                "command=print&p4Args=hello&depot&" + workspaceArg + "&depotName=depot"
             );
             expect(augmented.fragment).to.equal("2");
         });
@@ -182,6 +187,11 @@ describe("Perforce Uris", () => {
         it("Can determine a valid path from a Uri", () => {
             const depotUri = PerforceUri.fromDepotPath(localUri, depotPath, "2");
             expect(PerforceUri.getDepotPathFromDepotUri(depotUri)).to.be.equal(depotPath);
+        });
+        it("Uses correct case for the depot name", () => {
+            const path = "//DepOt/myFile";
+            const depotUri = PerforceUri.fromDepotPath(localUri, path, "2");
+            expect(PerforceUri.getDepotPathFromDepotUri(depotUri)).to.be.equal(path);
         });
     });
 });
