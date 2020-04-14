@@ -147,7 +147,7 @@
                         "description|22",
                         "->timeAgo|14"
                     ],
-                    "description": "EXPERIMENTAL - SUBJECT TO CHANGE\nThe format for displaying summary text for perforce annotations. Each line represents a column, followed by its default length. The following flags may appear before the column name, IN THIS ORDER:\n-> : align right,\n{text} : prefix text,\n... : truncate from the beginning, instead of the end\n\nThe following columns are supported:\nrevision, chnum, user, client, description, timeAgo",
+                    "description": "EXPERIMENTAL - SUBJECT TO CHANGE\nThe format for displaying summary text for perforce annotations.\nEach line represents a column, followed by its default length.\n\nThe following flags may appear before the column name, IN THIS ORDER:\n   -> : align text to the right, when the text does not fill the column (preceding fields will reclaim spaces)\n   {text} : prefix text with the value in curly braces\n   ... : truncate the text from the beginning, instead of the end\n\nThe following columns are supported:\nrevision, chnum, user, client, description, timeAgo\n\nFor example, a column '{@}...user|5' will turn the username 'Xavier' into '@…vier'",
                     "items": {
                         "type": "string",
                         "pattern": "^(->)?(\\{.*?\\})?(\\.{3})?(revision|chnum|user|client|description|timeAgo)\\|\\d+$"
