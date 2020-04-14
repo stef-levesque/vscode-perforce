@@ -253,7 +253,7 @@
                 },
                 "perforce.swarmHost": {
                     "type": "string",
-                    "description": "Specifies the host of the Swarm server for annotation links"
+                    "description": "Specifies the host of the Swarm server, allowing you to open the review for a changelist from the SCM provider, annotations and the changelist quick pick. Include the protocol, e.g. https://my_swarm_host\n\nIf you use another changelist-based review tool, enter the full URL for a review request, including the term `${chnum}`, which will be replaced with the changelist number. e.g. http://reviews/search/?q=${chnum}"
                 },
                 "perforce.hideSubmitIcon": {
                     "type": "boolean",
@@ -531,6 +531,12 @@
                 "category": "Perforce",
                 "icon": "$(git-commit)",
                 "enablement": "perforce.currentFile.hasRevision"
+            },
+            {
+                "command": "perforce.openReviewTool",
+                "title": "Open changelist in review tool",
+                "category": "Perforce",
+                "icon": "$(eye)"
             }
         ],
         "menus": {
@@ -625,6 +631,10 @@
                 },
                 {
                     "command": "perforce.logoutScm",
+                    "when": "0"
+                },
+                {
+                    "command": "perforce.openReviewTool",
                     "when": "0"
                 }
             ],
@@ -749,6 +759,11 @@
                 {
                     "command": "perforce.describe",
                     "when": "scmProvider == perforce",
+                    "group": "4_info"
+                },
+                {
+                    "command": "perforce.openReviewTool",
+                    "when": "scmProvider == perforce && scmResourceGroup != default && config.perforce.swarmHost",
                     "group": "4_info"
                 }
             ],

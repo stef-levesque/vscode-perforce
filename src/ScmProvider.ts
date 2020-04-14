@@ -9,17 +9,19 @@ import {
     Event,
     workspace,
     TextDocument,
+    env,
 } from "vscode";
 import { Model, ResourceGroup } from "./scm/Model";
 import { Resource } from "./scm/Resource";
 import { Status } from "./scm/Status";
 import { mapEvent } from "./Utils";
 import { FileType } from "./scm/FileTypes";
-import { WorkspaceConfigAccessor } from "./ConfigService";
+import { WorkspaceConfigAccessor, ConfigAccessor } from "./ConfigService";
 import * as DiffProvider from "./DiffProvider";
 import * as PerforceUri from "./PerforceUri";
 import { ClientRoot } from "./extension";
 import * as Path from "path";
+import { Display } from "./Display";
 
 export class PerforceSCMProvider {
     private disposables: Disposable[] = [];
@@ -52,6 +54,8 @@ export class PerforceSCMProvider {
      * active as long as they are open
      */
     private _contributingDocs: Set<TextDocument>;
+
+    private static _config: ConfigAccessor = new ConfigAccessor();
 
     private static instances: PerforceSCMProvider[] = [];
     private _model: Model;
@@ -341,6 +345,10 @@ export class PerforceSCMProvider {
             "perforce.logoutScm",
             PerforceSCMProvider.Logout.bind(this)
         );
+        commands.registerCommand(
+            "perforce.openReviewTool",
+            PerforceSCMProvider.OpenChangelistInReviewTool.bind(this)
+        );
     }
 
     private onDidModelChange(): void {
@@ -623,6 +631,22 @@ export class PerforceSCMProvider {
         const model: Model = input.model;
         if (model) {
             await model.UnfixJob(input);
+        }
+    }
+
+    public static OpenChangelistInReviewTool(input: ResourceGroup) {
+        const link = this._config.getSwarmLink(input.chnum);
+        if (!link) {
+            throw new Error("perforce.swarmHost has not been configured");
+        }
+        try {
+            env.openExternal(Uri.parse(link, true));
+        } catch {
+            Display.showImportantError(
+                "Could not open swarm link " +
+                    link +
+                    " - Have you included the protocol? (e.g. https://)"
+            );
         }
     }
 

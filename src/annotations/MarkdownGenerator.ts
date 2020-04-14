@@ -5,13 +5,16 @@ import * as PerforceUri from "../PerforceUri";
 import * as DiffProvider from "../DiffProvider";
 import { isTruthy } from "../TsUtils";
 import { toReadableDateTime } from "../DateFormatter";
+import { ConfigAccessor } from "../ConfigService";
+
+const _config = new ConfigAccessor();
 
 export function codicon(name: string) {
     return "$(" + name + ")";
 }
 
-export function makeSwarmHostURL(change: p4.FileLogItem, swarmHost: string) {
-    return swarmHost + "/changes/" + change.chnum + ' "Open in swarm"';
+export function makeSwarmHostURL(change: p4.FileLogItem) {
+    return _config.getSwarmLink(change.chnum) + ' "Open in review tool"';
 }
 
 function makeCommandURI(command: string, ...args: any[]) {
@@ -91,8 +94,7 @@ export function makeAllLinks(
     underlying: vscode.Uri,
     change: p4.FileLogItem,
     latestChange: p4.FileLogItem,
-    prevChange?: p4.FileLogItem,
-    swarmHost?: string
+    prevChange?: p4.FileLogItem
 ) {
     const diffLink = prevChange
         ? makeMarkdownLink("Diff Previous", makeDiffURI(underlying, prevChange, change))
@@ -108,8 +110,8 @@ export function makeAllLinks(
         change !== latestChange
             ? makeMarkdownLink("Annotate", makeAnnotateURI(underlying, change))
             : undefined;
-    const swarmLink = swarmHost
-        ? makeMarkdownLink(codicon("eye"), makeSwarmHostURL(change, swarmHost), true)
+    const swarmLink = _config.swarmHost
+        ? makeMarkdownLink(codicon("eye"), makeSwarmHostURL(change), true)
         : undefined;
     const moreLink = makeMarkdownLink(
         "…",

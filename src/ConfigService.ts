@@ -84,6 +84,17 @@ export class ConfigAccessor {
     public get swarmHost(): string | undefined {
         return this.getConfigItem("swarmHost");
     }
+
+    public getSwarmLink(chnum: string): string | undefined {
+        const host = this.swarmHost;
+        if (!host) {
+            return undefined;
+        }
+        if (host.includes("${chnum}")) {
+            return host.replace("${chnum}", chnum);
+        }
+        return host + "/changes/" + chnum;
+    }
 }
 
 export class WorkspaceConfigAccessor extends ConfigAccessor {

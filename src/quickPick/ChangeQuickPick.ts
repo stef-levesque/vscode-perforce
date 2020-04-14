@@ -8,7 +8,7 @@ import { Display } from "../Display";
 import { DescribedChangelist } from "../api/PerforceApi";
 import { showQuickPickForFile } from "./FileQuickPick";
 import { toReadableDateTime } from "../DateFormatter";
-import { WorkspaceConfigAccessor } from "../ConfigService";
+import { ConfigAccessor } from "../ConfigService";
 
 const nbsp = "\xa0";
 
@@ -26,7 +26,7 @@ export const changeQuickPickProvider: qp.ActionableQuickPickProvider = {
         }
 
         const change = changes[0];
-        const actions = makeSwarmPick(resource, changes[0]).concat(
+        const actions = makeSwarmPick(changes[0]).concat(
             makeClipboardPicks(resource, changes[0]),
             makeJobPicks(resource, changes[0]),
             makeFilePicks(resource, change)
@@ -68,24 +68,19 @@ function getOperationIcon(operation: string) {
     }
 }
 
-function makeSwarmPick(
-    resource: vscode.Uri,
-    change: DescribedChangelist
-): qp.ActionableQuickPickItem[] {
-    const config = new WorkspaceConfigAccessor(
-        PerforceUri.getUsableWorkspace(resource) ?? resource
-    );
-    const host = config.swarmHost;
-    if (!host) {
+function makeSwarmPick(change: DescribedChangelist): qp.ActionableQuickPickItem[] {
+    const config = new ConfigAccessor();
+
+    const swarmAddr = config.getSwarmLink(change.chnum);
+    if (!swarmAddr) {
         return [];
     }
 
-    const swarmAddr = host + "/changes/" + change.chnum;
     try {
-        const uri = vscode.Uri.parse(swarmAddr);
+        const uri = vscode.Uri.parse(swarmAddr, true);
         return [
             {
-                label: "$(eye) Open in swarm",
+                label: "$(eye) Open in review tool",
                 description: "$(link-external) " + uri.toString(),
                 performAction: () => {
                     vscode.env.openExternal(uri);
@@ -93,7 +88,11 @@ function makeSwarmPick(
             },
         ];
     } catch (err) {
-        Display.showImportantError("Could not parse swarm link " + swarmAddr);
+        Display.showImportantError(
+            "Could not parse swarm link " +
+                swarmAddr +
+                " - make sure you have included the protocol, e.g. https://"
+        );
         return [];
     }
 }

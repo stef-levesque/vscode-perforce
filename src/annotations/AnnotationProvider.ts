@@ -6,7 +6,6 @@ import * as PerforceUri from "../PerforceUri";
 import * as md from "./MarkdownGenerator";
 import * as ColumnFormatter from "./ColumnFormatter";
 import { Display } from "../Display";
-import { ConfigAccessor } from "../ConfigService";
 
 const nbsp = "\xa0";
 
@@ -157,7 +156,7 @@ export class AnnotationProvider {
         this._subscriptions.forEach((d) => d.dispose());
     }
 
-    static async annotate(uri: vscode.Uri, swarmHost?: string) {
+    static async annotate(uri: vscode.Uri) {
         const existing = this._annotationsByUri.get(uri);
         if (existing) {
             // TODO - this gets rid of the existing one and gets the new perforce details instead
@@ -180,7 +179,7 @@ export class AnnotationProvider {
         const logPromise = p4.getFileHistory(underlying, { file: uri, followBranches });
 
         const [annotations, log] = await Promise.all([annotationsPromise, logPromise]);
-        const decorations = getDecorations(underlying, swarmHost, annotations, log);
+        const decorations = getDecorations(underlying, annotations, log);
 
         // try to use the depot URI to open the document, so that we can perform revision actions on it
         if (!uri.fragment && !PerforceUri.isDepotUri(uri) && log[0]) {
@@ -198,16 +197,9 @@ function makeHoverMessage(
     underlying: vscode.Uri,
     change: p4.FileLogItem,
     latestChange: p4.FileLogItem,
-    prevChange?: p4.FileLogItem,
-    swarmHost?: string
+    prevChange?: p4.FileLogItem
 ): vscode.MarkdownString {
-    const links = md.makeAllLinks(
-        underlying,
-        change,
-        latestChange,
-        prevChange,
-        swarmHost
-    );
+    const links = md.makeAllLinks(underlying, change, latestChange, prevChange);
 
     const markdown = new vscode.MarkdownString(
         md.makeUserAndDateSummary(underlying, change) +
@@ -261,7 +253,6 @@ function makeDecoration(
 
 function getDecorations(
     underlying: vscode.Uri,
-    swarmHost: string | undefined,
     annotations: (p4.Annotation | undefined)[],
     log: p4.FileLogItem[]
 ): vscode.DecorationOptions[] {
@@ -315,8 +306,7 @@ function getDecorations(
                 underlying,
                 change,
                 latestChange,
-                prevChange,
-                swarmHost
+                prevChange
             );
 
             return makeDecoration(
@@ -335,6 +325,5 @@ function getDecorations(
 }
 
 export async function annotate(uri: vscode.Uri) {
-    const swarmHost = new ConfigAccessor().swarmHost;
-    return AnnotationProvider.annotate(uri, swarmHost);
+    return AnnotationProvider.annotate(uri);
 }
