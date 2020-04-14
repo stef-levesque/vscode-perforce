@@ -372,8 +372,14 @@ export namespace PerforceCommands {
         if (!uri) {
             return false;
         }
-
-        await AnnotationProvider.annotate(uri);
+        await window.withProgress(
+            {
+                location: ProgressLocation.Window,
+                cancellable: false,
+                title: "Generating annotations",
+            },
+            () => AnnotationProvider.annotate(uri)
+        );
     }
 
     export function opened() {

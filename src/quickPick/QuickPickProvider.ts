@@ -64,7 +64,14 @@ export async function showQuickPick(type: string, ...args: any[]) {
     const provider = registeredQuickPickProviders.get(type);
 
     if (provider) {
-        const actions = await provider.provideActions(...args);
+        const actions = await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Window,
+                title: "Getting actions for quick pick",
+                cancellable: false,
+            },
+            () => provider.provideActions(...args)
+        );
         const stackActions = makeStackActions();
 
         const picked = await vscode.window.showQuickPick(
