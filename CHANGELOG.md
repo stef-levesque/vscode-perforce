@@ -1,5 +1,15 @@
 # Change log
 
+## [4.1.0] - 2020-04-14
+
+* The extension now checks for perforce clients when you open files outside of the workspace. If a new perforce client is found, it will create an SCM provider so you can manage changelists in that client. This is on by default but can be disabled using the setting `perforce.scm.activateOnFileOpen`
+* Add an option to hide *changelists* that only contain non-workspace files - instead of hiding all files outside of the workspace (#90)
+* Add support for changelist-based review tools other than swarm - specify a full URL including "${chnum}" in the `perforce.swarmHost` setting (#88)
+* Add "open in review tool" context menu item to changelists when the swarm host is specified (#94)
+* Add progress indicators when annotating or using the quick pick, for files with lots of lines or lots of revisions where it can take a little longer
+* Fix an issue where various commands would not work if the depot name contained any upper case characters (#97)
+* Fix shelved files not being hidden when "hide non-workspace files" was selected (#98)
+
 ## [4.0.0] - 2020-04-10
 
 **Possible breaking changes in this release!** - this is the main reason for the major version update to v4. The possible breaking changes are mainly around the use of P4CONFIG files.
@@ -283,6 +293,7 @@ Otherwise, this version *should* be backward compatible. The following changes h
 * `edit` command on opened file
 * `revert` command on opened file
 
+[4.1.0]: https://github.com/mjcrouch/vscode-perforce/compare/4.0.0...4.1.0
 [4.0.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.10.0...4.0.0
 [3.10.0]: https://github.com/mjcrouch/vscode-perforce/compare/3.9.1...3.10.0
 [3.9.1]: https://github.com/mjcrouch/vscode-perforce/compare/3.9.0...3.9.1
