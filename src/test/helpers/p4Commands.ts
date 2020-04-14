@@ -179,6 +179,7 @@ export default function (chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
             localFile: vscode.Uri;
             resolveFromDepotPath?: string;
             resolveEndFromRev?: number;
+            suppressFstatClientFile?: boolean;
         }[]
     ) {
         const obj: Resource[] = this._obj as Resource[];
@@ -193,7 +194,9 @@ export default function (chai: Chai.ChaiStatic, _utils: Chai.ChaiUtils) {
                 Assertion,
                 resource.resourceUri,
                 PerforceUri.fromDepotPath(
-                    resource.model.workspaceUri,
+                    expected.suppressFstatClientFile
+                        ? resource.model.workspaceUri
+                        : expected.localFile,
                     expected.depotPath,
                     "@=" + change.chnum
                 ),

@@ -8,6 +8,7 @@ export type UriArguments = {
     leftUri?: string;
     haveRev?: string;
     diffStartFile?: string;
+    depotName?: string;
 };
 
 type AnyUriArguments = {
@@ -15,7 +16,8 @@ type AnyUriArguments = {
 };
 
 export function getDepotPathFromDepotUri(uri: vscode.Uri): string {
-    return "//" + uri.authority + uri.path;
+    const args = decodeUriQuery(uri.query);
+    return "//" + (args.depotName ?? uri.authority) + uri.path;
 }
 
 function encodeParam(param: string, value?: string | boolean) {
@@ -45,9 +47,11 @@ export function fromDepotPath(
     const baseUri = vscode.Uri.parse("perforce:" + depotPath).with({
         fragment: revisionOrAtLabel,
     });
+    const depotName = depotPath.split("/")[2];
     return fromUri(baseUri, {
         depot: true,
         workspace: workspace.fsPath,
+        depotName,
     });
 }
 

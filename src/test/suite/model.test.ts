@@ -1151,7 +1151,8 @@ describe("Model & ScmProvider modules (integration)", () => {
                         fragment: "4",
                         query:
                             "command=print&p4Args=-q&depot&workspace=" +
-                            encodeURIComponent(basicFiles.moveAdd().localFile.fsPath),
+                            encodeURIComponent(basicFiles.moveAdd().localFile.fsPath) +
+                            "&depotName=depot",
                     })
                 );
             });
